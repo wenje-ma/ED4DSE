@@ -1,21 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 批量运行 ipynb 中的 R 代码单元格，并把绘图输出保存为 PNG 图片。
-
 功能：
-  - 扫描一批 .ipynb 文件，抽取其中的 R 代码单元格
+  - 弹出对话框选择一个或多个 .ipynb 文件，抽取其中的 R 代码单元格
   - 每个代码单元格用独立的 PNG 图形设备运行，图片按「单元格_图序」编号
   - 尺寸解析自 options(repr.plot.width/height)，缺省 7×7 英寸、150 dpi
-  - 图片保存到源文件所在目录下 figures/<notebook名>/ 子文件夹
+  - 默认：PNG输出与源ipynb放在**同一文件夹**；可--out指定统一输出目录
   - 单个单元格报错不影响其余单元格，最终打印成功/失败汇总
-
-用法（在 ED4DSE 目录下）：
-  python ipynb_run_figs.py                 # 默认批量处理 text/ 下全部 .ipynb
-  python ipynb_run_figs.py --dir text      # 指定目录
-  python ipynb_run_figs.py a.ipynb b.ipynb # 指定若干文件
-  python ipynb_run_figs.py --out figs      # 自定义图片根目录（相对 notebook 目录）
+用法：
+  python ipynb_run_figs.py                     # 弹出文件选择框
+  python ipynb_run_figs.py --out ./my_pngs     # 全部输出到指定目录
 """
-
 import argparse
 import glob
 import json
@@ -25,6 +20,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tkinter
+from tkinter import filedialog
 
 
 def clean_env():
@@ -34,12 +31,10 @@ def clean_env():
         del env[k]
     return env
 
+
 # Rscript 路径：优先用 PATH 里的，否则用常见安装位置
 RSCRIPT = shutil.which("Rscript") or r"C:\Program Files\R\R-4.6.1\bin\Rscript.exe"
-
-DEFAULT_DIR = "text"
-OUTPUT_ROOT = "figures"          # 图片根目录（相对 notebook 所在目录）
-RES = 150                        # dpi
+RES = 150                      # dpi
 DEFAULT_W, DEFAULT_H = 7.0, 7.0  # 缺省尺寸（英寸）
 
 
@@ -69,14 +64,12 @@ def r_string(s):
     return '"' + s.replace('"', '\\"') + '"'
 
 
-def build_r_script(nb_dir, nb_name, cells, rel_fig_dir):
+def build_r_script(out_dir_abs, nb_name, cells):
     """生成一个 R 脚本：逐单元格用独立 png 设备运行，保存图片。"""
     lines = []
     lines.append("# 自动生成：运行 notebook 的 R 代码并保存图片")
-    lines.append("setwd(%s)" % r_string(nb_dir))
-    lines.append("dir.create(%s, showWarnings = FALSE, recursive = TRUE)" % r_string(rel_fig_dir))
+    lines.append("dir.create(%s, showWarnings = FALSE, recursive = TRUE)" % r_string(out_dir_abs))
     lines.append("")
-
     cur_w, cur_h = DEFAULT_W, DEFAULT_H
     for idx, src in enumerate(cells, 1):
         # 解析该单元格内最后一次设置的绘图尺寸（缺省继承上一个单元格）
@@ -87,10 +80,8 @@ def build_r_script(nb_dir, nb_name, cells, rel_fig_dir):
         if hm:
             cur_h = float(hm[-1])
         w, h = cur_w, cur_h
-
-        # %03d 让 R 在同一单元格多张图时自动编号
-        png_pattern = "%s/%s_c%02d_%%03d.png" % (rel_fig_dir, nb_name, idx)
-
+        # 图片文件名：{nb_name}_c{02d}_{%03d}.png
+        png_pattern = os.path.join(out_dir_abs, f"{nb_name}_c{idx:02d}_%03d.png")
         lines.append("# ---- cell %d (%.1f x %.1f in) ----" % (idx, w, h))
         lines.append(
             'png(%s, width = %.1f, height = %.1f, units = "in", res = %d)'
@@ -107,33 +98,31 @@ def build_r_script(nb_dir, nb_name, cells, rel_fig_dir):
         # 关闭本单元格打开的所有图形设备，避免设备泄漏/跨单元格污染
         lines.append("while (dev.cur() > 1) dev.off()")
         lines.append("")
-
     return "\n".join(lines)
 
 
-def run_notebook(nb_path, out_root):
-    """运行单个 notebook，返回 (状态, 信息)。"""
+def run_notebook(nb_path, global_out_dir):
+    """
+    运行单个 notebook，返回 (状态, 信息)。
+    global_out_dir: None=输出到nb所在文件夹；否则全部输出到此统一目录
+    """
     nb_dir = os.path.dirname(os.path.abspath(nb_path))
     nb_name = os.path.splitext(os.path.basename(nb_path))[0]
-    rel_fig_dir = "%s/%s" % (out_root, nb_name)
-    fig_dir_abs = os.path.join(nb_dir, out_root, nb_name)
+    if global_out_dir is None:
+        out_dir_abs = nb_dir
+    else:
+        out_dir_abs = os.path.abspath(global_out_dir)
 
     cells = extract_r_cells(nb_path)
     if not cells:
         return "skip", "无代码单元格"
 
-    # 清空旧图片，保证结果幂等
-    if os.path.isdir(fig_dir_abs):
-        shutil.rmtree(fig_dir_abs)
-
-    r_code = build_r_script(nb_dir, nb_name, cells, rel_fig_dir)
-
-    # 写临时 R 脚本（UTF-8 无 BOM，配合清理后的 locale 让中文正确解析）
+    r_code = build_r_script(out_dir_abs, nb_name, cells)
+    # 写临时 R 脚本（UTF‑8 无 BOM，配合清理后的 locale 让中文正确解析）
     fd, tmp_path = tempfile.mkstemp(suffix=".R", prefix="nb_figs_")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(r_code)
-
         proc = subprocess.run(
             [RSCRIPT, tmp_path],
             cwd=nb_dir,
@@ -149,9 +138,9 @@ def run_notebook(nb_path, out_root):
         except OSError:
             pass
 
-    n_figs = len(glob.glob(os.path.join(fig_dir_abs, "*.png")))
+    pattern = os.path.join(out_dir_abs, f"{nb_name}_c*.png")
+    n_figs = len(glob.glob(pattern))
     err_cells = re.findall(r"__CELL_ERROR__ (\d+):", proc.stderr)
-
     if err_cells:
         detail = "cell %s 报错" % ",".join(err_cells)
         first = proc.stderr.strip().splitlines()
@@ -163,30 +152,32 @@ def run_notebook(nb_path, out_root):
     return "ok", "生成 %d 张图片" % n_figs
 
 
-def collect_files(args):
-    """根据命令行参数确定要处理的 ipynb 列表。"""
-    if args.files:
-        return args.files
-    if args.dir:
-        return sorted(glob.glob(os.path.join(args.dir, "*.ipynb")))
-    return sorted(glob.glob(os.path.join(DEFAULT_DIR, "*.ipynb")))
+def select_ipynb_files():
+    """弹出tk多选对话框，选择ipynb文件"""
+    root = tkinter.Tk()
+    root.withdraw()  # 隐藏主窗口
+    root.attributes("-topmost", True)
+    file_paths = filedialog.askopenfilenames(
+        title="选择一个或多个 .ipynb 文件",
+        filetypes=[("Jupyter Notebook", "*.ipynb"), ("所有文件", "*.*")]
+    )
+    root.destroy()
+    return list(file_paths)
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="批量运行 ipynb 的 R 代码单元格并保存图片")
-    parser.add_argument("files", nargs="*", help="要处理的 .ipynb 文件")
-    parser.add_argument("--dir", help="批量处理指定目录下的全部 .ipynb")
-    parser.add_argument("--out", default=OUTPUT_ROOT, help="图片根目录（相对 notebook 目录），默认 figures")
+    parser = argparse.ArgumentParser(description="弹窗选择ipynb，批量运行R单元格导出PNG")
+    parser.add_argument("--out", default=None, help="可选：统一输出PNG到该目录；默认PNG与ipynb同目录")
     args = parser.parse_args(argv)
 
     if not os.path.isfile(RSCRIPT):
         print("未找到 Rscript，请安装 R 或修改脚本中的 RSCRIPT 路径。")
         return 1
 
-    targets = collect_files(args)
+    targets = select_ipynb_files()
     if not targets:
-        print("未找到任何 .ipynb 文件。")
-        return 1
+        print("未选择任何文件，退出。")
+        return 0
 
     print("Rscript: %s" % RSCRIPT)
     print("待处理 %d 个 notebook：\n" % len(targets))

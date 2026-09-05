@@ -11,7 +11,10 @@
   python ipynb_run_figs.py                     # 弹出文件选择框
   python ipynb_run_figs.py --out ./my_pngs     # 全部输出到指定目录
 """
+<<<<<<< HEAD
 
+=======
+>>>>>>> fcf8f7d90cd294f26cec8da353ebba71db3468c1
 import argparse
 import glob
 import json
@@ -23,7 +26,10 @@ import sys
 import tempfile
 import tkinter
 from tkinter import filedialog
+<<<<<<< HEAD
 from pathlib import Path
+=======
+>>>>>>> fcf8f7d90cd294f26cec8da353ebba71db3468c1
 
 
 def clean_env():
@@ -47,7 +53,11 @@ def cell_text(cell):
     return src
 
 
+<<<<<<< HEAD
 def extract_r_cells(nb_path: Path):
+=======
+def extract_r_cells(nb_path):
+>>>>>>> fcf8f7d90cd294f26cec8da353ebba71db3468c1
     """抽取 notebook 中所有非空 R 代码单元格的源码，按顺序返回列表。"""
     with open(nb_path, "r", encoding="utf-8") as f:
         nb = json.load(f)
@@ -103,7 +113,11 @@ def build_r_script(out_dir_abs, nb_name, cells):
     return "\n".join(lines)
 
 
+<<<<<<< HEAD
 def run_notebook(nb_path: Path, global_out_dir: str | None):
+=======
+def run_notebook(nb_path, global_out_dir):
+>>>>>>> fcf8f7d90cd294f26cec8da353ebba71db3468c1
     """
     运行单个 notebook，返回 (状态, 信息)。
     global_out_dir: None=输出到nb所在文件夹；否则全部输出到此统一目录
@@ -190,7 +204,11 @@ def main(argv=None):
     stats = {"ok": 0, "skip": 0, "warn": 0, "error": 0}
     for i, nb_path in enumerate(targets, 1):
         name = os.path.basename(nb_path)
+<<<<<<< HEAD
         status, info = run_notebook(Path(nb_path), args.out)
+=======
+        status, info = run_notebook(nb_path, args.out)
+>>>>>>> fcf8f7d90cd294f26cec8da353ebba71db3468c1
         stats[status] = stats.get(status, 0) + 1
         tag = {"ok": "OK ", "skip": "跳过", "warn": "警告", "error": "失败"}[status]
         print("[%2d/%d] %-6s %-28s %s" % (i, len(targets), tag, name, info))
@@ -202,4 +220,8 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     sys.exit(main())
+=======
+    sys.exit(main())
+>>>>>>> fcf8f7d90cd294f26cec8da353ebba71db3468c1

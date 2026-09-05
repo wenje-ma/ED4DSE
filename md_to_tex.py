@@ -11,11 +11,13 @@ LATEX_HEADER = r"""\documentclass{ctexart}
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{graphicx}
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{mathrsfs}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \usepackage{tcolorbox}
 \tcbuselibrary{skins}
 \newtcolorbox{mdquote}{blanker,left=2.5em,right=2.5em,top=0.5em,bottom=0.5em,borderline west={3pt}{0pt}{gray!50}}
+\usepackage{anyfontsize}
 
 \begin{document}
 
@@ -45,6 +47,24 @@ def is_table_separator(line: str) -> bool:
     return True
 
 
+def protect_math_bars(text: str) -> str:
+    """保护公式内的 |，避免被误当表格分隔符"""
+    def protect(match):
+        content = match.group(0)
+        return content.replace('|', '∎PLACEHOLDER∎')
+    
+    # 保护行内公式 $...$
+    text = re.sub(r'\$[^\$]+\$', protect, text)
+    # 保护块级公式 $$...$$
+    text = re.sub(r'\$\$[^\$]+\$\$', protect, text)
+    return text
+
+
+def restore_math_bars(text: str) -> str:
+    """恢复公式内的 |"""
+    return text.replace('∎PLACEHOLDER∎', '|')
+
+
 def process_math_in_quote(text: str) -> str:
     def replace_math(match):
         content = match.group(1).strip()
@@ -53,8 +73,12 @@ def process_math_in_quote(text: str) -> str:
             env_name = env_match.group(1)
             if env_name == 'aligned':
                 return f'\\begin{{equation*}}\n{content}\n\\end{{equation*}}'
-            return content
-        return f'\\begin{{equation*}}\n{content}\n\\end{{equation*}}'
+            elif env_name in ['align', 'align*']:
+                return content
+            else:
+                return f'\\begin{{equation*}}\n{content}\n\\end{{equation*}}'
+        else:
+            return f'\\begin{{equation*}}\n{content}\n\\end{{equation*}}'
     return re.sub(r'\$\$\s*(.*?)\s*\$\$', replace_math, text, flags=re.DOTALL)
 
 
@@ -128,8 +152,12 @@ def convert_md_to_tex(md_content):
             continue
 
         if '|' in line and line.strip().startswith('|') and not is_table_separator(line):
+            # 保护公式内的 |
+            protected_line = protect_math_bars(line)
+            
             table_rows = []
-            header_cells = [cell.strip() for cell in line.split('|')[1:-1]]
+            header_cells = [cell.strip() for cell in protected_line.split('|')[1:-1]]
+            header_cells = [restore_math_bars(cell) for cell in header_cells]
             table_rows.append(header_cells)
             num_cols = len(header_cells)
             i += 1
@@ -154,7 +182,9 @@ def convert_md_to_tex(md_content):
                 if is_table_separator(lines[i]):
                     i += 1
                     continue
-                cells = [cell.strip() for cell in lines[i].split('|')[1:-1]]
+                protected_data_line = protect_math_bars(lines[i])
+                cells = [cell.strip() for cell in protected_data_line.split('|')[1:-1]]
+                cells = [restore_math_bars(cell) for cell in cells]
                 if cells:
                     table_rows.append(cells)
                 i += 1
@@ -194,8 +224,12 @@ def convert_md_to_tex(md_content):
                     tex_lines.append('\\begin{equation*}')
                     tex_lines.append(content)
                     tex_lines.append('\\end{equation*}')
-                else:
+                elif env_name in ['align', 'align*']:
                     tex_lines.append(content)
+                else:
+                    tex_lines.append('\\begin{equation*}')
+                    tex_lines.append(content)
+                    tex_lines.append('\\end{equation*}')
             else:
                 tex_lines.append('\\begin{equation*}')
                 tex_lines.append(content)
@@ -218,8 +252,12 @@ def convert_md_to_tex(md_content):
                     tex_lines.append('\\begin{equation*}')
                     tex_lines.append(formula_content)
                     tex_lines.append('\\end{equation*}')
-                else:
+                elif env_name in ['align', 'align*']:
                     tex_lines.append(formula_content)
+                else:
+                    tex_lines.append('\\begin{equation*}')
+                    tex_lines.append(formula_content)
+                    tex_lines.append('\\end{equation*}')
             else:
                 tex_lines.append('\\begin{equation*}')
                 tex_lines.append(formula_content)

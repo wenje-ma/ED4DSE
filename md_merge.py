@@ -7,15 +7,15 @@ def merge_markdown_files(selected_md_paths: list[str], output_md_path: str | Non
     """
     将多选的若干md文件合并为一个大markdown，不生成 <!-- source file: --> 注释
     :param selected_md_paths: 用户对话框选中的md路径列表
-    :param output_md_path: 输出完整md路径，None则放在第一个md同目录生成merged_all.md
+    :param output_md_path: 输出完整md路径，None则放在第一个md同目录生成document.md
     :return: 输出文件路径字符串
     """
     if len(selected_md_paths) == 0:
         raise ValueError("没有传入待合并的Markdown文件")
-    # 默认输出位置：第一个md所在文件夹下 merged_all.md
+    # 默认输出位置：第一个md所在文件夹下 document.md
     first_file = Path(selected_md_paths[0])
     if output_md_path is None:
-        out_file = first_file.parent / "merged_all.md"
+        out_file = first_file.parent / "document.md"
     else:
         out_file = Path(output_md_path)
 

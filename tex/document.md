@@ -1,0 +1,5329 @@
+
+
+# 1 实验
+
+## 1.1 概述
+
+科学与工程领域的一项重要任务是建立系统输入与输出之间的关联。我们所研究的“系统”范畴十分广泛，可以是火箭发动机、机械加工过程，甚至是人脑。以机械加工过程为例，输入量可以是加工转速或者刀具的特定切削角度，而输出量则可以是刀具承受的作用力或是工件的温度。
+
+构建输入输出关系（也称为响应曲面）的一种方法是采集系统数据，并利用统计学与机器学习方法推导该关系。当数据获取成本高昂且资源有限时，我们需要合理规划数据采集流程，以最低的成本和时间获取“有效”数据。针对系统开展周密规划的试验是实现这一目标的途径之一。此处所说的试验，指主动对输入进行有目的调整并观测输出；与之相对的是观测研究，观测研究仅单纯记录输入与输出，不对系统施加任何改动。试验设计就是开展这类试验的方案，规定了从系统中采集数据的位置与方式。
+
+构建输入输出关系的另一种方法是采用支配该系统的物理定律（例如牛顿定律）并推导得到对应关系。有人可能认为采用这种方法无需数据或实验，但事实并非如此！基于物理的模型可能包含未知常数（例如摩擦系数），只有获取物理系统的实测数据才能确定这些常数。此外，基于物理的模型不一定是便于求解的解析函数，往往需要借助复杂的数值方法，例如采用有限元法求解基础数学模型（该模型可能是偏微分方程组）。在计算机上对求解流程进行数值实现后，通常被称作计算机模型或仿真器。由于计算机模型的计算成本较高，我们依旧需要精心设计计算机仿真实验。因此，试验设计在此场景下同样十分重要，只是实验的实施方式不再需要重点考虑，我们只需关注仿真实验的采样位置。
+
+在部分情况下，可能需要结合上述两种方法，才能完整建立输入输出关系。举例而言，研究人员或许无法充分掌握系统特性，所构建的基于物理机理的模型仅具备部分正确性。这种情形十分普遍，大多数工程系统或生物系统复杂度极高，难以单纯依靠物理规律构建完整模型。因此，我们还需要采集实际物理系统的数据，用以弥补物理机理缺失带来的偏差，并对计算机模型开展校准工作。该过程同时需要物理实验与仿真实验。
+
+## 1.2 应用
+
+一旦建立输入输出关系，便可应用于多种场景，例如系统优化或系统控制。下文列举若干实际案例。
+
+克里希纳等人（2024）致力于寻找稳定的晶体结构。然而，在实验室中制备具有不同晶体结构的材料并研究其稳定性，过程繁琐、成本高昂且十分耗时。自然界中存在的晶体结构通常具备较低的势能。因此，一种更为可行的方法是借助密度泛函理论（DFT）计算晶体结构的势能，进而找到使势能最小的最优原子构型。尽管该计算方法成本更低，但相关研究依旧存在不小难度：密度泛函理论计算开销大，且可供探索的原子构型空间十分庞大。除此之外，势能面存在大量局部极小值（例如石墨与金刚石就是碳原子的两种不同构型），进一步增加了问题的复杂程度。试验设计方法能够高效搜寻庞大的原子构型空间，以最少的密度泛函理论计算寻找到全局最优解。
+
+黄等人（2021）阐述了制备用于化学分离的杂化膜所面临的问题。将金属颗粒注入聚合物膜内制备杂化膜，使其在化学分离过程中不易溶解，该制备过程采用气相渗透工艺。任等人（2021）建立了反应-扩散模型，用以预测聚合物膜中截留的金属颗粒含量。但该模型包含五个未知参数（如扩散常数），需要确定参数数值后模型才可用于预测。这属于模型校准问题，然而常规非线性回归方法难以求解，原因在于该计算机模型的运算成本较高。因此，需要借助试验设计方法高效解决该问题。
+
+古尔等人（2018）报道了一家机械加工软件公司遇到的问题。实体立铣仿真过程中的仿真器具有确定性，即在相同输入参数设置下，输出的切向力结果保持一致。但在实际工况中，刀具会发生磨损，工件材料特性也存在件间差异。因此，实际输出的作用力不会与仿真预测值完全吻合，作用力大小会随刀具状态与材料状态产生一定波动。这家软件公司希望为预测结果增设置信区间，量化输入参数带来的不确定性。构建该置信区间的一种简易方法是采用蒙特卡洛（MC）方法：从输入参数的分布中抽取随机样本，运行仿真器得到一组输出曲线，基于这些曲线即可求解例如 95% 置信区间。若选取大量蒙特卡洛样本，得到的置信区间将具备较高精度。然而该方案效率偏低，原因在于仿真运算成本较高。对此，可借助试验设计方法，从输入分布中进行最优采样并实现不确定性传递，从而节约仿真耗时。
+
+上述实例的研究目标各不相同：第一个晶体结构相关问题属于优化问题，第二个膜相关问题为标定问题，第三个机械加工相关问题则涉及不确定性传递。不存在一套适用于所有这类问题的最优试验设计方案。实际上，最优试验设计会随研究目标与响应曲面类型的变化而改变。图 1.4 展示了若干基于一维函数的示例。举例而言，若目标是近似拟合响应曲面：当响应曲面起伏较大时，采用均匀填充样本空间的设计方案效果较好（图 1.4 左上子图）；而当函数曲线平滑时，在边界附近布置更多样本点的设计方案更为合适（右上子图）。倘若目标是求取函数最大值，则应在全局最大值附近布置更多设计点（左下子图）。与之相对，若研究目标为不确定性传递，设计点的布置方式需要贴合输入量的分布特征（右下子图，图中曲线代表输入量的概率密度）。
+
+> **图 1.4**：针对不同目标的最优实验设计（实心圆点）
+
+![Alt Text](figures/1.4.png){width=67%}
+
+试验设计规定了数据的采集位置。因此，在寻找最优试验设计时，我们手中暂无任何数据。换言之，开展试验设计阶段，我们对响应曲面一无所知。然而图 1.4 表明，最优试验设计依赖于底层响应曲面（最后一种情况除外）。由此可见，求解最优试验设计看似是一个定义不明确的问题。所幸存在一种解决思路：我们无需预先确定全部试验点。可以先构建初始设计、采集数据，再确定下一组试验的开展位置。该方法被称为序贯设计方法（在机器学习相关文献中也称作主动学习）。对于初始设计而言，图 1.4 左上角子图中均匀分布的试验点是一种较为理想的方案，这类设计称为空间填充设计，后续章节将对其展开详细讨论。
+
+## 1.3 不确定性的作用
+
+如果我们能够充分掌握底层响应曲面的全部信息，就无需采集数据或是开展任何实验。正是由于对响应曲面存在认知不确定性，我们才需要开展实验、收集数据。数据能够带来新信息，降低我们对响应曲面的认知不确定性。因此，开展能够最大化信息获取量或最小化不确定性的实验具备现实意义。正如林德利（1956）所述，最优实验设计理论可以借助信息论（香农，1948）中的相关概念构建。不过，只要具备量化不确定性的方法，本书探讨的绝大多数实验设计方法，无需深入研究信息论也能够推导得出。我们将采用若干统计建模方法对不确定性进行量化。
+
+为探讨建模方法，我们首先引入一些符号。设 $\boldsymbol{x}=(x_1,\dots,x_p)'$ 为 $p$ 个输入变量（也称为影响因子），$y$ 为输出变量（或称响应值）。系统可能存在多个输出变量，但多数情况下，只需针对多输入单输出系统构建建模方法，之后可将该方法分别应用于各个输出变量。假设统计模型：
+
+$$
+y=h(\boldsymbol{x})+\epsilon
+\tag{1.1}
+$$
+
+式中 $h(\boldsymbol{x})$ 代表输入输出关系（响应曲面），$\epsilon$ 为随机误差；该误差由大量其他潜在影响输出、但未纳入实验的因素波动产生。在物理实验中，$\epsilon$ 同时包含仪器带来的测量误差。若实验依托确定性计算机模型开展，则可忽略误差项 $\epsilon$。通常假定 $\epsilon\sim\mathcal{N}(0,\sigma^2)$，其中 $\sigma^2$ 为随机误差的方差。式(1.1)中的正态性假设与加性误差假设未必成立，实际应用中可能需要采用变量变换进行处理（博克斯和考克斯，1964）。
+
+假设我们开展一项单因素试验，该因素设置两个取值（也称为水平）：$x=0$ 和 $x=1$，每种水平设置 3 次重复试验。试验数据如图 1.5 中蓝色实心圆点所示。设 $h(\cdot)$ 为图中黑色实线代表的函数，试验人员并不知晓该函数形式。线性回归模型在物理试验中应用广泛（吴与滨田，2021）。假设我们采用模型 $y_i=\beta_0+\beta_1x_i+\epsilon_i$ 拟合数据，其中对 $i=1,\dots,n$（本例中$n=6$），$\epsilon_i$ 独立同分布，服从正态分布 $\mathcal{N}(0,\sigma^2)$。拟合得到的直线以及 95% 置信区间展示在图的左侧子图。高斯过程（GP）回归（拉斯穆森、威廉姆斯，2006）在此类场景中较少使用，相关拟合结果同样展示在该图的右侧子图。
+
+> **图 1.5**：线性回归与高斯过程回归的对比
+
+![Alt Text](figures/1.5.png){width=67%}
+
+尽管线性回归与高斯过程回归（GP回归）得到的预测值大致相同，但二者的预测区间却截然不同。这是由两类模型量化预测不确定性的方式决定的，理解二者之间的差异十分重要。线性回归的预测不确定性包含参数估计（$\widehat{\beta}_0$ 和 $\widehat{\beta}_1$）带来的不确定性以及随机误差（$\epsilon$）。该模型在取值端点处（$x=0$ 和 $x=1$）不确定性最大，在中点位置（$x=0.5$）不确定性最小。与之不同，高斯过程回归属于非参数回归方法，因此其预测不确定性包含关于函数 $h(\cdot)$ 的不确定性与随机误差。在已有观测数据的位置，它的不确定性最低，而在区间中点处不确定性达到峰值，这与线性回归的特征恰好相反！
+
+绝大多数物理实验的实验设计都是基于线性回归模型构建而成（博克斯等人，1978；蒙哥马利，2017；吴与滨田，2021）。这是否意味着这类实验设计没有实用价值？其实并非如此！当因子数量（$p$）较多，而实验次数（$n$）较少时，高斯过程回归在边界处同样会产生较大不确定性，该现象与线性回归所得结论一致。大多数物理实验都具备该特征（多因子、少实验次数）；因此，采用线性回归框架或高斯过程回归框架大概率会得到相同结果。不过，若依托线性回归框架开展研究，会对最优设计的探索带来一定局限。
+
+假设我们需要针对 6 个连续因子开展试验，试验预算约为 30 次试验（也称为试验运行次数）。研究者可以考虑采用二水平部分因子设计 $2^{6-1}$，该设计需要 32 次试验。除此之外，也可以选用三水平部分因子设计 $3^{6-3}$，该设计仅需 27 次试验；或是采用包含 29 次试验的中心复合设计（12 个轴向点、16 个立方点以及 1 个中心点）。现有试验设计相关文献并未明确说明应当选择上述哪种设计。究其原因，每种设计均预先假定了特定的线性回归模型，并未考虑模型设定错误的可能性。学术界很早就意识到，我们需要构建对模型设定错误具备稳健性的试验设计。但线性回归模型无法完整刻画模型存在的不确定性，这限制了这类设计的实用价值。举例来说，我们可以构造 $2^{6-1}$ 最小低阶混杂设计（弗里斯、亨特，1980），该设计被视作具备模型稳健性的设计（郑等人，1999）。然而，该设计仅对包含主效应、二因子交互效应以及更高阶交互效应的线性回归模型具备稳健性，并未考虑存在非线性效应的情况。
+
+上述讨论表明，相较于线性回归，采用高斯过程回归构建最优设计框架会是更优选择，原因在于高斯过程能够更有效地量化模型不确定性。本书即采用该研究思路。
+
+## 1.4 全书概述
+
+本书探讨的诸多试验设计方法均依赖高斯过程模型，因此我们将在第 2 章对高斯过程建模进行初步介绍。不过，在讲解高斯过程之前，我们先从更为读者熟知的多项式插值入手，在简要介绍径向基函数与克里金法之后，再逐步过渡到高斯过程。文中还探讨了如何将上述方法拓展应用于含噪声数据，这类拓展对第二部分与第四部分的相关方法至关重要。相关论述过程中，也会引入试验设计领域的若干重要概念。
+
+本书第二部分从基于高斯过程（GP）的试验设计方法展开。第 3 章篇幅较短，原因在于这类方法依赖高斯过程模型中未知的超参数，实际应用价值有限。但第 3 章为第 4 至 7 章中更实用、有效的试验设计方法的推导奠定了基础。第 4 章阐述本书关于空间填充设计的若干核心概念。空间填充设计既可看作基于高斯过程模型设计的极限情形，同时具备几何层面的解释。这类设计属于模型稳健设计，适用于各类实际场景。第 5 章将上述思路拓展至非均匀分布场景，为第四部分介绍的数据科学方法搭建理论基础。第 6 章探讨空间填充设计一类极具实用价值的特例，主要用于快速筛选影响因子。本章同时引入全局灵敏度分析中的重要概念，这些概念是第 11 章后续变量筛选方法的理论根基。第7章构建面向特定目标（例如优化问题）的序贯设计方法，第 4 至 6 章提出的各类设计均可作为该方法的初始设计方案。
+
+第三部分中关于部分因子试验设计的第 8 章内容有意精简撰写，原因是已有大量优秀教材专门阐述该主题。但本章依旧值得读者研读，因为它尝试将内容与第一、二部分介绍的多种试验设计及建模方法建立关联。第 9 章则探讨同时拥有计算机仿真实验与实物实验数据的情形。
+
+第四部分介绍了试验设计方法在二次抽样（第 10 章）与数据分析（第 11 章）中的应用。在统计学领域，试验设计传统上被视作一种数据收集与方案规划手段。本书纳入该部分内容，旨在让读者认识试验设计广泛的适用场景，并夯实其作为统计学基础课题的地位。
+
+# 2 建模方法
+
+如引言部分所述，本文将开展相关实验，以降低响应曲面带来的不确定性，同时需要借助统计建模方法对各类不确定性进行量化。本文采用的核心方法为高斯过程（GP）回归。在介绍该方法前，我们先梳理若干联系紧密的建模理论：数值分析领域中的多项式模型与径向基函数，以及地质统计学领域的克里金法。后文将会说明，上述所有建模方法最终可推导出高度相似的求解结果；而理解这些看似迥异的理论思路，能够为我们提供看待问题的全新视角，对后续章节的研究具有重要价值。为阐述相关理论，首先假设数据不受随机误差干扰，即式 (1.1) 中不存在误差项 $\epsilon$。该情形常见于确定性计算机模型，例如前文中的密度泛函理论（DFT）模型、加工仿真模型。由于不存在随机误差，我们需要构建能够对数据进行插值的模型，相关内容将在 2.1 节展开讨论。随后，在 2.2 节中，我们对这类插值模型进行拓展，使其能够处理含噪声的数据。
+
+## 2.1 插值
+
+本节讨论的插值模型将在本书第二部分关于计算机试验的内容中得到广泛应用。
+
+### 2.1.1多项式插值
+
+考虑一维测试函数
+
+$$
+h(x)=\frac{\sin(10\pi x)}{1+64(x-0.25)^2}+x^2,\quad x\in[0,1]
+\tag{2.1}
+$$
+
+我们假定实验人员不知道该函数的具体形式，仅能够获取部分数据。设通过开展 $n=10$ 次实验生成数据，实验采样方案为区间 $[0,1]$ 上等间隔选取 10 个采样点。图 2.1 左图绘制了该测试函数（黑色虚线）以及数据集 $\{(x_i,y_i)\}_{i=1}^{10}$（蓝色圆点）。
+
+> **图 2.1**：采用 10 个等距设计点（左图）与 10 个切比雪夫设计点（右图）进行多项式插值
+
+![Alt Text](figures/2.1.png){width=67%}
+
+我们可以使用 $(n-1)$ 次多项式对 $n$ 个数据点进行插值：
+
+$$
+y=\beta_0+\beta_1x+\dots+\beta_{n-1}x^{n-1}
+\tag{2.2}
+$$
+
+一维多项式插值存在显式求解公式，例如拉格朗日插值公式。但为了将插值公式与本章介绍的其他方法建立联系，我们将采用另一种推导思路。
+
+首先，将式 (2.2) 中的多项式改写为
+
+$$
+y=\beta_0R_0(x)+\beta_1R_1(x)+\dots+\beta_{n-1}R_{n-1}(x)
+\tag{2.3}
+$$
+
+其中 $R_i(x)$ 为 $i$ 次多项式，且规定 $R_0(x):=1$。例如，当 $x\in[-1,1]$ 时，可选取切比雪夫多项式：$R_1(x)=x$，$R_2(x)=2x^2-1$，$R_3(x)=4x^3-3x$，以此类推。切比雪夫多项式还有另一种表达形式：$R_i(x)=\cos\left(i\cos^{-1}(x)\right)$。选用式 (2.2) 或是式 (2.3) 均可，但后者具备更好的数值稳定性。接下来，为实现插值，需满足
+
+$$
+\sum_{j=0}^{n-1}\beta_jR_j(x_i)=y_i,\quad i=1,\dots,n
+$$
+
+采用矩阵记号，该方程组可写作
+
+$$
+\boldsymbol{R}\boldsymbol{\beta}=\boldsymbol{y}
+$$
+
+式中 $\boldsymbol{\beta}=(\beta_0,\dots,\beta_{n-1})'$，$\boldsymbol{y}=(y_1,\dots,y_n)'$；$\boldsymbol{R}$ 为 $n\times n$ 矩阵，其第 $i$ 行第 $j$ 列元素为 $R_j(x_i)$。注意本书通篇遵循如下约定：粗体字母用于表示向量与矩阵。
+
+若 $\boldsymbol{R}$ 为非奇异矩阵，则可求得唯一解
+
+$$
+\widehat{\boldsymbol{\beta}}=\boldsymbol{R}^{-1}\boldsymbol{y}
+$$
+
+由此得到多项式插值函数 $\widehat{y}(x)=\boldsymbol{r}(x)'\widehat{\boldsymbol{\beta}}$，其中 $\boldsymbol{r}(x)=(R_0(x),\dots,R_{n-1}(x))'$。因此，
+
+$$
+\widehat{y}(x)=\boldsymbol{r}(x)'\boldsymbol{R}^{-1}\boldsymbol{y}
+\tag{2.4}
+$$
+
+该插值函数在图 2.1 中以绿色实线绘制。可以看到，正如插值函数应具备的性质，曲线经过全部 10 个样本点；但遗憾的是，除中间区间外，该函数对真实函数的近似效果较差。插值曲线在两端出现剧烈震荡，这是高次多项式插值中一个众所周知的问题，即龙格现象。
+
+我们可以通过优化实验设计来克服龙格现象，提升多项式插值效果。设 $h_{n-1}(x)$ 为 $(n-1)$ 次多项式，对区间 $x_i\in[-1,1](i=1,\dots,n)$ 上的数据 $\{(x_i,h(x_i))\}_{i=1}^n$ 进行插值。若 $h(x)$ 至少存在 $n$ 阶可导，则其预测误差可写为（希尔德布兰德，1987，第 63 页）：
+
+$$
+h(x)-h_{n-1}(x)=\frac{h^{(n)}(\xi)}{n!}\prod_{i=1}^n(x-x_i)
+$$
+
+其中存在 $\xi\in[-1,1]$，$h^{(n)}(x)$ 代表 $h(x)$ 的 $n$ 阶导数。由此可以得到绝对误差上界：
+
+$$
+|h(x)-h_{n-1}(x)|\le\frac{1}{n!}\max_{\xi}\left|h^{(n)}(\xi)\right|\left|\prod_{i=1}^n(x-x_i)\right|
+$$
+
+切比雪夫多项式具备一个优良性质：经过适当缩放后，它能够使所有 $n$ 次多项式的最大绝对值最小化。因此，令
+
+$$
+\prod_{i=1}^n(x-x_i)=\frac{1}{2^{n-1}}\cos\left(n\cos^{-1}(x)\right)
+$$
+
+即可最小化绝对误差上界，式中分母引入缩放常数 $2^{n-1}$，用于保证等式两侧首项系数匹配。由该式能够直接推出，节点 $x_i$ 应当取切比雪夫多项式的零点（也称切比雪夫节点）。通过求解方程
+
+$$
+\cos\left(n\cos^{-1}(x_i)\right)=0
+$$
+
+可得节点表达式：
+
+$$
+x_i=\cos\left(\frac{\pi(i-0.5)}{n}\right),\quad i=1,\dots,n
+\tag{2.5}
+$$
+
+图 2.1 右侧面板绘制了采用切比雪夫节点得到的 10 个试验设计点及其对应的函数求值结果（节点通过变换 $x\leftarrow(x+1)/2$ 由区间 $[-1,1]$ 缩放至区间 $[0,1]$）。可以观察到，相较于等距设计点，这类设计点更多向区间两端边界聚集。图中同时以绿色实线给出插值函数，该插值函数能够较好逼近真实函数，相比左侧面板中的前一种插值方案实现了显著改进。该实例直观体现了试验设计的重要性！
+
+尽管在一维问题中采用切比雪夫节点作为多项式插值的试验设计方案效果良好，但当存在多个输入变量时，多项式插值会出现问题。以图 2.2 左图所示的 $2^2$ 全因子设计（吴与滨田，2021）为例。可以通过对各变量上的两点设计 $(0,1)$ 进行张量积运算 $(0,1)\otimes(0,1)$ 得到该 $2^2$ 设计。我们可以通过拟合如下形式的多项式模型实现插值：
+
+$$
+y=\beta_0+\beta_1x_1+\beta_2x_2+\beta_3x_1x_2
+$$
+
+式中，$x_1x_2$ 项代表两个输入变量之间的交互效应。该多项式中的各项同样可以通过类似的乘积形式表示：$(1,x_1)\otimes(1,x_2)=(1,x_1,x_2,x_1x_2)$。接下来观察同一幅图右侧中两个采样点经过微小扰动后的情形。此时构造能够插值这四个点的多项式不再直观。事实上，插值多项式可能不唯一，需要借助专用算法求解（贝茨等人，2003）。
+
+> **图 2.2**：左图为 $2^2$ 试验设计，右图为将该设计中两个采样点施加扰动后得到的设计
+
+![Alt Text](figures/2.2.png){width=67%}
+
+针对高维问题使用多项式模型的一种方法是：利用切比雪夫节点在每个维度上采样 $n$ 个点，再构建全因子试验设计。但该方法需要开展 $n^p$ 次试验，当 $p$ 数值较大时并不具备可行性。我们可以借助部分因子试验设计（第 8 章）或者稀疏网格（斯莫利亚克，1963；修，2010；普拉姆利，2014）减少试验次数，然而这类试验设计以及对应的多项式模型无法适配序贯设计（第 7 章）。在序贯试验中，我们可能希望在空间的特定区域增补采样点，不受试验设计特定结构的约束。这就需要适用于散乱数据、灵活性更强的插值方法。下一节将要介绍的径向基函数便是此类方法之一。
+
+### 2.1.2 径向基函数
+
+给定设计点集合 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$ 以及对应的函数观测值 $y_i=h(\boldsymbol{x}_i)$（$i=1,\dots,n$），我们希望构造如下形式的插值函数：
+
+$$
+h_n(\boldsymbol{x})=\sum_{i=1}^{n}\beta_iR_i(\boldsymbol{x})
+$$
+
+式中 $R_i(\boldsymbol{x})$ 为关于变量 $\boldsymbol{x}$ 的一组基函数，$i=1,\dots,n$。针对一维多项式插值，我们选取基函数 $R_1(x)=1,R_2(x)=x,\dots,R_n(x)=x^{n-1}$。但迈尔胡伯-柯蒂斯定理（法斯豪尔，2007，第 3 页）指出：当维度 $p\ge2$ 时，无法预先选定固定的基函数集合，对 $\mathbb{R}^p$ 中任意散乱数据完成插值。这意味着基函数必须依赖于数据采样点。据此令：
+
+$$
+R_i(\boldsymbol{x})=R(\boldsymbol{x}-\boldsymbol{x}_i)
+$$
+
+其中映射关系为 $R:\mathbb{R}^p\to\mathbb{R}$。
+
+插值条件可推导出如下 $n$ 个方程
+
+$$
+\sum_{j=1}^{n}\beta_jR(\boldsymbol{x}_i-\boldsymbol{x}_j)=y_i,\quad i=1,\dots,n
+$$
+
+写成矩阵形式，该方程组可表示为 $\boldsymbol{R}\boldsymbol{\beta}=\boldsymbol{y}$。其中 $\boldsymbol{R}$ 为 $n$ 阶方阵，其第 $i$ 行第 $j$ 列元素为 $R(\boldsymbol{x}_i-\boldsymbol{x}_j)$；$\boldsymbol{\beta}=(\beta_1,\dots,\beta_n)'$，$\boldsymbol{y}=(y_1,\dots,y_n)'$。若矩阵 $\boldsymbol{R}$ 非奇异，则可求得唯一解 $\widehat{\boldsymbol{\beta}}=\boldsymbol{R}^{-1}\boldsymbol{y}$，由此得到径向基函数插值器：
+
+$$
+\widehat{y}(\boldsymbol{x})=\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{y}
+\tag{2.6}
+$$
+
+式中 $\boldsymbol{r}(\boldsymbol{x})$ 是 $n\times1$ 维向量，其第 $i$ 个分量为 $R(\boldsymbol{x}-\boldsymbol{x}_i)$。当 $p=1$ 时，该插值器与式 (2.4) 中的多项式插值形式完全一致，区别仅在于此处采用径向基函数替代多项式基函数。但与多项式插值不同的是，径向基函数插值适用于任意 $p$ 值，且对设计集 $D$ 无结构要求。
+
+在继续深入分析之前，我们需要解答一个关键问题：对于任意形式的函数 $R(\cdot)$ 与任意试验设计 $D$，矩阵 $\boldsymbol{R}$ 是否都是可逆矩阵？目前尚未明确能使矩阵 $\boldsymbol{R}$ 可逆的 $R(\cdot)$ 所需满足的严格数学条件。不过，学界已经得出可令矩阵 $\boldsymbol{R}$ 成为正定矩阵的 $R(\cdot)$ 判定条件，而正定矩阵必然可逆。想要完成推导，我们需要先理解正定函数这一概念（法斯豪尔，2007，第 3 章）。
+
+> **定义 2.1**：若对于任意设计 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$ 以及任意向量 $\boldsymbol{c}=(c_1,\dots,c_n)'$，均满足 $$\sum_{i=1}^{n}\sum_{j=1}^{n}c_ic_jR(\boldsymbol{x}_i-\boldsymbol{x}_j)\ge0\tag{2.7}$$ 则称连续函数 $R:\mathbb{R}^p\to\mathbb{R}$ 在 $\mathbb{R}^p$ 上半正定。若式 (2.7) 仅在 $\boldsymbol{c}=\boldsymbol{0}$ 时取等号，则称函数 $R(\cdot)$ 正定。
+
+因此，若选取 $R(\cdot)$ 为正定函数，那么只要数据节点 $\boldsymbol{x}_1,\dots,\boldsymbol{x}_n$ 互不相同，$\boldsymbol{R}$ 便是可逆矩阵。径向基函数（RBF）相关文献进一步限定 $R(\cdot)$ 为径向函数（法斯豪尔，2007，第 2 章）。
+
+> **定义 2.2**：若存在函数 $\psi:\mathbb{R}^+\to\mathbb{R}$，使得 $R(\boldsymbol{x})=\psi(\|\boldsymbol{x}\|)$（其中 $\|\cdot\|$ 一般为欧几里得范数），则称函数 $R:\mathbb{R}^p\to\mathbb{R}$ 为径向函数。
+
+径向基函数存在多种可选类型，详细内容可参阅法斯豪尔 2007 年所著书籍。高斯函数便是其中一例：
+
+$$
+R(\boldsymbol{x})=\exp\left(-\frac{\|\boldsymbol{x}\|^2}{\theta^2}\right)
+\tag{2.8}
+$$
+
+本书会频繁用到该函数。此函数包含一个未知参数 $\theta$（称作长度尺度），需要结合数据进行调参，以此实现良好的预测效果。
+
+再次回顾式 (2.1) 中的一维算例。取区间 $[0,1]$ 内 $n=10$ 个等距节点构成集合 $D$，即 $D=\{(i-1)/(n-1)\}_{i=1}^n$。选取式 (2.8) 中的高斯函数作为径向基函数。图 2.3 展示了三组不同 $\theta$ 取值下的径向基函数插值结果。不难发现，当 $\theta=0.1$ 时径向基插值效果十分理想；$\theta=1$ 时插值效果欠佳（表现与图 2.1 左子图相近）；而 $\theta=0.01$ 时插值效果极差。总而言之，径向基函数插值具备极强的灵活性，能够实现高精度插值，但随之带来额外的难点：需要合理调节径向基函数中的尺度参数。
+
+> **图 2.3**：采用 10 个等间距采样点，并为高斯径向基函数选取三组不同 $\theta$ 参数的径向基函数插值法
+
+![Alt Text](figures/2.3.png){width=100%}
+
+调节径向基函数长度尺度参数的一种方法是采用交叉验证。留一交叉验证误差的表达式为：
+
+$$
+cv_i=y_i−\widehat{y}_{\sim i}(\boldsymbol{x}_i)
+$$
+
+式中 $\widehat{y}_{\sim i}(\boldsymbol{x}_i)$ 代表舍弃第 $i$ 组数据点后，由径向基插值模型在 $\boldsymbol{x}=\boldsymbol{x}_i$ 位置得到的预测值。由此可得 $\widehat{y}_{\sim i}(\boldsymbol{x}_i)=\boldsymbol{r}_{\sim i}(\boldsymbol{x}_i)'(\boldsymbol{R}_{\sim i})^{-1}\boldsymbol{y}_{\sim i}$，其中 $\boldsymbol{r}_{\sim i}$ 表示向量 $\boldsymbol{r}$ 剔除第 $i$ 个元素后的向量（$\boldsymbol{y}_{\sim i}$ 同理），$\boldsymbol{R}_{\sim i}$ 为矩阵 $\boldsymbol{R}$ 去掉第 $i$ 行与第 $i$ 列后得到的矩阵。对 $n$ 阶方阵求逆的计算复杂度为 $\mathcal{O}(n^3)$。因此若依次求解 $i=1,2,\dots,n$ 对应的留一交叉验证误差 $cv_i$，整体计算复杂度将达到 $\mathcal{O}(n^4)$；即便 $n$ 取中等规模，该计算开销也十分高昂。所幸存在一种简便算法，可将整体计算复杂度降至 $\mathcal{O}(n^3)$（米切尔、莫里斯，1992）。下文给出的分块矩阵相关结论具备实用价值（彼得森、佩德森，2006，第 46 页），本书后续将会多次用到这些结论。
+
+> **引理 2.1**：假定分块矩阵维度适配，则 $$\begin{bmatrix}\boldsymbol{A}&\boldsymbol{B}\\\boldsymbol{C}&\boldsymbol{D}\end{bmatrix}^{-1}=\begin{bmatrix}\boldsymbol{A}^{-1}+\boldsymbol{A}^{-1}\boldsymbol{B}\boldsymbol{Q}^{-1}\boldsymbol{C}\boldsymbol{A}^{-1}&-\boldsymbol{A}^{-1}\boldsymbol{B}\boldsymbol{Q}^{-1}\\-\boldsymbol{Q}^{-1}\boldsymbol{C}\boldsymbol{A}^{-1}&\boldsymbol{Q}^{-1}\end{bmatrix}$$ 且 $$\begin{vmatrix}\boldsymbol{A}&\boldsymbol{B}\\\boldsymbol{C}&\boldsymbol{D}\end{vmatrix}=|\boldsymbol{A}||\boldsymbol{Q}|$$ 其中 $\boldsymbol{Q}=\boldsymbol{D}-\boldsymbol{C}\boldsymbol{A}^{-1}\boldsymbol{B}$。
+
+为简化记号，在 $\boldsymbol{r}_{\sim i}(\boldsymbol{x}_i)$ 中省略自变量 $\boldsymbol{x}_i$，可得：
+
+$$
+\boldsymbol{R}^{-1}=
+\begin{bmatrix}
+\boldsymbol{R}_{\sim i}&\boldsymbol{r}_{\sim i}\\
+\boldsymbol{r}'_{\sim i}&1
+\end{bmatrix}^{-1}=\begin{bmatrix}
+(\boldsymbol{R}_{\sim i})^{-1}+(\boldsymbol{R}_{\sim i})^{-1}\boldsymbol{r}_{\sim i}\boldsymbol{r}'_{\sim i}(\boldsymbol{R}_{\sim i})^{-1}/\boldsymbol{Q}&-(\boldsymbol{R}_{\sim i})^{-1}\boldsymbol{r}_{\sim i}/\boldsymbol{Q}\\
+-\boldsymbol{r}'_{\sim i}(\boldsymbol{R}_{\sim i})^{-1}/\boldsymbol{Q}&1/\boldsymbol{Q}
+\end{bmatrix}
+$$
+
+其中 $\boldsymbol{Q}=1-\boldsymbol{r}'_{\sim i}(\boldsymbol{R}_{\sim i})^{-1}\boldsymbol{r}_{\sim i}$。考察该矩阵最后一行，容易推出：
+
+$$
+\boldsymbol{r}'_{\sim i}(\boldsymbol{R}_{\sim i})^{-1}=-\frac{(\boldsymbol{R}^{-1})_{i\sim i}}{(\boldsymbol{R}^{-1})_{ii}}
+$$
+
+式中 $(\boldsymbol{R}^{-1})_{i\sim i}$ 代表矩阵 $\boldsymbol{R}^{-1}$ 的第 $i$ 行去掉第 $i$ 个元素后构成的行向量。由此可得：
+
+$$
+\boldsymbol{r}'_{\sim i}(\boldsymbol{R}_{\sim i})^{-1}\boldsymbol{y}_{\sim i}=-\frac{(\boldsymbol{R}^{-1})_{i\sim i}}{(\boldsymbol{R}^{-1})_{ii}}\boldsymbol{y}_{\sim i}=-\frac{(\boldsymbol{R}^{-1})_i\boldsymbol{y}}{(\boldsymbol{R}^{-1})_{ii}}+y_i
+$$
+
+进而得到：
+
+$$
+\mathrm{cv}_i=\frac{(\boldsymbol{R}^{-1})_i\boldsymbol{y}}{(\boldsymbol{R}^{-1})_{ii}}
+\tag{2.9}
+$$
+
+利用该简便计算公式，只需对矩阵 $\boldsymbol{R}$ 做一次求逆运算，即可算出所有 $i=1,2,\dots,n$ 对应的 $\mathrm{cv}_i$。
+
+针对图 2.3 中的示例，通过最小化均方交叉验证误差
+
+$$
+\mathrm{MSCV}=\frac{1}{n}\sum_{i=1}^{n}cv_i^2
+\tag{2.10}
+$$
+
+解得 $\widehat{\theta}=0.08$，该取值所得结果与图 2.3 中间子图的效果高度接近，拟合效果优异。
+
+径向基函数插值存在一项缺陷：无法针对预测结果给出不确定性估值。而不确定性评估能够指导我们确定下一次实验的开展位置，具备重要意义。在下一节中，我们将构建该问题的概率化表达式，该表达式所得预测结果与径向基函数插值的预测结果完全一致，同时还可输出不确定性估值。
+
+### 2.1.3 克里金
+
+克里金法是一种多元插值技术，以克里格（1951）命名，马瑟荣（1963）通过开创性研究将其发展应用于地质统计学领域。该方法的起源可参阅克雷西（1990）的著作。克雷西（1993）探讨了克里金法在空间统计问题中的应用，斯坦（1999）阐述了其理论基础。萨克斯等人（1989）将这一技术引入计算机实验领域。
+
+克里金法的核心思想是将确定性函数 $h(\boldsymbol{x})$ 视作随机过程 $Y(\boldsymbol{x})$ 的一次实现。设该随机过程均值恒为 $\mu$，协方差函数为 $K(\boldsymbol{u},\boldsymbol{v})=\mathrm{cov}\{Y(\boldsymbol{u}),Y(\boldsymbol{v})\}$。对于二阶平稳随机过程，其协方差函数可写为：
+
+$$
+K(\boldsymbol{u},\boldsymbol{v})=\tau^2R(\boldsymbol{u}-\boldsymbol{v})
+$$
+
+式中 $\tau^2$ 为方差，$R(\cdot)$ 为相关函数。我们可以选用哪些相关函数呢？由于 $\mathrm{cor}\{Y(\boldsymbol{u}),Y(\boldsymbol{u})\}=1$，必然满足 $R(\boldsymbol{0})=1$；同时 $\mathrm{cor}\{Y(\boldsymbol{u}),Y(\boldsymbol{v})\}=\mathrm{cor}\{Y(\boldsymbol{v}),Y(\boldsymbol{u})\}$，因此 $R(\boldsymbol{u}-\boldsymbol{v})=R(\boldsymbol{v}-\boldsymbol{u})$，说明 $R(\cdot)$ 必须是偶函数。最后，对任意向量 $\boldsymbol{c}$ 均满足 $\mathrm{var}\{\boldsymbol{c}'\boldsymbol{Y}\}\ge0$，等价于 $\boldsymbol{c}'\boldsymbol{R}\boldsymbol{c}\ge0$，这就要求 $R(\cdot)$ 为半正定函数。满足上述条件的函数有很多，式 (2.8) 中的高斯函数便是其中之一。不过并非一定要选用径向（各向同性）函数。实际上，为各个输入变量设置不同的长度尺度参数往往具备显著优势。由矩阵代数结论可知：正定矩阵的哈达玛积仍为正定矩阵（法斯豪尔，2007，第 30 页），由此可推得正定函数的乘积同样具备正定性。据此定义高斯乘积相关函数：
+
+$$
+R(\Delta)=\prod_{i=1}^{p}e^{-\Delta_i^2/\theta_i^2}=e^{-\sum_{i=1}^{p}\Delta_i^2/\theta_i^2}
+\tag{2.11}
+$$
+
+表 2.1 列出了几种常用一维相关函数。多维相关函数有两种构造方式：一是仿照式 (2.11) 将一维相关函数相乘；二是将自变量差值 $\Delta$ 替换为加权欧几里得范数：$\|\Delta\|_\theta=\sqrt{\sum_{i=1}^{p}(\Delta_i/\theta_i)^2}$。相关函数的选取决定了随机过程的光滑程度。例如，高斯相关函数对应的样本路径无穷阶可微，而指数相关函数对应的样本路径处处不可微。详细内容可参阅拉斯穆森与威廉姆斯（2006，第 4 章）以及法斯豪尔与麦考特（2015，第 3 章）。
+
+> **表 2.1**：若干常用相关函数
+
+|名称|相关函数$R(\Delta)$|参数条件|
+|:--|:--|:--|
+|高斯型|$\mathrm{e}^{-\Delta^2/\theta^2}$|$\theta>0$|
+|指数型|$\mathrm{e}^{-\|\Delta\|/\theta}$|$\theta>0$|
+|幂指数型|$\mathrm{e}^{-(\|\Delta\|/\theta)^\alpha}$|$\theta>0,0<\alpha\le2$|
+|3/2阶马特恩函数|$\left(1+\sqrt{3}\frac{\left\|\Delta\right\|}{\theta}\right)\mathrm{e}^{-\sqrt{3}\|\Delta\|/\theta}$|$\theta>0$|
+|5/2阶马特恩函数|$\left(1+\sqrt{5}\frac{\left\|\Delta\right\|}{\theta}+\frac53\frac{\Delta^2}{\theta^2}\right)\mathrm{e}^{-\sqrt{5}\|\Delta\|/\theta}$|$\theta>0$|
+|有理二次型|$\left(1+\frac{\Delta^2}{\theta^2}\right)^{-\alpha}$|$\theta>0,\alpha>0$|
+
+现有数据集 $\{(\boldsymbol{x}_i,y_i)\}_{i=1}^n$，我们可以构造线性预测器：
+
+$$
+\widehat{y}(\boldsymbol{x})=\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{y}
+$$
+
+并通过最小化预测均方误差来求解最优线性预测器：
+
+$$
+\mathrm{MSE}(\boldsymbol{x})=\mathrm{E}\left\{\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{Y}-Y(\boldsymbol{x})\right\}^2
+\tag{2.12}
+$$
+
+式中的期望是针对随机过程求取。采用频率学派视角时，我们将观测数据向量 $\boldsymbol{y}$ 替换为其随机形式 $\boldsymbol{Y}=\left(Y(\boldsymbol{x}_1),\dots,Y(\boldsymbol{x}_n)\right)'$。若满足
+
+$$
+\mathrm{E}\left\{\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{Y}\right\}=\mu,\quad\forall x
+$$
+
+则该线性预测器为无偏预测器。
+
+由于 $\mathrm{E}(\boldsymbol{Y})=\mu\boldsymbol{1}$（$\boldsymbol{1}$ 为由 $n$ 个 1 构成的向量），无偏条件可简化为：
+
+$$
+\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{1}=1
+$$
+
+此时均方误差可推导为：
+
+$$
+\begin{align*}
+\mathrm{MSE}(\boldsymbol{x})&=\mathrm{var}\left\{\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{Y}-Y(\boldsymbol{x})\right\}\\
+&=\boldsymbol{a}(\boldsymbol{x})'\mathrm{var}\{\boldsymbol{Y}\}\boldsymbol{a}(\boldsymbol{x})-2\boldsymbol{a}(\boldsymbol{x})'\mathrm{cov}\{\boldsymbol{Y},Y(\boldsymbol{x})\}+\tau^2\\
+&=\tau^2\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{R}\boldsymbol{a}(\boldsymbol{x})-2\tau^2\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{r}(\boldsymbol{x})+\tau^2
+\end{align*}
+$$
+
+其中矩阵 $\boldsymbol{R}$ 与向量 $\boldsymbol{r}(\boldsymbol{x})$ 定义如下：
+
+$$
+\boldsymbol{R}=
+\begin{bmatrix}
+1&&\cdots&&\\\\
+\vdots&&R(\boldsymbol{x}_{i}-\boldsymbol{x}_{j})&&\vdots\\\\
+&&\cdots&& 1
+\end{bmatrix},\quad\boldsymbol{r}(\boldsymbol{x})=\begin{bmatrix}
+\vdots\\\\R(\boldsymbol{x}-\boldsymbol{x}_i)\\\\\vdots
+\end{bmatrix}
+\tag{2.13}
+$$
+
+因此，该优化问题为
+
+$$
+\begin{align*}
+&\min_{\boldsymbol{a}(\boldsymbol{x})}\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{R}\boldsymbol{a}(\boldsymbol{x})-2\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{r}(\boldsymbol{x})+1\\
+&\;\text{s.t.}\quad\boldsymbol{a}(\boldsymbol{x})'\boldsymbol{1}=1
+\end{align*}
+$$
+
+可采用拉格朗日乘数法求解（为简便起见省略自变量 $\boldsymbol{x}$）：
+
+$$\min L=\boldsymbol{a}'\boldsymbol{R}\boldsymbol{a}-2\boldsymbol{a}'\boldsymbol{r}+1+2\lambda(\boldsymbol{a}'\boldsymbol{1}-1)$$
+
+将 $L$ 对向量 $\boldsymbol{a}$ 求偏导并令导数等于 0，可得：
+
+$$
+\frac{\partial L}{\partial\boldsymbol{a}}=2\boldsymbol{R}\boldsymbol{a}-2\boldsymbol{r}+2\lambda\boldsymbol{1}=0
+$$
+
+整理得到 $\boldsymbol{a}=\boldsymbol{R}^{-1}(\boldsymbol{r}-\lambda\boldsymbol{1})$。将该式代入约束条件并求解 $\lambda$，可得 $\lambda=(\boldsymbol{r}'\boldsymbol{R}^{-1}\boldsymbol{1}-1)/\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}$，进而求得：
+
+$$
+\widehat{\boldsymbol{a}}=\boldsymbol{R}^{-1}\boldsymbol{r}-\frac{(\boldsymbol{r}'\boldsymbol{R}^{-1}\boldsymbol{1}-1)}{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}}\boldsymbol{R}^{-1}\boldsymbol{1}
+$$
+
+由此，最优线性无偏预测（BLUP）表达式为：
+
+$$
+\begin{align*}
+\widehat{\boldsymbol{y}}(\boldsymbol{x})&=\widehat{\boldsymbol{a}}(\boldsymbol{x})'\boldsymbol{y}\\
+&=\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{y}-\frac{(\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{1}-1)}{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}}\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{y}\\
+&=\widehat{\mu}+\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})
+\tag{2.14}
+\end{align*}
+$$
+
+其中
+
+$$
+\widehat{\mu}=\frac{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{y}}{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}} 
+\tag{2.15}
+$$
+
+易证式 (2.15) 中的 $\mu$ 估计量，是当期望 $\mathrm{E}(\boldsymbol{y})=\mu\boldsymbol{1}$、方差 $\mathrm{var}(\boldsymbol{y})=\tau^2\boldsymbol{R}$ 成立时的广义最小二乘（GLS）估计量。因此式 (2.14) 的预测过程可拆解为三步：(1) 利用广义最小二乘法由数据估计均值 $\mu$；(2) 计算残差 $\boldsymbol{y}-\widehat{\mu}\boldsymbol{1}$；(3) 对残差进行插值运算，再将插值结果叠加至均值估计值 $\widehat{\mu}$ 上。
+
+
+该预测式 (2.14) 即为普通克里金插值。注意
+
+$$
+\begin{align*}
+\boldsymbol{I}=\boldsymbol{R}^{-1}\boldsymbol{R}&=\boldsymbol{R}^{-1}
+\begin{bmatrix}
+\boldsymbol{r}(\boldsymbol{x}_{1})&\cdots&\boldsymbol{r}(\boldsymbol{x}_{i})&\cdots&\boldsymbol{r}(\boldsymbol{x}_{n})
+\end{bmatrix}\\&=\begin{bmatrix}
+\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x}_{1})&\cdots&\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x}_{i})&\cdots&\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x}_{n})
+\end{bmatrix}
+\end{align*}
+$$
+
+由此可得，对任意 $i=1,\dots,n$，有 $\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x}_i)=\boldsymbol{I}_i$，其中 $\boldsymbol{I}_i$ 为单位矩阵的第 $i$ 列。于是
+
+$$
+\begin{align*}
+\widehat{y}(\boldsymbol{x}_{i})&=\widehat{\mu}+\boldsymbol{I}_{i}'(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})\\
+&=\widehat{\mu}+(y_{i}-\widehat{\mu})=y_{i},\quad\forall i
+\end{align*}
+$$
+
+综上，普通克里金预测算子属于插值算子。
+
+将普通克里金预测子代入均方误差表达式并化简后，可得：
+
+$$
+\mathrm{MSE}(\boldsymbol{x})=\tau^2\left[
+1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})
++\frac{\{\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{1}-1\}^2}{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}}
+\right]
+\tag{2.16}
+$$
+
+该式用于量化预测结果的不确定性。由于 $\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x}_i)=\boldsymbol{I}_i$、$\boldsymbol{R}(\boldsymbol{0})=1$，于是对任意下标 $i$ 均有：
+
+$$
+\begin{align*}
+\mathrm{MSE}(\boldsymbol{x}_i)&=\tau^2\left[1-\boldsymbol{r}(\boldsymbol{x}_i)'\boldsymbol{I}_i
++\frac{(\boldsymbol{I}_i'\boldsymbol{1}-1)^2}{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}}\right]\\
+&=\tau^2\left[1-R(\boldsymbol{x}_i-\boldsymbol{x}_i)+\frac{(1-1)^2}{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}}\right]=0
+\end{align*}
+$$
+
+也就是说，在观测点位处不存在不确定性。这一结论合乎逻辑，因为我们正是在这些位置无误差地采集了观测数据。
+
+再次考察式 (2.1) 中的一维算例，其中取值区域 $D=\{(i-1)/(n-1)\}_{i=1}^n$，且 $n=10$。在开展预测前，仍需给定相关参数 $\theta$。既可以沿用 2.1.2 节中的交叉验证法确定该参数；若对随机过程的分布作出假设，也可采用基于极大似然的求解方法，下一节将采用该方法展开分析。本节暂时沿用先前通过最小化均方交叉验证误差得到的参数估计值 $\widehat{\theta}=0.08$。普通克里金预测结果与 95% 预测区间 $\pm2\sqrt{\mathrm{MSE}(x)}$ 绘制于图 2.4 中（系数 2 由正态分布假设推导而来，相关原理将在下一节详细说明）。该模型的预测结果与径向基函数插值法的预测结果相近，区别在于克里金方法可同步给出预测结果的不确定性估计。与理论规律一致：当预测点靠近观测点时，预测不确定性降低；预测点远离观测点时，预测不确定性升高。
+
+> **图 2.4**：一维实例下的普通克里金插值，95% 预测区间以阴影条带呈现
+
+![Alt Text](figures/2.4.png){width=33%}
+
+### 2.1.4 高斯过程建模
+
+高斯过程（GP）可为上一节介绍的克里金插值方法提供贝叶斯层面的解释。柯林等人于 1991 年将高斯过程引入计算机实验领域，而在此之前该方法已应用于其他场景（瓦巴，1978；奥哈根，1978）。拉斯穆森与威廉姆斯在 2006 年出版的著作推动了高斯过程在机器学习领域的应用发展。桑特纳等人（2018）与格拉马西（2020）各自所著书籍中，详细阐述了高斯过程在计算机实验中的运用。
+
+> **定义 2.3**：若对于任意选取的 $\boldsymbol{x}_1,\dots,\boldsymbol{x}_n$ 以及任意整数 $n\ge1$，向量$\boldsymbol{Y}=(Y(\boldsymbol{x}_1),\dots,Y(\boldsymbol{x}_n))'$ 服从多元正态分布，则称随机函数 $Y(\boldsymbol{x})$ 为高斯过程。
+
+回顾可知，n 维多元正态分布由均值 $\boldsymbol{\mu}\in\mathbb{R}^n$ 与协方差矩阵 $\boldsymbol{\Sigma}\in\mathbb{R}^{n\times n}$ 唯一确定。因此若 $\boldsymbol{y}\sim\mathcal{N}_n(\boldsymbol{\boldsymbol{\mu}},\boldsymbol{\Sigma})$，其概率密度表达式为：
+
+$$
+f(\boldsymbol{y})=\frac{1}{(2\pi)^{n/2}|\boldsymbol{\Sigma}|^{1/2}}\exp\left[-\frac{1}{2}(\boldsymbol{y}-\boldsymbol{\boldsymbol{\mu}})'\boldsymbol{\Sigma}^{-1}(\boldsymbol{y}-\boldsymbol{\boldsymbol{\mu}})\right]
+$$
+
+高斯过程（GP）可看作多元正态分布在连续维度上的拓展形式，它由均值函数 $\mu(\boldsymbol{x})$ 以及协方差函数（也称核函数）$K(\boldsymbol{x},\cdot)$ 共同定义，其中 $\mu(\boldsymbol{x})=\mathrm{E}\{Y(\boldsymbol{x})\}$，$K(\boldsymbol{x},\boldsymbol{u})=\mathrm{cov}\{Y(\boldsymbol{x}),Y(\boldsymbol{u})\}$。
+
+我们希望基于数据集 $\{(\boldsymbol{x}_i,y_i)\}_{i=1}^n$ 估算真实的输入输出关系 $y=h(\boldsymbol{x})$。采用贝叶斯方法时，先为函数 $h(\boldsymbol{x})$ 设定先验分布，再结合观测数据求解 $h(\boldsymbol{x})$ 的后验分布。相较于观测数据前对函数 $h(\boldsymbol{x})$ 的先验认知，后验分布能够帮助我们更精准地掌握该函数的特性。本文将高斯过程（GP）作为 $h(\boldsymbol{x})$ 的先验分布，即：
+
+$$
+h(\boldsymbol{x})\sim GP(\mu(\boldsymbol{x}),K(\boldsymbol{x},\cdot))
+\tag{2.17}
+$$
+
+本书后续大部分推导过程中，均假定均值函数 $\mu(\boldsymbol{x})=\mu$（常数），协方差核函数 $K(\boldsymbol{x},\boldsymbol{u})=\tau^2R(\boldsymbol{x}-\boldsymbol{u})$，其中 $\tau^2$ 代表方差，$R(\cdot)$ 为相关函数。取一维输入变量、相关函数 $R(\boldsymbol{x})=e^{-\boldsymbol{x}^2/\theta^2}$、参数 $\theta=0.08$ 时，几组高斯过程的采样实现结果如图 2.5 左图所示。假设我们对该函数进行采样观测，得到的数据以蓝色圆点绘制于同一张图的中间子图。我们的目标是结合观测数据，求解该函数的后验分布。
+
+> **图 2.5**：左侧为先验高斯过程生成的五组实现样本，中间为叠加在先验之上的数据，右侧为后验高斯过程生成的五组实现样本
+
+![Alt Text](figures/2.5.png){width=100%}
+
+概率论中的下述结论有助于推导后验分布。
+
+> **引理 2.2**：设 $\boldsymbol{y}=(\boldsymbol{y}_1',\boldsymbol{y}_2')'$，其中 $\boldsymbol{y}_1\in\mathbb{R}^{n_1}$，$\boldsymbol{y}_2\in\mathbb{R}^{n_2}$。若 $$\begin{bmatrix}\boldsymbol{y}_{1}\\\boldsymbol{y}_{2}\end{bmatrix}\sim\mathcal{N}\left(\begin{bmatrix}\boldsymbol{\mu}_{1}\\\boldsymbol{\mu}_{2}\end{bmatrix},\begin{bmatrix}\boldsymbol{\Sigma}_{11}&\boldsymbol{\Sigma}_{12}\\\boldsymbol{\Sigma}_{21}&\boldsymbol{\Sigma}_{22}\end{bmatrix}\right)$$ 则 $$\boldsymbol{y}_{1}|\boldsymbol{y}_{2}\sim\mathcal{N}_{n_{1}}(\boldsymbol{\mu}_{1}+\boldsymbol{\Sigma}_{12}\boldsymbol{\Sigma}_{22}^{-1}(\boldsymbol{y}_{2}-\boldsymbol{\mu}_{2}),\boldsymbol{\Sigma}_{11}-\boldsymbol{\Sigma}_{12}\boldsymbol{\Sigma}_{22}^{-1}\boldsymbol{\Sigma}_{21})$$
+
+暂且假定模型参数 $\mu$、$\tau^2$ 以及相关函数中的参数 $\boldsymbol{\theta}$ 均为已知。对于给定的 $\boldsymbol{x}$，式 (2.17) 可得
+
+$$
+\begin{bmatrix}
+h(\boldsymbol{x})\\\boldsymbol{y}
+\end{bmatrix}\sim N_{1+n}\left(
+\begin{bmatrix}\mu\\\mu\boldsymbol{1}\end{bmatrix},
+\begin{bmatrix}
+\tau^2&\tau^2\boldsymbol{r}(\boldsymbol{x})'\\
+\tau^2\boldsymbol{r}(\boldsymbol{x})&\tau^2\boldsymbol{R}
+\end{bmatrix}
+\right)
+$$
+
+其中 $\boldsymbol{r}(\boldsymbol{x})=\{R(\boldsymbol{x}-\boldsymbol{x}_i)\}_{i=1}^n$，$\boldsymbol{R}=\{R(\boldsymbol{x}_i-\boldsymbol{x}_j)\}_{i,j=1}^n$，定义同式 (2.13)。结合引理 2.2，可求得给定 $\boldsymbol{y}$ 时 $h(\boldsymbol{x})$ 的后验分布：
+
+$$
+h(\boldsymbol{x})|\boldsymbol{y}\sim N\left(\mu+\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1}),\tau^2\left\{1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}\right)\tag{2.18}
+$$
+
+若需要 $h(\boldsymbol{x})$ 的点估计，可取后验均值 $\widehat{y}(\boldsymbol{x})=\mu+\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})$，该表达式与式 (2.14) 中的克里金预测式形式一致，区别仅在于此处假定 $\mu$ 已知。预测方差 $s^2(\boldsymbol{x})=\tau^2\left\{1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}$ 可用于量化预测的不确定性，该方差与式 (2.16) 中普通克里金的均方误差 $\mathrm{MSE}(\boldsymbol{x})$ 相比仅缺少最后一项。后文将会说明，式 (2.16) 多出的这一项，正是因 $\mu$ 未知所带来的额外预测不确定性。据此可以构造置信水平为 $1-\alpha$ 的可信区间：$\widehat{y}(\boldsymbol{x})\pm z_{1-\alpha/2}s(\boldsymbol{x})$，式中 $z_{1-\alpha/2}$ 为标准正态分布的上 $1-\alpha/2$ 分位数。
+
+式 (2.18) 可给出给定某一特定 $\boldsymbol{x}$ 取值时 $h(\boldsymbol{x})$ 的后验分布。同理，我们能够求得一组 $\boldsymbol{x}$ 取值对应的 $h(\boldsymbol{x})$ 后验分布，由此可证明整个函数 $h(\boldsymbol{x})$ 的后验分布服从高斯过程（GP）：
+
+$$
+h(\boldsymbol{x})|\boldsymbol{y}\sim\mathrm{GP}\left(\mu+\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1}),\tau^2\left\{R(\boldsymbol{x}-\cdot)-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\cdot)\right\}\right)
+\tag{2.19}
+$$
+
+图 2.5 右侧子图还绘制出了当参数 $\theta=0.08$ 时该高斯过程的若干采样实现。不难发现，所有采样曲线均穿过数据点，并且相较于先验分布，函数 $h(\boldsymbol{x})$ 整体的不确定性大幅降低。
+
+若要使用高斯过程（GP）开展预测工作，必须预先设定（超）参数 $\mu$、$\tau^2$ 与 $\boldsymbol{\theta}$。贝叶斯建模框架为这类参数的估计提供了一套严谨可行的方法，经验贝叶斯方法便是其中一种简便方案。数据的边缘分布满足：
+
+$$
+\boldsymbol{y}|\mu,\tau^{2},\boldsymbol{\theta}\sim\mathcal{N}_{n}(\mu\boldsymbol{1},\tau^{2}\boldsymbol{R})
+$$
+
+据此可得参数的似然函数：
+
+$$
+L=\frac{1}{(2\pi\tau^{2})^{n/2}|\boldsymbol{R}|^{1/2}}\exp\left\{-\frac{1}{2\tau^{2}}(\boldsymbol{y}-\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})\right\}
+$$
+
+对数似然表达式为：
+
+$$
+\log L=-\frac{n}{2}\log 2\pi-\frac{n}{2}\log\tau^2-\frac{1}{2}\log|\boldsymbol{R}|-\frac{1}{2\tau^2}(\boldsymbol{y}-\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})
+$$
+
+将对数似然关于 $\mu$、$\tau^2$ 最大化，求得估计量：
+
+$$
+\widehat{\mu}=\frac{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{y}}{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}}\tag{2.20}
+$$
+
+$$
+\widehat{\tau}^2=\frac{1}{n}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})\tag{2.21}
+$$
+
+对数似然函数关于相关参数 $\boldsymbol{\theta}$ 呈高度非线性，因此很难推导出 $\boldsymbol{\theta}$ 显式解析解。我们可将 $\mu$ 与 $\tau^2$ 代入对数似然式，构造 $\boldsymbol{\theta}$ 的剖面对数似然函数，并通过数值最大化该函数求解 $\boldsymbol{\theta}$ 的估计值。等价形式如下：
+
+$$
+\widehat{\boldsymbol{\theta}}=\argmin_{\boldsymbol{\theta}}\left\{ n\log\widehat{\tau}^2+\log|\boldsymbol{R}|\right\}
+\tag{2.22}
+$$
+
+经验贝叶斯的替代方法是分层贝叶斯，该方法可为所有超参数设置先验分布，并求解它们的后验分布。但完整贝叶斯推断的计算量很大，因为需要借助马尔可夫链蒙特卡罗（MCMC）算法才能得到参数 $\boldsymbol{\theta}$ 的后验分布。下文仅对均值 $\mu$ 设置先验分布，以此演示分层贝叶斯方法。如需完整论述，可参阅桑特纳等人（2018，第 4 章）的著作。
+
+假设均值 $\mu$ 服从无信息先验分布：
+
+$$
+p(\mu)\propto1
+$$
+
+于是可得：
+
+$$
+\begin{align*}
+p(\mu|\boldsymbol{y})&\propto p(\boldsymbol{y}|\mu)p(\mu)\\
+&\propto\exp\left\{-\frac{1}{2\tau^{2}}(\boldsymbol{y}-\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})\right\}
+\end{align*}
+$$
+
+方差分析（ANOVA）分解的下述推广形式，将有助于我们后续推导。
+
+> **引理 2.3**：设 $\widehat{\mu}=\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{y}/\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}$，则有 $$(\boldsymbol{y}-\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})=(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})+(\mu-\widehat{\mu})^{2}\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}$$
+
+引理 2.3 表明
+
+$$
+\begin{align*}
+p(\mu|\boldsymbol{y})&\propto\exp\left\{-\frac{1}{2\tau^{2}}\left[(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})+(\mu-\widehat{\mu})^{2}\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}\right]\right\}\\
+&\propto\exp\left\{-\frac{1}{2\tau^{2}}(\mu-\widehat{\mu})^{2}\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}\right\}
+\end{align*}
+$$
+
+因此
+
+$$
+\mu|\boldsymbol{y}\sim\mathcal{N}\left(\widehat{\mu},\frac{\tau^{2}}{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}}\right)
+\tag{2.23}
+$$
+
+继而
+
+$$
+p(h(\boldsymbol{x})|\boldsymbol{y})=\int p(h(\boldsymbol{x})|\boldsymbol{y},\mu)p(\mu|\boldsymbol{y})d\mu
+$$
+
+由于式 (2.18) 与式 (2.23) 均为正态分布，该积分的结果仍服从正态分布：
+
+$$
+h(\boldsymbol{x})|\boldsymbol{y}\sim\mathcal{N}\left(\widehat{y}(\boldsymbol{x}),s^2(\boldsymbol{x})\right)
+\tag{2.24}
+$$
+
+其中均值与方差的表达式推导如下：
+
+$$
+\begin{align*}
+\widehat{y}(\boldsymbol{x})
+&=\mathrm{E}\left[\mathrm{E}\{h(\boldsymbol{x})|\boldsymbol{y},\mu\}|\boldsymbol{y}\right]\\
+&=\mathrm{E}\left[\mu+r(\boldsymbol{x})'R^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})|\boldsymbol{y}\right]\\
+&=\widehat{\mu}+r(\boldsymbol{x})'R^{-1}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})
+\tag{2.25}
+\end{align*}
+$$
+
+$$
+\begin{align*}
+s^2(\boldsymbol{x})
+&=\mathrm{E}\left[\mathrm{var}\{h(\boldsymbol{x})|\boldsymbol{y},\mu\}|\boldsymbol{y}\right]+\mathrm{var}\left[\mathrm{E}\{h(\boldsymbol{x})|\boldsymbol{y},\mu\}|\boldsymbol{y}\right]\\
+&=\mathrm{E}\left[\tau^2\left\{1- r(\boldsymbol{x})'R^{-1}r(\boldsymbol{x})\right\}|\boldsymbol{y}\right]+\mathrm{var}\left[\mu+r(\boldsymbol{x})'R^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})|\boldsymbol{y}\right]\\
+&=\tau^2\left\{1- r(\boldsymbol{x})'R^{-1}r(\boldsymbol{x})\right\}+\left\{1- r(\boldsymbol{x})'R^{-1}\boldsymbol{1}\right\}^2\mathrm{var}(\mu|\boldsymbol{y})\\
+&=\tau^2\left(1- r(\boldsymbol{x})'R^{-1}r(\boldsymbol{x})+\frac{\left\{r(\boldsymbol{x})'R^{-1}\boldsymbol{1}- 1\right\}^2}{\boldsymbol{1}'R^{-1}\boldsymbol{1}}\right)
+\tag{2.26}
+\end{align*}
+$$
+
+不难发现，$s^2(x)$ 的表达式与普通克里金法的均方误差 $\mathrm{MSE}(x)$ 完全一致，而式 (2.18) 中原本缺失的最后一项，正是用于刻画均值 $\mu$ 估计带来的不确定性。
+
+剩余参数 $\tau^2$ 与 $\theta$ 可再次通过经验贝叶斯法估计。边际似然为：
+
+$$
+\begin{align*}
+p(\boldsymbol{y})&=\int p(\boldsymbol{y}|\mu)p(\mu)d\mu\\
+&=\int\frac{1}{(2\pi\tau^2)^{n/2}|\boldsymbol{R}|^{1/2}}\exp\left\{-\frac{1}{2\tau^2}(\boldsymbol{y}-\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})\right\}d\mu\\
+&=\frac{\exp\left\{-\frac{1}{2\tau^2}(\boldsymbol{y}-\widehat\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\widehat\mu\boldsymbol{1})\right\}}{(2\pi\tau^2)^{n/2}|\boldsymbol{R}|^{1/2}}\int\exp\left\{-\frac{1}{2\tau^2}(\mu-\widehat\mu)^2\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}\right\}d\mu\\
+&=\frac{\exp\left\{-\frac{1}{2\tau^2}(\boldsymbol{y}-\widehat\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\widehat\mu\boldsymbol{1})\right\}}{(2\pi\tau^2)^{(n-1)/2}|\boldsymbol{R}|^{1/2}\sqrt{\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1}}}
+\end{align*}
+$$
+
+推导过程中再次运用引理 2.3 进行化简。由此可得 $\tau^2$ 与 $\theta$ 的估计式：
+
+$$
+\begin{align*}
+\widehat\tau^2&=\frac{1}{n-1}(\boldsymbol{y}-\widehat\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\widehat\mu\boldsymbol{1})\tag{2.27}\\
+\widehat\theta&=\argmin_{\boldsymbol{\theta}}\left\{n\log\widehat\tau^2+\log|\boldsymbol{R}|+\log(\boldsymbol{1}'\boldsymbol{R}^{-1}\boldsymbol{1})\right\}\tag{2.28}
+\end{align*}
+$$
+
+上述表达式与式 (2.21)、式 (2.22) 形式高度相近，二者的差异通常很小。我们开发的 R 语言程序包 rkriging（黄与约瑟夫，2024）采用分层贝叶斯公式进行计算，得到的估计结果为 $\widehat\mu=0.36$，$\widehat\tau^2=0.215$，$\widehat\theta=0.067$。
+
+## 2.2 回归
+
+接下来我们探讨被随机噪声污染的数据场景。噪声在物理实验（吴与滨田，2021）以及随机模拟（克莱宁，2008）中十分常见。针对这类含噪声数据，我们需要寻找具备拟合效果而非插值效果的模型。本书第三、四部分将大量运用此类方法。
+
+### 2.2.1 线性回归
+
+线性回归是统计学中主要的数据分析工具之一，已有诸多优质教材对该内容展开论述（法拉韦，2015、2016）。因此本文仅做简要介绍，引出部分便于后续构建试验设计的符号与概念。
+
+再次考察式 (2.1) 中的同一一元函数，不过此时数据由下式生成：
+
+$$
+y_i=h(x_i)+\epsilon_i,\quad i=1,\dots,n
+\tag{2.29}
+$$
+
+式中 $\epsilon_i$ 为其余未观测变量发生变动或是测量误差所带来的随机误差。假定通过开展 $n=20$ 次实验生成数据，实验设计选取区间 $[0,1]$ 内等间距分布的 10 个采样点，每个采样点重复实验两次。图 2.6 中绘制了测试函数（黑色虚线）与数据集 $\{(x_i,y_i)\}_{i=1}^{20}$（蓝色圆点）。
+
+> **图 2.6**：采用 10 个等间隔设计点、两次重复试验开展多项式回归分析。左侧图像为三次多项式拟合结果，右侧为八次多项式拟合结果，阴影区域代表 95% 预测区间
+
+![Alt Text](figures/2.6.png){width=67%}
+
+假设我们希望借助多项式
+
+$$
+y=\beta_0+\beta_1x+\dots+\beta_mx^m
+\tag{2.30}
+$$
+
+来近似函数 $h(x)$。线性回归方法将上述多项式视作真实模型，并假定数据由下式生成：
+
+$$
+y_i=\beta_0+\beta_1x_i+\dots+\beta_mx_i^m+\epsilon_i,\quad i=1,\dots,n
+\tag{2.31}
+$$
+
+而非式 (2.29)。因此该方法忽略了多项式逼近 $h(x)$ 带来的偏差，而这一点对于不确定性量化有着重要影响。需要注意的是，尽管式 (2.31) 能够刻画非线性关系，但在统计学中它仍属于线性回归模型，原因是该模型关于参数向量 $\boldsymbol{\beta}=(\beta_0,\dots,\beta_m)'$ 呈线性形式。我们可以选取合适的参数，让拟合模型尽可能贴合实测数据。可以选用多种损失函数衡量模型与数据的“贴合程度”，其中最简单的是平方误差损失，这也是勒让德与高斯最初提出的方法。关于最小二乘法有趣的发展历史可参阅普拉凯特（1972 年）的文献。由此，优化问题可写为：
+
+$$
+\min_{\boldsymbol{\beta}}\sum_{i=1}^n\left\{y_i-[\beta_0+\dots+\beta_mx_i^m]\right\}^2
+$$
+
+采用矩阵形式表述该优化问题：
+
+$$
+\min_{\boldsymbol{\beta}} (\boldsymbol{y}-\boldsymbol{X}\boldsymbol{\beta})'(\boldsymbol{y}-\boldsymbol{X}\boldsymbol{\beta})
+$$
+
+其中矩阵 $\boldsymbol{X}=\{x_i^{j-1}\}$ 是维度为 $n\times(m+1)$ 的模型设计矩阵。将目标函数对 $\boldsymbol{\beta}$ 求导并令导数等于零，可得正规方程：
+
+$$
+\boldsymbol{X}'\boldsymbol{X}\boldsymbol{\beta}=\boldsymbol{X}'\boldsymbol{y}
+$$
+
+若 $\boldsymbol{X}'\boldsymbol{X}$ 为非奇异矩阵，则存在唯一解：
+
+$$
+\widehat{\boldsymbol{\beta}}=(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{y}
+\tag{2.32}
+$$
+
+在本例一维场景中，自变量 $x$ 仅有 10 个互不相同的采样点，想要保证矩阵 $\boldsymbol{X}$ 的列向量线性无关，多项式阶数 $m$ 必须满足 $m\le9$。
+
+预测函数 $\widehat{y}(x)=\boldsymbol{x}'\widehat{\boldsymbol{\beta}}$（其中 $\boldsymbol{x}=(1,x,\dots,x_m)'$）在阶数 $m=3$ 与 $m=8$ 时的拟合曲线，在图 2.6 中以绿色实线绘制。相较于八次多项式拟合，三次多项式拟合在观测点处产生的偏差更大。但整体拟合效果上，三次多项式的拟合效果并不逊色于八次多项式，甚至表现更佳。
+
+再进一步假设 $\epsilon_i$ 独立同分布，满足 $\epsilon_i\sim\mathcal{N}(0,\sigma^2)，i=1,\dots,n$，不难证明：
+
+$$
+\widehat{\boldsymbol{\beta}}\sim\mathcal{N}\left(\boldsymbol{\beta},\sigma^2(\boldsymbol{X}'\boldsymbol{X})^{-1}\right)
+\tag{2.33}
+$$
+
+据此可求得预测值的方差：
+
+$$
+\mathrm{var}\{\widehat{y}(\boldsymbol{x})\}=\mathrm{var}\{\boldsymbol{x}'\widehat{\boldsymbol{\beta}}\}=\sigma^2\boldsymbol{x}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}
+$$
+
+该方差仅体现参数 $\boldsymbol{\beta}$ 估计过程带来的不确定性。由此可得新观测值预测结果的 95% 置信区间：
+
+$$
+\widehat{y}(\boldsymbol{x})\pm 2\sigma\sqrt{1+\boldsymbol{x}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}}
+$$
+
+式中在原有方差基础上额外增加一项 $\sigma^2$，用以刻画新增扰动项 $\epsilon$ 带来的不确定性，该置信区间在图 2.6 中以阴影区域呈现。可以发现，三次多项式拟合对应的置信区间比八次多项式拟合的置信区间更窄，但三次多项式拟合在观测数据点附近存在更大的偏差；因此更窄的置信区间并不代表其预测精度更高。之所以出现这种不确定性刻画上的偏差，是因为我们在式 (2.31) 中错误假定三次多项式为真实模型。这是线性回归模型的一大缺陷，后续两个小节介绍的非参数回归模型可以解决该问题。
+
+在继续展开分析前，我们先来探究能否借助试验设计方法优化线性回归的拟合效果。若回归系数估计量 $\widehat{\boldsymbol{\beta}}$ 的方差足够小，那么系数 $\boldsymbol{\beta}$ 的估计结果就会具备较高精度。由于 $\sigma^2$ 为常数，该目标等价于最小化矩阵 $(\boldsymbol{X}'\boldsymbol{X})^{-1}$。为实现最小化目标，学者们提出了若干具备实际意义的标量优化准则（瓦尔德，1943；埃尔夫温，1952；基弗、沃尔福威茨，1960）。应用最为广泛的准则是矩阵 $(\boldsymbol{X}'\boldsymbol{X})^{-1}$ 的行列式，该行列式能够表征系数估计量 $\widehat{\boldsymbol{\beta}}$ 置信椭球的体积。因此求解最优设计的问题可写为：
+
+$$
+\begin{align*}
+\min_D|(\boldsymbol{X}'\boldsymbol{X})^{-1}|&=\min_D1/|\boldsymbol{X}'\boldsymbol{X}|\\
+&\equiv\max_D|\boldsymbol{X}'\boldsymbol{X}|
+\tag{2.34}
+\end{align*}
+$$
+
+该最优设计被称为 D 最优设计，字母 D 代表行列式。另一常用准则是最小化各系数估计量 $\widehat{\beta}_i$ 的方差之和，也就是矩阵 $(\boldsymbol{X}'\boldsymbol{X})^{-1}$ 的迹：
+
+$$
+\min_D\mathrm{tr}\left[(\boldsymbol{X}'\boldsymbol{X})^{-1}\right]
+\tag{2.35}
+$$
+
+满足该准则的设计称作 A 最优设计。上述两类准则均以精准估计系数 $\boldsymbol{\beta}$ 为核心，进而间接提升模型预测效果。我们也可构建直接面向预测效果的优化准则。G 最优设计通过在整个定义域 $\mathcal{X}$ 上最小化最大预测方差得到：
+
+$$
+\min_D\max_{\boldsymbol{x}\in\mathcal{X}}\boldsymbol{x}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}
+\tag{2.36}
+$$
+
+而 I 最优设计则是对预测方差做积分平均后再进行最小化求解：
+
+$$
+\min_D\int_{\boldsymbol{x}\in\mathcal{X}}\boldsymbol{x}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}\mathrm{d}\boldsymbol{x}
+\tag{2.37}
+$$
+
+有关最优设计的更多详细内容可参阅普克尔舍姆（1993）、西尔维（1980）、阿特金森等人（2007）以及洛佩斯-菲达尔戈（2023）的专著；古斯与琼斯（2011）针对该主题给出了更贴合实际应用的讲解。
+
+想要优化上述设计准则并非易事，原因在于目标函数具备非线性、多模态的特征，且计算成本高昂。因此，通用优化算法处理该问题时效果欠佳。解决这类问题最常用的手段是采用各类互换算法：即给定初始设计方案 D 与候选集合 C，若目标函数能够得到优化，便将设计方案 D 中的某一行与候选集合 C 中的某一行进行互换。此类算法最终只会收敛至局部最优解，故而需要设置多组初始设计方案，才有可能求解出全局最优设计。下文将介绍用于构造 D 最优设计的费多罗夫互换算法（费多罗夫，1972年）。其他互换算法的详细内容可参考库克与纳赫茨海姆（1980）、阮与米勒（1992）的相关研究。
+
+设 $\boldsymbol{x}_i$ 为矩阵 $\boldsymbol{X}$ 的第 $i$ 行，即 $\boldsymbol{X}=(\boldsymbol{x}_1',\dots,\boldsymbol{x}_n')'$，则 $\boldsymbol{X}'\boldsymbol{X}=\sum_{i=1}^n\boldsymbol{x}_i\boldsymbol{x}_i'$。假设将行向量 $\boldsymbol{x}_i$ 与候选集合 $\mathcal{C}$ 中的某一行向量 $\boldsymbol{c}$ 互换，得到新的模型矩阵 $\boldsymbol{X}_{\mathrm{new}}$，此时 D 最优目标函数满足 $|\boldsymbol{X}_{\mathrm{new}}'\boldsymbol{X}_{\mathrm{new}}|=|\boldsymbol{X}'\boldsymbol{X}+\boldsymbol{c}\boldsymbol{c}'-\boldsymbol{x}_i\boldsymbol{x}_i'|$。我们需要确定将哪个 $\boldsymbol{x}_i$ 与集合 $\mathcal{C}$ 中的向量 $\boldsymbol{c}$ 进行互换。下述矩阵结论可用于简化计算，其中第二条即为谢尔曼-莫里森矩阵恒等式。
+
+> **引理 2.4**：若 $\boldsymbol{A}$ 为 $m\times m$ 阶矩阵，$\boldsymbol{a}$ 为 $m\times1$ 维向量，则 $$\begin{align*}|\boldsymbol{A}+\boldsymbol{a}\boldsymbol{a}'|&=|\boldsymbol{A}|(1+\boldsymbol{a}'\boldsymbol{A}^{-1}\boldsymbol{a})\\(\boldsymbol{A}+\boldsymbol{a}\boldsymbol{a}')^{-1}&=\boldsymbol{A}^{-1}-\frac{\boldsymbol{A}^{-1}\boldsymbol{a}\boldsymbol{a}'\boldsymbol{A}^{-1}}{1+\boldsymbol{a}'\boldsymbol{A}^{-1}\boldsymbol{a}}\end{align*}$$
+
+将第一个矩阵结论运用两次：
+
+$$
+\begin{align*}
+|\boldsymbol{X}_{\mathrm{new}}'\boldsymbol{X}_{\mathrm{new}}|&=|\boldsymbol{X}'\boldsymbol{X}+\boldsymbol{c}\boldsymbol{c}'-\boldsymbol{x}_{i}\boldsymbol{x}_{i}'|\\
+&=|\boldsymbol{X}'\boldsymbol{X}+\boldsymbol{c}\boldsymbol{c}'|\{1-\boldsymbol{x}_{i}'(\boldsymbol{X}'\boldsymbol{X}+\boldsymbol{c}\boldsymbol{c}')^{-1}\boldsymbol{x}_{i}\}\\
+&=|\boldsymbol{X}'\boldsymbol{X}|(1+\boldsymbol{c}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{c})\{1-\boldsymbol{x}_{i}'(\boldsymbol{X}'\boldsymbol{X}+\boldsymbol{c}\boldsymbol{c}')^{-1}\boldsymbol{x}_{i}\}
+\end{align*}
+$$
+
+再代入第二个矩阵结论并化简可得：
+
+$$
+\begin{align*}
+|\boldsymbol{X}_{\mathrm{new}}'\boldsymbol{X}_{\mathrm{new}}|&=|\boldsymbol{X}'\boldsymbol{X}|(1+\boldsymbol{c}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{c})\left\{1-\boldsymbol{x}_{i}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}_{i}+\frac{\{\boldsymbol{c}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}_{i}\}^{2}}{1+\boldsymbol{c}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{c}}\right\}\\
+&=|\boldsymbol{X}'\boldsymbol{X}|\{1+\Delta(\boldsymbol{x}_{i},\boldsymbol{c})\}
+\end{align*}
+$$
+
+其中
+
+$$
+\Delta(\boldsymbol{x}_{i},\boldsymbol{c})=\boldsymbol{c}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{c}-\boldsymbol{x}_{i}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}_{i}\{1+\boldsymbol{c}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{c}\}+\{\boldsymbol{c}'(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}_{i}\}^{2}
+$$
+
+通过最大化 $\Delta(\boldsymbol{x}_i,\boldsymbol{c})$ 即可求得最优替换方案，该方式的计算成本远低于直接计算 $|\boldsymbol{X}'\boldsymbol{X}+\boldsymbol{c}\boldsymbol{c}'-\boldsymbol{x}_i\boldsymbol{x}_i'|$。可持续执行此类替换操作直至结果不再优化。该算法已在 R 语言程序包 AlgDesign（惠勒、布劳恩，2024）中实现。
+
+再次回顾一维实例。若想要得到 10 个互不相同的点，可取参数 $m=9$。为构造候选点集，先在区间 $[0,1]$ 上选取 301 个等距节点，随后构造向量 $c_j=(1,c_j,\dots,c_j^9)$，其中 $j=1,2,\dots,301$。随后借助 AlgDesign 程序包中的 optFederov 函数求解得到 D 最优设计，设计点结果绘制于图 2.7 中。可以观察到，生成的节点向区间两端边界靠拢。两组多项式拟合效果相比之前有所提升，尤其是八次多项式在边界处剧烈震荡的现象已经消失。
+
+> **图 2.7**：采用 10 个 D 最优设计点并设置两组重复试验的多项式回归。左侧图表为三次多项式拟合结果，右侧为八次多项式拟合结果，阴影区域代表 95% 预测区间
+
+![Alt Text](figures/2.7.png){width=67%}
+
+仔细观察图 2.7 中的设计点与图 2.1 中的切比雪夫节点可以发现，二者位置高度相近。这并非巧合！德特与斯图登（1992）证明：D 最优设计的经验分布收敛于反正弦密度函数：
+
+$$
+f(x)=\frac{1}{\pi\sqrt{x(1-x)}},\quad x\in[0,1]
+$$
+
+或者
+
+$$
+f(x)=\frac{1}{\pi\sqrt{1-x^2}},\quad x\in[-1,1]\tag{2.38}
+$$
+
+本书第 5 章将介绍用于拟合分布的试验设计，此处先采用简便方法。众所周知，点集
+
+$$
+\{0.5/n,1.5/n,\dots,(n-0.5)/n\}
+$$
+
+是区间 $[0,1]$ 上逼近均匀分布的最优 $n$ 个点位。结合逆概率变换法（5.2.1 节），即可求出逼近反正弦密度的最优点位。当 $x\in[-1,1]$ 时，分布函数为：
+
+$$
+F(x)=\int_{-1}^{x}\frac{1}{\pi\sqrt{1-t^2}}\mathrm{d}t=1-\frac{1}{\pi}\arccos x
+$$
+
+其逆函数为 $F^{-1}(x)=\cos\left(\pi(1-x)\right)$。由于 $\{(i-0.5)/n\}_{i=1}^n$、$\{(n-i+0.5)/n\}_{i=1}^n$ 是均匀分布的最优代表点，对均匀分布点位做逆概率变换 $\{F^{-1}\left((n-i+0.5)/n\right)\}_{i=1}^n$，得到的点位恰好就是式 (2.5) 定义的切比雪夫节点。也就是说，当 $n$ 足够大时，用于拟合 $n-1$ 次多项式的 D 最优设计点，完全可以用切比雪夫节点近似替代。这就在试验设计与逼近理论两大领域之间建立了巧妙的关联。
+
+现在考虑包含多个输入变量的情形。仅纳入变量主效应的线性回归模型可写为：
+
+$$
+y=\beta_0+\beta_1x_1+\dots+\beta_px_p+\epsilon
+$$
+
+我们还可以引入多项式项 $x_j^2、x_j^3\cdots$（$j=1,\dots,p$）、二阶交互项 $x_ix_j$、$x_ix_j^2\cdots$，以及高阶交互项 $x_ix_jx_k\cdots$。因此，线性回归模型中可纳入的效应总数 $P$ 可以非常大，甚至远大于样本量 $n$。设 $\boldsymbol{X}$ 为 $n\times P$ 的模型矩阵，则 $\boldsymbol{X}'\boldsymbol{X}$ 的秩满足 $\text{rank}(\boldsymbol{X}'\boldsymbol{X})=n < P$，无法像式 (2.32) 中那样对 $\boldsymbol{X}'\boldsymbol{X}$ 求逆以得到最小二乘估计。我们可以通过岭回归（霍尔、肯纳德，1970）解决该问题。假设矩阵 $\boldsymbol{X}$ 的各列与响应变量 $\boldsymbol{y}$ 均经过标准化处理，均值为 0、标准差为 1，接下来考虑不含截距项的回归模型。岭回归求解如下优化问题：
+
+$$
+\min_{\boldsymbol{\beta}}(\boldsymbol{y}-\boldsymbol{X}\boldsymbol{\beta})'(\boldsymbol{y}-\boldsymbol{X}\boldsymbol{\beta})+\lambda\boldsymbol{\beta}'\boldsymbol{\beta}
+\tag{2.39}
+$$
+
+其中 $\lambda>0$ 为正则化参数，对应的解为：
+
+$$
+\widehat{\boldsymbol{\beta}}=(\boldsymbol{X}'\boldsymbol{X}+\lambda\boldsymbol{I}_P)^{-1}\boldsymbol{X}'\boldsymbol{y}
+\tag{2.40}
+$$
+
+正则化参数 $\lambda$ 可通过交叉验证法选定。下面的结论有助于推导留一交叉验证误差。记帽子矩阵 $\boldsymbol{L}=\boldsymbol{X}(\boldsymbol{X}'\boldsymbol{X}+\lambda\boldsymbol{I}_P)^{-1}\boldsymbol{X}'$，则留一交叉验证误差 $y_i-\widehat{y}_{\sim i}$ 可借助简便公式计算（瓦瑟曼，2006，第 70 页）。
+
+> **引理 2.5**：对于线性预测值 $\widehat{\boldsymbol{y}}=\boldsymbol{L}\boldsymbol{y}$，留一交叉验证误差可通过下式计算： $$cv_i=\frac{y_i-\widehat{y}_i}{1-l_i},\quad i=1,\dots,n$$ 其中 $l_i=\boldsymbol{L}_{ii}$ 为帽子值（也称杠杆值）。
+
+因此，均方交叉验证误差的表达式为：$\mathrm{MSCV}=\sum_{i=1}^{n}\mathrm{cv}_i^2/n$。戈卢布等人（1979）提出了一种均方交叉验证误差的近似形式，称为广义交叉验证（GCV），其公式如下：
+
+$$
+\mathrm{GCV}=\frac{1}{n}\frac{\sum_{i=1}^{n}(y_i-\widehat{y}_i)^2}{(1-\overline{l})^2}
+$$
+
+其中 $\overline{l}=\sum_{i=1}^{n}l_i/n=\mathrm{tr}\{(\boldsymbol{X}'\boldsymbol{X}+\lambda\boldsymbol{I}_P )^{-1}\boldsymbol{X}'\boldsymbol{X}\}/n$。广义交叉验证具备优良性质，例如模型矩阵具有旋转不变性。因此，可以通过最小化均方交叉验证误差或广义交叉验证的值，利用数据求解得到参数 $\lambda$。
+
+然而，式 (2.40) 中的岭回归仅包含单一正则化参数 $\lambda$，这隐含假定主效应、二因子交互效应等各类效应具有同等重要性。但在实际应用中，该假设几乎无法成立。因此，我们需要对岭回归表达式进行修正，使其适用于试验数据分析。为此，首先需要引入效应分层原理、效应遗传原理等试验设计准则（吴与滨田，2021）。相关内容将在第 8 章探讨实体试验数据分析时展开介绍。
+
+### 2.2.2 核岭回归
+
+我们不必采用多项式基函数，而是可以参照 2.1.2 节的方式使用径向基函数来逼近隐含函数，由此便可推导出核岭回归。核函数 $K(\cdot,\cdot)$ 并不要求具备径向特性，但必须满足对称性与正定性，也就是 $K(\boldsymbol{u},\boldsymbol{v})=K(\boldsymbol{v},\boldsymbol{u})$，且符合定义 2.1。本书主要采用平移不变核 $K(\boldsymbol{u},\boldsymbol{v})=R(\boldsymbol{u}-\boldsymbol{v})$，不过仍会针对通用类型的核函数介绍核岭回归。设含噪声数据集为 $\{(\boldsymbol{x}_i,y_i)\}_{i=1}^n$，我们需要拟合模型：
+
+$$
+y_i=\sum_{j=1}^n c_jK(\boldsymbol{x}_i,\boldsymbol{x}_j)+\epsilon_i
+$$
+
+其中 $\epsilon_i$ 独立同分布，服从正态分布 $\epsilon_i\stackrel{\text{iid}}{\sim}N(0,\sigma^2)$，且假定 $y_i$ 已经中心化处理。由此可构建最小二乘优化目标：
+
+$$
+\min_{\boldsymbol{c}}(\boldsymbol{y}-\boldsymbol{K}\boldsymbol{c})'(\boldsymbol{y}-\boldsymbol{K}\boldsymbol{c})
+$$
+
+式中 $\boldsymbol{K}$ 为 $n$ 阶方阵，其第 $i$ 行第 $j$ 列元素为 $K(\boldsymbol{x}_i,\boldsymbol{x}_j)$，$\boldsymbol{c}=(c_1,\dots,c_n)'$。但正如 2.1.2 节所述，只要所有 $\boldsymbol{x}_i$ 互不相同，该优化问题存在唯一解 $\widehat{\boldsymbol{c}}=\boldsymbol{K}^{-1}\boldsymbol{y}$。此时得到的预测器本质是插值器，对于含噪声数据而言这通常并非理想结果：预测结果会产生不必要的剧烈波动，难以精准逼近真实的隐含函数。我们可通过正则化手段解决该问题，即在最小二乘目标函数中增加惩罚项，以此约束预测器的波动幅度。令预测函数 $h_n(\boldsymbol{x})=\boldsymbol{k}(\boldsymbol{x})'\boldsymbol{c}$，$\boldsymbol{k}(\boldsymbol{x})$ 是 $n$ 维列向量，其第 $i$ 个元素为 $K(\boldsymbol{x},\boldsymbol{x}_i)$。最终需求解的优化问题为：
+
+$$
+\min_{\boldsymbol{c}}(\boldsymbol{y}-\boldsymbol{K}\boldsymbol{c})'(\boldsymbol{y}-\boldsymbol{K}\boldsymbol{c})+\lambda\|h_n\|^2
+$$
+
+式中 $\lambda > 0$，$\|h_n\|$ 为函数 $h_n(\cdot)$ 的范数，用于控制函数的波动程度。
+
+要为函数 $h_n(\cdot)$ 定义合适的范数，首先需要划定一个函数类，并将 $h_n(\cdot)$ 归入该函数类中。考察由核函数线性张成构成的函数类：
+
+$$
+h(\cdot)=\sum_{i=1}^m\alpha_i K(\cdot,\boldsymbol{u}_i)
+$$
+
+式中 $m$ 可取任意正整数，$u_i$ 为定义域 $\mathcal{X}$ 内的任意点。针对该函数类中任意两个元素，其内积定义如下。设有两个函数
+
+$$
+f(\cdot)=\sum_{i=1}^m\alpha_i K(\cdot,\boldsymbol{u}_i),\quad g(\cdot)=\sum_{i=1}^n\beta_i K(\cdot,\boldsymbol{v}_i)
+$$
+
+则二者的内积定义为：
+
+$$
+\langle f,g\rangle=\sum_{i=1}^m\sum_{j=1}^n\alpha_i\beta_j K(\boldsymbol{u}_i,\boldsymbol{v}_j)
+$$
+
+由该内积诱导出的函数范数为 $\|f\|=\sqrt{\langle f,f\rangle}$。若将前文定义的函数类依照该范数取闭包，便可得到函数希尔伯特空间 $\mathcal{H}$。该空间具备再生性质 $\langle K(\cdot,\boldsymbol{u}),K(\cdot,\boldsymbol{v})\rangle=K(\boldsymbol{u},\boldsymbol{v})$，因此被称作再生核希尔伯特空间（RKHS）。关于再生核希尔伯特空间的详细内容可参阅法斯豪尔与麦考特于 2015 年著作的第 2 章。
+
+因此，预测函数 $h_n(\cdot)=\sum_{i=1}^n c_iK(\cdot,\boldsymbol{x}_i)$ 在核函数 $K(\cdot,\cdot)$ 对应的再生核希尔伯特空间下的范数满足：
+
+$$
+\|h_n\|^2=\langle h_n,h_n\rangle=\sum_{i=1}^n\sum_{j=1}^n c_ic_jK(\boldsymbol{x}_i,\boldsymbol{x}_j)=\boldsymbol{c}'\boldsymbol{K}\boldsymbol{c}
+$$
+
+于是我们的优化问题写作：
+
+$$
+\min_{\boldsymbol{c}}(\boldsymbol{y}-\boldsymbol{K}\boldsymbol{c})'(\boldsymbol{y}-\boldsymbol{K}\boldsymbol{c})+\lambda\boldsymbol{c}'\boldsymbol{K}\boldsymbol{c}
+\tag{2.41}
+$$
+
+事实上，依据表示定理（瓦巴，1990）可以证明，该优化问题等价于下述无限维优化问题：
+
+$$
+\min_{h_n\in\mathcal{H}}\sum_{i=1}^n\big\{y_i- h_n(\boldsymbol{x}_i)\big\}^2+\lambda\|h_n\|^2
+$$
+
+该优化形式看似难以求解，但式 (2.41) 的求解过程十分简便。将目标函数对 $\boldsymbol{c}$ 求导并令导数等于零，可得：
+
+$$
+-2\boldsymbol{K}(\boldsymbol{y}-\boldsymbol{K}\boldsymbol{c})+2\lambda\boldsymbol{K}\boldsymbol{c}=\boldsymbol{0}
+$$
+
+解得：
+
+$$
+\widehat{\boldsymbol{c}}=(\boldsymbol{K}+\lambda\boldsymbol{I})^{-1}\boldsymbol{y}
+\tag{2.42}
+$$
+
+将该结果与式 (2.40) 的岭回归解对比，便可理解该方法被命名为核岭回归的原因。接下来验证式 (2.40) 是其特例：设核函数 $K(u,v)=\boldsymbol{r}(u)'\boldsymbol{r}(v)$，其中 $\boldsymbol{r}(u)=(u,u^2,\dots,u^m)'$，此时 $\boldsymbol{K}=\boldsymbol{R}\boldsymbol{R}'$，$\boldsymbol{R}$ 为 $n\times m$ 矩阵，其第 $i$ 行是 $\boldsymbol{r}(x_i)'$。代入式 (2.41) 后优化问题变为：
+
+$$
+\min_{\boldsymbol{c}}(\boldsymbol{y}-\boldsymbol{R}\boldsymbol{R}'\boldsymbol{c})'(\boldsymbol{y}-\boldsymbol{R}\boldsymbol{R}'\boldsymbol{c})+\lambda\boldsymbol{c}'\boldsymbol{R}\boldsymbol{R}'\boldsymbol{c}
+$$
+
+令 $\boldsymbol{\beta}=\boldsymbol{R}'\boldsymbol{c}$，上式即可化简为式 (2.39)。
+
+核岭回归预测值 $\widehat{y}(x)=\boldsymbol{k}(x)'\widehat{\boldsymbol{c}}$ 必须在确定正则化参数 $\lambda$ 以及核函数内的参数 $\theta$ 之后才可使用。对此，我们仍可采用 2.1.2 节中的交叉验证方法。结合引理 2.5 能够求得留一交叉验证误差：
+
+$$
+cv_i=\frac{y_i-\boldsymbol{H}_i\boldsymbol{y}}{1-\boldsymbol{H}_{ii}}
+$$
+
+其中 $\boldsymbol{H}=\boldsymbol{K}(\boldsymbol{K}+\lambda\boldsymbol{I})^{-1}$。该公式在 $\lambda=0$ 时无法直接使用，不过我们可对公式做化简以适配该情形。利用矩阵恒等式：
+
+$$
+\boldsymbol{I}-\boldsymbol{K}(\boldsymbol{K}+\lambda\boldsymbol{I})^{-1}=\lambda(\boldsymbol{K}+\lambda\boldsymbol{I})^{-1}
+$$
+
+推导可得：
+
+$$
+\begin{align*}
+cv_i &=\frac{\left[\boldsymbol{y}-\left\{\boldsymbol{I}-\lambda(\boldsymbol{K}+\lambda\boldsymbol{I})^{-1}\right\}\boldsymbol{y}\right]_i}{\left(\boldsymbol{I}-\left\{\boldsymbol{I}-\lambda(\boldsymbol{K}+\lambda\boldsymbol{I})^{-1}\right\}\right)_{ii}}\\
+&=\frac{\left[(\boldsymbol{K}+\lambda\boldsymbol{I})^{-1}\boldsymbol{y}\right]_i}{\left((\boldsymbol{K}+\lambda\boldsymbol{I})^{-1}\right)_{ii}}
+\end{align*}
+$$
+
+当 $\lambda=0$ 时，该式与前文推导得到的式 (2.9) 完全一致。
+
+再次回顾上一节用到的数据 $\{(x_i,y_i)\}_{i=1}^{20}$，该数据由式 (2.1) 中的一元函数生成。选取高斯核函数 $K(u,v)=\exp\left\{-(u-v)^2/\theta^2\right\}$。分别采用多折交叉验证（MSCV）与广义交叉验证（GCV）最小化准则估计参数 $\lambda$ 和 $\theta$，两种方法得到的结果一致：等间隔设计点下，参数估计值 $\widehat{\lambda}=0.034$、$\widehat{\theta}=0.082$；针对九次多项式的 D 最优设计点下，参数估计值 $\widehat{\lambda}=0.034$、$\widehat{\theta}=0.082$。对应的预测结果绘制于图 2.8 中，其预测效果远优于图 2.6、图 2.7 所示的多项式回归结果。
+
+> **图 2.8**：采用 10 个等间隔设计点（左侧）与 D 最优设计点（右侧）、各设置两组重复试验的核岭回归
+
+![Alt Text](figures/2.8.png){width=67%}
+
+### 2.2.3 高斯过程回归
+
+由于克里金法与高斯过程均采用概率化表达形式，很容易对其进行拓展以处理含噪声数据。鉴于克里金法与高斯过程的表达式相近，本节仅围绕高斯过程展开分析。我们构建的统计模型为：
+
+$$
+y=h(\boldsymbol{x})+\epsilon
+$$
+
+其中 $h(\boldsymbol{x})\sim\mathrm{GP}(\mu,\tau^2R(\cdot))$，噪声项 $\epsilon$ 独立同分布，服从正态分布 $\epsilon\stackrel{\text{iid}}{\sim}\mathcal{N}(0,\sigma^2)$。现有数据集 $\{(\boldsymbol{x}_i,y_i)\}_{i=1}^n$。暂且假定参数 $\mu$、$\tau^2$、$\sigma^2$ 以及相关参数 $\boldsymbol{\theta}$ 均为已知量，后续将采用经验贝叶斯方法对这些参数进行估计。
+
+设 $\boldsymbol{y}=(y_1,\dots,y_n)'$ 的边缘分布为
+
+$$
+\boldsymbol{y}\sim\mathcal{N}(\mu\boldsymbol{1},\tau^2\boldsymbol{R}+\sigma^2\boldsymbol{I})
+$$
+
+而 $h(\boldsymbol{x})$ 与 $\boldsymbol{y}$ 的联合分布满足
+
+$$
+\begin{bmatrix}
+h(\boldsymbol{x})\\\boldsymbol{y}
+\end{bmatrix}
+\sim\mathcal{N}_{1+n}
+\left(\begin{bmatrix}
+\mu\\\mu\boldsymbol{1}
+\end{bmatrix},\begin{bmatrix}
+\tau^2&\tau^2\boldsymbol{r}(\boldsymbol{x})'\\
+\tau^2\boldsymbol{r}(\boldsymbol{x})&\tau^2\boldsymbol{R}+\sigma^2\boldsymbol{I}
+\end{bmatrix}\right)
+$$
+
+式中 $\boldsymbol{r}(\boldsymbol{x})=\{R(\boldsymbol{x}-\boldsymbol{x}_i)\}_{i=1}^n$，$\boldsymbol{R}=\{R(\boldsymbol{x}_i-\boldsymbol{x}_j)\}_{i,j=1}^n$，定义方式与式 (2.13) 一致。由于误差 $\epsilon$ 服从正态分布，上述推导过程较为简便。若数据服从二项分布、泊松分布等非正态分布，对应的分析过程会变得十分复杂，本书不再展开介绍。针对非正态数据下的高斯过程回归，可参阅班纳吉等人（2003）、迪格尔与小里贝罗（2007）的相关研究。
+
+利用引理 2.2，对于固定的 $\boldsymbol{x}$，可求得 $h(\boldsymbol{x})$ 的后验分布：
+
+$$
+h(\boldsymbol{x})|\boldsymbol{y}\sim\mathcal{N}\left(\mu+\boldsymbol{r}(\boldsymbol{x})'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}(\boldsymbol{y}-\mu\boldsymbol{1}),\\tau^2\left\{1-\boldsymbol{r}(\boldsymbol{x})'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}\right)
+\tag{2.43}
+$$
+
+其中 $\lambda=\sigma^2/\tau^2$。可以发现，当 $\mu=0$ 时，后验均值
+
+$$
+\widehat{y}(\boldsymbol{x})=\mu+\boldsymbol{r}(\boldsymbol{x})'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})
+$$
+
+退化为核岭回归预测值。两种方式的预测结果一致，但此处可以得到预测方差，进而构造置信区间。关于这两种方法更为全面的对比可参考金川等人（2018）的研究。位置 $\boldsymbol{x}$ 处新增观测值的预测方差为：
+
+$$
+\begin{align*}
+s^2(\boldsymbol{x})&=\mathrm{var}\{h(\boldsymbol{x})+\epsilon|\boldsymbol{y}\}\\
+&=\mathrm{var}\{h(\boldsymbol{x})|\boldsymbol{y}\}+\mathrm{var}(\epsilon)\quad\text{(由相互独立性可得)}\\
+&=\tau^2\left\{1+\lambda-\boldsymbol{r}(\boldsymbol{x})'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}
+\end{align*}
+$$
+
+据此可得 95% 预测区间为 $\widehat{y}(\boldsymbol{x})\pm2s(\boldsymbol{x})$。
+
+高斯过程表达式还提供了一种不同于交叉验证法的方式来估计未知参数。参数的似然函数满足：
+
+$$
+L\propto\frac{1}{\tau^n |\boldsymbol{R}+\lambda\boldsymbol{I}|^{1/2}}\exp\left\{-\frac{1}{2\tau^2}(\boldsymbol{y}-\mu\boldsymbol{1})'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})\right\}
+$$
+
+将该似然函数关于 $\mu$、$\tau^2$、$\lambda$ 和 $\boldsymbol{\theta}$ 最大化，可得：
+
+$$
+\widehat{\mu}=\frac{\boldsymbol{1}'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}\boldsymbol{y}}{\boldsymbol{1}'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}\boldsymbol{1}}\tag{2.44}
+$$
+
+$$
+\widehat{\tau}^2=\frac{1}{n}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1})\tag{2.45}
+$$
+
+$$
+(\widehat{\lambda},\widehat{\boldsymbol{\theta}})=\argmin_{\lambda,\boldsymbol{\theta}}\left\{n\log\widehat{\tau}^2+\log|\boldsymbol{R}+\lambda\boldsymbol{I}|\right\}\tag{2.46}
+$$
+
+2.1.4 节所介绍的高斯过程回归与高斯过程插值二者的主要区别在于：相关矩阵 $\boldsymbol{R}$ 被替换为 $\boldsymbol{R}+\lambda\boldsymbol{I}$。实际上，即便针对无噪声数据，引入极小的 $\lambda$ 做这一替换也有助于提升数值稳定性（兰詹等人，2011；格拉马西、李，2012；彭、吴，2014）。在地统计学文献中，$\lambda$ 被称作块金值。
+
+再次考察由式 (2.1) 中的一维测试函数生成的 20 个数据点。借助 R 语言程序包 rkriging（黄与约瑟夫，2024），采用高斯相关函数 $R(u-v)=\exp\left\{-(u-v)^2/\theta^2\right\}$ 拟合高斯过程回归模型。针对两种采样方案——等间距采样点与适配九次多项式的 D 最优采样点，其预测结果及 95% 置信区间如图 2.9 所示。不出所料，该模型的预测效果与核岭回归相近，但高斯过程回归的优势在于可为预测值给出不确定性区间。对比图 2.6、图 2.7 右侧子图里的八次多项式模型，高斯过程回归无论是预测结果还是不确定性区间的表现都更为优异。高斯过程回归的不确定性区间具备合理特性：在已有观测数据的区间内区间宽度更窄，在数据稀疏区域区间则更宽。
+
+> **图 2.9**：采用 10 点等间隔设计点（左侧）与 10 点 D 最优设计点（右侧）并设置两组重复试验的高斯过程回归
+
+![Alt Text](figures/2.9.png){width=67%}
+
+# 3 基于模型的试验设计
+
+既然我们已经掌握了根据已知数据近似构建响应曲面的方法，接下来将着重探讨如何以最优方式采集这类数据。正如第一章所述，我们将采用两阶段试验设计策略：先开展初始设计，再进行序贯设计。在初始设计阶段，我们不对底层输入与输出之间的关联做出任何假设，采集数据的目的是完整拟合整个响应曲面，实现良好近似。在序贯设计阶段，依托初始数据拟合得到的模型继续采集数据，以此达成试验的特定目标，例如优化求解。本章及后续三章将围绕初始设计展开论述，序贯设计相关内容则放在第七章讲解。针对含噪声数据的试验设计方案，将在实物试验章节后续展开推导说明。
+
+## 3.1 基于预测的试验设计
+
+假设存在两个输入变量（$x_1$ 与 $x_2$），且试验预算允许开展七组实验。记试验区域为 $X$，我们需要在该区域内选取七个试验点。若无特殊说明，均假定试验区域可缩放为超立方体，因此本例中 $X=[0,1]^2$。倘若不借助任何试验设计理论，我们可以在区域 $[0,1]^2$ 内随机抽取七个样本点，图 3.1 展示了三组此类随机设计方案。不难发现，第一组设计的试验点大多集中在试验区域 $X$ 的左侧，第二组集中在中部，第三组集中在右侧。显然，若要探究区域 $X$ 内输入与输出之间的映射关系，这三组都算不上优质设计。当然也存在例外情况：针对某些特定函数，它们或许会成为最优设计。举例来说，若某函数在左侧变化剧烈、右侧几乎恒定，采用第一组设计就能够较好地拟合该函数。但在试验设计阶段，我们对目标函数一无所知。因此，试验设计的构造原则应当保证：依托采集到的数据，能够精准拟合任意潜在函数。基于该需求，我们需要划定一类函数集合，并寻找平均表现优良或能规避最差情形的试验设计方案。为此，本文将采用克里金法（kriging），也就是高斯过程（GP）所构建的随机分析框架。基于该思路的早期研究成果可参阅萨克斯与伊尔维萨克（1970）、伊尔维萨克（1975）的文献，萨克斯等人（1989）的文章梳理了相关发展历程。后文将会说明，这类基于模型的最优设计无法直接落地应用，原因是其依赖未知的模型参数。不过这套基于模型的分析思路，能够协助我们构建最优设计准则，为下一章设计更具备实用性的试验方案提供理论依据。
+
+> **图 3.1**：在二维区间 $[0,1]^2$ 内三组包含 7 次运行的随机抽样设计
+
+![Alt Text](figures/3.1.png){width=100%}
+
+构建响应曲面的高斯过程模型：$h(\boldsymbol{x})\sim\mathrm{GP}(\mu,\tau^2R(\cdot))$。暂且假定均值 $\mu$、方差 $\tau^2$ 以及相关参数 $\theta$ 均为已知。现有观测数据集 $\{(\boldsymbol{x}_i,y_i)\}_{i=1}^n$，则 $h(\boldsymbol{x})$ 的后验分布满足：
+
+$$
+h(\boldsymbol{x})|y\sim\mathcal{N}(\widehat{y}(\boldsymbol{x}),s^2(\boldsymbol{x}))
+$$
+
+其中：
+
+$$
+\widehat{y}(\boldsymbol{x})=\mu+\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})
+$$
+
+$$
+s^2(\boldsymbol{x})=\tau^2\left[1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})\right]
+$$
+
+式中 $\boldsymbol{r}(\boldsymbol{x})=\{R(\boldsymbol{x}-\boldsymbol{x}_i)\}_{i=1}^n$，矩阵 $\boldsymbol{R}=\{R(\boldsymbol{x}_i-\boldsymbol{x}_j)\}_{i,j=1}^n$，定义形式见式 (2.13)。需要说明的是，$\boldsymbol{r}(\boldsymbol{x})$ 与矩阵 $\boldsymbol{R}$ 均依赖试验设计 $D=\{\boldsymbol{x}_i\}_{i=1}^n$ 和相关参数 $\theta$，为简化符号书写，表达式中并未显式标注该依赖关系。
+
+我们的目标是确定试验设计方案，使得对任意属于试验区域 $\mathcal{X}$ 的自变量 $\boldsymbol{x}$，预测值 $\widehat{y}(\boldsymbol{x})$ 尽可能贴近真实响应曲面 $h(\boldsymbol{x})$；经过标准化处理后，试验区域 $\mathcal{X}$ 通常为超立方体 $[0,1]^p$。二者的接近程度可通过置信区间 $\widehat{y}(\boldsymbol{x})\pm z_{1-\alpha/2}s(\boldsymbol{x})$ 衡量，其中 $z_{1-\alpha/2}$ 为标准正态分布的上 $(1-\alpha/2)$ 分位数。因此优化目标可设定为最小化置信区间宽度 $2z_{1-\alpha/2}s(\boldsymbol{x})$。由于该宽度随自变量 $\boldsymbol{x}$ 变化，我们转而采用积分平均形式：
+
+$$
+\min_{D}\int_{\mathcal{X}}s(\boldsymbol{x})w(\boldsymbol{x})\mathrm{d}\boldsymbol{x}
+$$
+
+式中 $w(\boldsymbol{x})$ 为权重函数，用于表征响应曲面在位置 $\boldsymbol{x}$ 处的重要程度。现阶段假定研究关注整个试验区域 $\mathcal{X}$，即区域内所有 $\boldsymbol{x}$ 的重要性均等。参数 $\tau$ 不会影响优化过程，故令 $\tau=1$。由此得到最优设计准则：最小化积分均方根误差：
+
+$$
+IRMSE(D;\theta)=\int_{\mathcal{X}}\sqrt{1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})}\mathrm{d}\boldsymbol{x}
+\tag{3.1}
+$$
+
+值得注意，该准则与参数 $\mu$、$\tau^2$ 无关，仅依赖相关参数 $\boldsymbol{\theta}$。式 (3.1) 物理意义更为直观（约瑟夫等人，2019），但在求解最优设计时，采用积分均方误差在数学计算上更为简便（萨克斯等人，1989）：
+
+$$
+\begin{align*}
+\mathrm{IMSE}(D;\theta)&=\int_{\mathcal{X}}\left\{1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}\mathrm{d}\boldsymbol{x}\tag{3.2}\\
+&=1-\mathrm{tr}\left(\boldsymbol{R}^{-1}\int_{\mathcal{X}}\boldsymbol{r}(\boldsymbol{x})\boldsymbol{r}(\boldsymbol{x})'\mathrm{d}\boldsymbol{x}\right)
+\end{align*}
+$$
+
+上式中 $\mathcal{X}=[0,1]^p$。当选取特定相关函数（例如高斯相关函数）时，该准则可完成解析积分求解（莱瑟曼等人，2018），从而简化优化运算。
+
+我们选取一个一维问题，便于直观理解设计准则。积分均方误差（IMSE）准则必须先给定相关函数及其参数才能计算。取相关函数 $R(x)=\exp(-x^2/\theta^2)$，并令 $\theta=0.1$。图 3.2 左上子图展示了包含 10 个试验点的等距设计
+
+$$
+D_1=\left\{\frac{i-1}{n-1}\right\}_{i=1}^n
+$$
+
+以及包含 10 个试验点的切比雪夫设计
+
+$$
+D_2=\left\{0.5+0.5\cos\left(\frac{\pi(i-0.5)}{n}\right)\right\}_{i=1}^n
+$$
+
+（设定 $n=10$）对应的均方根误差 RMSE（等价于缩放后后验标准差 $s(x)/\tau$）。可以看到：在试验点位置处 RMSE 取值为 0，随着预测点远离试验点，RMSE 逐渐增大。切比雪夫设计在区间边界附近分配了更多试验点，因此边界区域的 RMSE 较小，但区间中心位置的 RMSE 会变大。我们可通过计算式 (3.2) 中的积分均方误差 IMSE 对比两种设计方案。借助数值积分计算可得：$\mathrm{IMSE}(D_1;0.1)=0.0705$，$\mathrm{IMSE}(D_2;0.1)=0.1227$，说明等距设计表现更优。我们可以对 IMSE 准则做优化求解最优试验设计。但 IMSE 的优化求解难度很高：目标函数包含相关矩阵的逆矩阵 $\boldsymbol{R}^{-1}$、求解过程需要数值积分，并且目标函数属于多峰函数。本文在 R 语言的 optim 函数中采用无导数有限内存 BFGS（L-BFGS）优化算法，以等距设计作为优化初始值求解最优设计。最优设计 $D_3$ 绘制在同一张图的左下子图中，其积分均方误差 $\mathrm{IMSE}(D_3;0.1)=0.0496$。不难发现，该最优设计将试验点向区间中心聚拢，致使区间边界处的 RMSE 变大，但整体的积分均方误差实现了进一步降低。
+
+> **图 3.2**：四种试验设计对应的均方根误差。若依托对应设计采集的数据拟合高斯过程模型，且模型相关函数取 $R(\Delta)=\exp(-\Delta^2/\theta^2)$、$\theta=0.1$，则纵坐标正比于置信区间宽度
+
+![Alt Text](figures/3.2.png){width=67%}
+
+注意到
+
+$$
+\int_X\left\{1-\boldsymbol{r}(\boldsymbol{x})'R^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}\mathrm{d}x\le\max_{x\in X}\left\{1-\boldsymbol{r}(\boldsymbol{x})'R^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}
+$$
+
+我们可以定义另一准则，即最小化最大均方误差（萨克斯等人，1989）：
+
+$$
+\mathrm{MMSE}(D;\theta)=\max_{x\in X}\left\{1-\boldsymbol{r}(\boldsymbol{x})'R^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}
+\tag{3.3}
+$$
+
+积分均方误差（IMSE）设计与最大均方误差（MMSE）设计可看作线性回归模型下 I 最优设计 (2.37)、G 最优设计 (2.36) 在高斯过程中的对应形式。
+
+通过最小化均方误差得到的最优设计方案（$D_4$）展示于图 3.2 的右下子图中。可以发现，该设计能够将最大不确定度降至最低；相较于集成均方误差设计方案，该最优设计只是略微将采样点向边界靠拢即可实现上述效果。四种设计方案各自对应的均方误差数值同样标注在图 3.2 中。
+
+上述所有计算均基于相关长度 $\theta=0.1$ 的高斯相关函数完成。在实际研究中，无法在开展实验前预先获知尺度参数的取值。因此，探究该参数是否会对最优试验设计产生影响具有重要意义。图 3.3 上方子图绘制了积分均方误差（IMSE）与最小最大均方误差（MMSE）的数值曲线。可以看出两类误差数值随 $\theta$ 变化显著。当 $\theta$ 取值极小或极大时，各类试验设计的表现趋于一致。该现象可以合理解释：$\theta$ 取值较小时，响应曲面起伏剧烈，全部 10 组试验设计均难以精准拟合该响应曲面；与之类似，$\theta$ 取值较大时，响应曲面平缓光滑，所有试验设计均可较好地完成曲面拟合。只有当 $\theta$ 处于中间区间时，不同试验设计的性能才会出现明显差异。参照萨克斯等人（1989）的研究方式，可定义相对效率用以区分不同试验设计的优劣，对应公式如下：
+
+相对积分均方效率：
+
+$$
+\mathrm{RE}_\mathrm{I}(D_i;\boldsymbol{\theta})=\frac{\min_i\mathrm{IMSE}(D_i;\boldsymbol{\theta})}{\mathrm{IMSE}(D_i;\boldsymbol{\theta})}
+$$
+
+相对最小最大均方效率：
+
+$$
+\mathrm{RE}_\mathrm{M}(D_i;\boldsymbol{\theta})=\frac{\min_i\mathrm{MMSE}(D_i;\boldsymbol{\theta})}{\mathrm{MMSE}(D_i;\boldsymbol{\theta})}
+$$
+
+其中 $i=1,2,3,4$。
+
+> **图 3.3**：图 3.2 中四种设计方案在积分均方误差（IMSE）与最小最大均方误差（MMSE）指标下的相对效率。将参数 $\theta$ 固定为 0.1，即可求得分别适配积分均方误差、最小最大均方误差的最优设计方案
+
+![Alt Text](figures/3.3.png){width=67%}
+
+四种设计方案在积分均方误差（IMSE）与最小均方误差（MMSE）指标下的相对效率绘制于图 3.3 下方子图中。可以看出，最优设计方案会随着参数 $\theta$ 取值的变化而改变。例如，当 $\theta<0.3$ 时，切比雪夫设计在积分均方误差指标下表现很差，但当 $\theta>0.3$ 时该设计性能最优。这一结果对我们的最优设计方案而言是不利的。不过仍存在可行思路：等间隔设计与最小均方误差最优设计即便无法在任意 $\theta$ 取值下达到最优，但其在全部 $\theta$ 取值范围内的表现都较为稳定。因此，我们需要求解对参数 $\theta$ 具备鲁棒性的设计方案，该优化问题可表示为：
+
+$$
+\max_{D}\min_{\boldsymbol{\theta}\in\Theta}\frac{\mathrm{IMSE}(D^*(\boldsymbol{\theta});\boldsymbol{\theta})}{\mathrm{IMSE}(D;\boldsymbol{\theta})}
+$$
+
+其中
+
+$$
+D^*(\boldsymbol{\theta})=\argmin_{\boldsymbol{\theta}\in\Theta}\mathrm{IMSE}(D;\boldsymbol{\theta})
+$$
+
+且 $\Theta\subset[0,+\infty)^p$。鲁棒最小均方误差最优设计可按照相同方式定义。即便对 $p$ 维参数空间 $\Theta$ 进行离散化处理，仍需要针对大量 $\theta$ 取值求解积分均方误差最优设计或最小均方误差最优设计，因此该问题求解难度极大。
+
+由图 3.3 可见，当 $\theta$ 趋近于 0（即相关性趋近于 0）时，所有设计方案的表现均较差，该情形对应变量近似相互独立。在此条件下，矩阵 $\boldsymbol{R}$ 趋近于单位矩阵 $\boldsymbol{I}$，因此无需对矩阵 $\boldsymbol{R}$ 求逆即可计算集成均方误差（IMSE）准则与最小均方误差（MMSE）准则，能够大幅降低计算量。此外，在该极限条件下求得的各类设计方案，在相关性较强的场景中同样具备不错的效果。这类设计被称作填充设计，不仅构造难度更低，还能够抵御相关结构设定错误带来的影响，具备稳健性。因此我们将填充设计作为计算机试验的初始设计。不过在深入讲解填充设计之前，还需要了解基于模型的试验设计中另一重要概念。
+
+## 3.2 最大熵试验设计
+
+谢夫里与温恩（1987）针对空间采样提出最大熵设计，柯林等人（1991）将其引入计算机试验领域。熵是一种不确定性度量（香农，1948）。设有离散集合 $\mathcal{X}=\{\boldsymbol{X}_1,\dots,\boldsymbol{X}_N\}$，以 $\boldsymbol{Y}_\mathcal{X}$ 代表随机向量 $(Y_1,\dots,Y_N)$，其中 $Y_i=h(\boldsymbol{X}_i)$，$h(\cdot)$ 为某随机函数。则 $\boldsymbol{Y}_\mathcal{X}$ 的熵定义为：
+
+$$
+\mathrm{Ent}(\boldsymbol{Y}_\mathcal{X})=-\int f(\boldsymbol{y})\log f(\boldsymbol{y})\mathrm{d}\boldsymbol{y}
+$$
+
+式中 $f(\boldsymbol{y})$ 为 $\boldsymbol{Y}_\mathcal{X}$ 的概率密度函数。优化目标是选取设计 $D$（集合 $\mathcal{X}$ 的子集），由设计 $D$ 可得到观测数据 $\boldsymbol{Y}_D$。我们需要选定设计 $D$，使得在已知观测数据 $\boldsymbol{Y}_D$ 的条件下，未观测数据 $\boldsymbol{Y}_{\mathcal{X}\backslash D}$ 的熵最小。熵存在如下分解形式（科弗、托马斯，1991）：
+
+$$
+\mathrm{Ent}(\boldsymbol{Y}_\mathcal{X})=\mathrm{Ent}(\boldsymbol{Y}_D)+\mathrm{E}\{\mathrm{Ent}(\boldsymbol{Y}_{\mathcal{X}\backslash D}|\boldsymbol{Y}_D)\}
+$$
+
+由于等式左侧与设计 $D$ 无关，因此只需通过最大化 $\mathrm{Ent}(\boldsymbol{Y}_D)$ 来最小化等式右侧第二项，由此便得到最大熵设计。
+
+假设输入输出关系由高斯过程实现：$h(\boldsymbol{x})\sim GP(\mu,\tau^2R(\cdot))$，其中 $\mu$、$\tau^2$ 以及相关参数 $\boldsymbol{\theta}$ 均为已知量。设试验设计集合 $D=\{\boldsymbol{x}_i\}_{i=1}^n$，观测数据 $\boldsymbol{y}=(y_1,\dots,y_n)'$，则
+
+$$
+\boldsymbol{y}\sim N_n(\mu\boldsymbol{1},\tau^2\boldsymbol{R})
+$$
+
+式中 $\boldsymbol{R}=\{R(x_i- x_j)\}_{i,j=1}^n$。我们的目标是选取设计集合 $D$，最大化 $\boldsymbol{y}$ 的熵。$\boldsymbol{y}$ 的熵计算公式如下：
+
+$$
+\begin{align*}
+\mathrm{Ent}(\boldsymbol{y})&=-\int\left[-\frac{n}{2}\log2\pi-\frac{n}{2}\log\tau^2-\frac{1}{2}\log|\boldsymbol{R}|-\frac{1}{2\tau^2}(\boldsymbol{y}-\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})\right] f(\boldsymbol{y})\mathrm{d}\boldsymbol{y}\\
+&=\frac{n}{2}\log2\pi+\frac{n}{2}\log\tau^2+\frac{1}{2}\log|\boldsymbol{R}|+\frac{1}{2\tau^2}\mathrm{E}\left[(\boldsymbol{y}-\mu\boldsymbol{1})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\mu\boldsymbol{1})\right]\\
+&=\frac{n}{2}\log2\pi+\frac{n}{2}\log\tau^2+\frac{1}{2}\log|\boldsymbol{R}|+\frac{1}{2\tau^2}\mathrm{tr}\left[\boldsymbol{R}^{-1}\mathrm{var}(\boldsymbol{y})\right]\\
+&=\frac{n}{2}\log2\pi+\frac{n}{2}\log\tau^2+\frac{1}{2}\log|\boldsymbol{R}|+\frac{n}{2}
+\end{align*}
+$$
+
+推导过程用到二次型期望公式：$\mathrm{E}(\boldsymbol{y}'\boldsymbol{A}\boldsymbol{y})=\mathrm{E}(\boldsymbol{y})'\boldsymbol{A}\mathrm{E}(\boldsymbol{y})+\mathrm{tr}\{\boldsymbol{A}\mathrm{var}(\boldsymbol{y})\}$。剔除不影响优化求解的常数项与对数项，将 $\boldsymbol{y}$ 的熵简化定义为：
+
+$$
+\mathrm{Ent}(\boldsymbol{y}):=|\boldsymbol{R}|
+\tag{3.4}
+$$
+
+由此可得最大熵设计满足：
+
+$$
+D^*=\argmax_{D}|\boldsymbol{R}|
+\tag{3.5}
+$$
+
+针对一维问题，在 $R(x)=\exp(−x^2/\theta^2)$、$\theta=0.1$ 的条件下，构造得到一组含 10 个试验点的熵设计，该熵设计与均方根误差变化曲线一同展示于图3.4右侧子图。为便于对比，图 3.2 中的最优积分均方误差设计与最小最大均方误差设计也一并绘于此处。不难发现，相较于积分均方误差最优设计和最小最大均方误差最优设计，熵设计的试验点向区间边界靠拢。最大熵设计与图 3.2 中的等间隔设计形态相近，但其最大均方根误差更小。
+
+> **图 3.4**：在参数 $\theta=0.1$ 的条件下，采用集成均方误差最优设计、最小均方误差最优设计与最大熵设计（蓝色圆点）
+
+![Alt Text](figures/3.4.png){width=100%}
+
+最大熵设计与上一节所述的积分均方误差（IMSE）最优设计、最小均方误差（MMSE）最优设计具备相同的实际局限性。第一，只有给定相关参数后才能完成求解计算，但在试验设计阶段这些参数是未知的。第二，尽管最大熵准则相较于积分均方误差/最小均方误差准则形式更为简洁，可求解相关矩阵 $\boldsymbol{R}$ 行列式的计算开销依旧很大，该运算的时间复杂度为 $\mathcal{O}(n^3)$，因此熵优化过程十分耗时。除此之外，目标函数可能存在多峰特性，进一步提升了优化求解的难度。针对图 3.4 中的最优设计，本文采用多初始点局部优化算法或优质初始迭代点进行求解，但该方式在高维场景下求解效率偏低。柯林等人（1991）采用了米切尔（1974）提出的 DETMAX 算法；针对离散优化问题的进阶优化算法可查阅范帕与李（2022）的研究成果。
+
+我们将通过在低相关区域（粗糙曲面）开展求解工作，解决最大熵设计存在的稳健性与优化难题，由此得到一类填充空间设计，相关内容将在下一章展开探讨。
+
+# 4 空间填充设计
+
+尽管基于模型的方法为构建最优试验设计提供了一套严谨的理论思路，但该方法存在一定的实际局限。基于模型的最优设计依赖相关系数等未知模型参数，并且在参数设定出现偏差时不具备稳健性。除此之外，基于模型的准则计算成本高昂，数值稳定性较差，不仅优化过程难度大，运算开销也居高不下。为此，本章将对基于模型的准则进行近似处理，并构造可填满试验区域的试验设计方案。这类设计具备清晰的几何内涵，可依托各类建模方法推导得出，说明其具备一定的模型稳健特性。
+
+## 4.1 基于聚类的设计
+
+设设计集合 $D=\{x_i\}_{i=1}^n$，试验区域为 $X=[0,1]^p$。考察式 (3.1) 中的积分均方根误差准则：
+
+$$
+IRMSE(D;\theta)=\int_{\mathcal{X}}\sqrt{1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})}\mathrm{d}\boldsymbol{x}
+$$
+
+式中 $\boldsymbol{r}(\boldsymbol{x})=\{R(\boldsymbol{x}-\boldsymbol{x}_i)\}_{i=1}^n$，$\boldsymbol{R}=\{R(x_i-x_j)\}_{i,j=1}^n$，$R(\cdot)$ 为相关函数。将试验区域划分为 $n$ 个沃罗诺伊区域：$\mathcal{X}=V_1\cup\dots\cup V_n$，其中
+
+$$
+V_i=\{\boldsymbol{x}\in\mathcal{X}:\|\boldsymbol{x}-\boldsymbol{x}_i\|\le\|\boldsymbol{x}-\boldsymbol{x}_j\|,\quad\forall j\ne i\}
+\tag{4.1}
+$$
+
+由于当 $i\ne j$ 时 $V_i\cap V_j=\emptyset$，可得：
+
+$$
+IRMSE(D;\theta)=\sum_{i=1}^n\int_{V_i}\sqrt{1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})}\mathrm{d}\boldsymbol{x}
+$$
+
+新增采样点会使后验方差减小，因此 $1-\boldsymbol{r}(x)'\boldsymbol{R}^{-1}\boldsymbol{r}(x)$ 的值小于仅采用单个设计点得到的方差（勒普基等人，2010），由此可得：
+
+$$
+1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})\le1-R^2(\boldsymbol{x}-\boldsymbol{x}_i),\quad\forall i
+\tag{4.2}
+$$
+
+进而有：
+
+$$
+IRMSE(D;\theta)\le\sum_{i=1}^n\int_{V_i}\sqrt{1-R^2(\boldsymbol{x}-\boldsymbol{x}_i)}\mathrm{d}\boldsymbol{x}
+$$
+
+采用各向同性高斯相关函数
+
+$$
+R(\boldsymbol{\Delta})=\exp\left(-\frac{\|\boldsymbol{\Delta}\|^2}{\theta^2}\right)
+\tag{4.3}
+$$
+
+则
+
+$$
+\begin{align*}
+IRMSE(D;\theta)&\le\sum_{i=1}^n\int_{V_i}\sqrt{1-\exp\left(-\frac{2\|\boldsymbol{x}-\boldsymbol{x}_i\|^2}{\theta^2}\right)}\mathrm{d}\boldsymbol{x}\\
+&\approx\sum_{i=1}^n\int_{V_i}\sqrt{1-\left(1-\frac{2\|\boldsymbol{x}-\boldsymbol{x}_i\|^2}{\theta^2}\right)}\mathrm{d}\boldsymbol{x}\\
+&=\frac{\sqrt{2}}{\theta}\sum_{i=1}^n\int_{V_i}\|\boldsymbol{x}-\boldsymbol{x}_i\|\mathrm{d}\boldsymbol{x}
+\end{align*}
+$$
+
+当 $\max_i\max_{\boldsymbol{x}\in V_i}\|\boldsymbol{x}-\boldsymbol{x}_i\|\ll\theta$ 时，上述近似具备较高精度。通过最小化该上界，可求得最优设计：
+
+$$
+\min_{D}\;\sum_{i=1}^n\int_{V_i}\|\boldsymbol{x}-\boldsymbol{x}_i\|\mathrm{d}\boldsymbol{x}
+\tag{4.4}
+$$
+
+可以注意到，相关参数已被分离至上界之外，因此求解最优设计时不再需要该参数。式 (4.4) 的优化问题属于量化问题（格拉夫、卢施吉，2007），可借助聚类算法求解。求解步骤如下：首先在区域 $X$ 内生成大量均匀样本 $\{\boldsymbol{X}_i\}_{i=1}^N$，再结合蒙特卡洛近似（见 5.1.2 节），原问题可转化为求解：
+
+$$
+\min_{D}\;\frac{1}{N}\sum_{j=1}^N\sum_{i=1}^n\delta_{ij}\|\boldsymbol{X}_j-\boldsymbol{x}_i\|
+\tag{4.5}
+$$
+
+其中若 $\boldsymbol{X}_j\in V_i$，则 $\delta_{ij}=1$，否则 $\delta_{ij}=0$。
+
+同理，式 (3.2) 中的均方积分误差准则可导出 $L_2$ 量化问题：
+
+$$
+\min_D\sum_{i=1}^n\int_{V_i}\|\boldsymbol{x}-\boldsymbol{x}_i\|^2\mathrm{d}\boldsymbol{x}
+\tag{4.6}
+$$
+
+以及对应的蒙特卡洛近似形式：
+
+$$
+\min_D\frac{1}{N}\sum_{j=1}^N\sum_{i=1}^n\delta_{ij}\|\boldsymbol{X}_j-\boldsymbol{x}_i\|^2
+\tag{4.7}
+$$
+
+$L_2$ 量化问题在数学层面更易求解，劳埃德于 1957 年、马克斯于 1960 年在通信理论领域提出了该问题。它还与最优分层抽样思想（达伦纽斯，1950；考克斯，1957）、分布代表点理论（弗卢里，1990；方开泰、王，1993）存在关联。式 (4.7) 是聚类分析中应用最为广泛的准则，可通过劳埃德 k 均值算法求解，该算法交替执行沃罗诺伊区域划分、求解区域均值两个步骤。然而，式 (4.5) 最小化距离和的问题，早在 1929 年韦伯的设施选址分析与计算几何研究中便已出现。我们可以采用一种与 k 均值结构相似、利用迭代最小二乘法求解聚类中心的算法处理式 (4.5)，该算法即为韦茨菲尔德算法。
+
+假设我们需要在试验区域 $X=[0,1]^2$ 内选取 $n=7$ 个试验点，可借助 R 语言程序包 SFDesign（王、约瑟夫，2025c）求得基于聚类的最优试验设计。由式 (4.4) 构造的试验设计结果如图 4.1 所示。不难发现这些试验点能够很好地布满整个区域，但点位明显向中心过度聚拢，这种布局并不适用于预测类问题。原因在于绝大多数统计模型与机器学习模型擅长插值预测（在 7 个试验点构成的凸包内部开展预测），而外推预测（在凸包外部做预测）的结果往往缺乏可靠性。莱基维茨与琼斯（2015）为解决该问题，不再选取沃罗诺伊区域的质心作为试验点，而是从每个沃罗诺伊单元内另行挑选点位，并搭配后续将会介绍的最大投影准则（MaxPro，约瑟夫等人，2015）作为次级筛选准则。
+
+> **图 4.1**：基于 7 个聚类点的设计方案，同时展示了沃罗诺伊区域
+
+![Alt Text](figures/4.1.png){width=33%}
+
+## 4.2 极小极大设计
+
+考虑式 (3.3) 中的最小均方误差准则：
+
+$$
+\mathrm{MMSE}(D;\theta)=\max_{\boldsymbol{x}\in\mathcal{X}}\left\{1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}
+$$
+
+仿照式 (4.1) 的方式采用沃罗诺伊区域对试验区域 $X$ 进行划分后，可得
+
+$$
+\begin{align*}
+\mathrm{MMSE}(D;\theta)
+&=\max_{i=1:n}\max_{\boldsymbol{x}\in V_i}\left\{1-\boldsymbol{r}(\boldsymbol{x})'\boldsymbol{R}^{-1}\boldsymbol{r}(\boldsymbol{x})\right\}\\
+&\le\max_{i=1:n}\max_{\boldsymbol{x}\in V_i}\left\{1-R^2(\boldsymbol{x}-\boldsymbol{x}_i)\right\}\\
+&=1-\min_{i=1:n}\min_{\boldsymbol{x}\in V_i}R^2(\boldsymbol{x}-\boldsymbol{x}_i),
+\end{align*}
+$$
+
+推导过程中，方差所采用的上界与式 (4.2) 保持一致。
+
+假设采用式 (4.3) 中的各向同性高斯相关函数，则
+
+$$
+\begin{align*}
+\mathrm{MMSE}(D;\theta)
+&\leq1-\min_{i=1:n}\min_{\boldsymbol{x}\in V_i}\exp\left(-2\frac{\|\boldsymbol{x}-\boldsymbol{x}_i\|^2}{\theta^2}\right)\\
+&=1-\exp\left(-2\max_{i=1:n}\max_{\boldsymbol{x}\in V_i}\frac{\|\boldsymbol{x}-\boldsymbol{x}_i\|^2}{\theta^2}\right)\\
+&=1-\exp\left(-2\frac{\phi^2(D)}{\theta^2}\right)
+\tag{4.8}
+\end{align*}
+$$
+
+式中
+
+$$
+\phi(D)=\max_{i=1:n}\max_{\boldsymbol{x}\in V_i}\|\boldsymbol{x}-\boldsymbol{x}_i\|
+$$
+
+称为设计 $D$ 的填充距离（也称作覆盖半径）。能够最小化填充距离的设计被称为极小极大距离设计，简称极小极大设计（约翰逊等人，1990），即满足
+
+$$
+\min_D\max_{i=1:n}\max_{\boldsymbol{x}\in V_i}\|\boldsymbol{x}-\boldsymbol{x}_i\|
+\tag{4.9}
+$$
+
+该类设计可最小化式 (4.8) 中均方最小误差的上界。约翰逊等人（1990）给出了形式略有差异的极小极大设计定义：
+
+$$
+\min_D\max_{\boldsymbol{x}\in X}\min_{\boldsymbol{x}_i\in D}\|\boldsymbol{x}-\boldsymbol{x}_i\|
+\tag{4.10}
+$$
+
+上述两种定义相互等价，原因如下：
+
+$$
+\begin{align*}
+\max_{\boldsymbol{x}\in X}\left(\min_{\boldsymbol{x}_i\in D}\|\boldsymbol{x}-\boldsymbol{x}_i\|\right)
+&=\max_{j=1:n}\max_{\boldsymbol{x}\in V_j}\left(\min_{\boldsymbol{x}_i\in D}\|\boldsymbol{x}-\boldsymbol{x}_i\|\right)\\
+&=\max_{j=1:n}\left(\max_{\boldsymbol{x}\in V_j}\min_{\boldsymbol{x}_i\in D}\|\boldsymbol{x}-\boldsymbol{x}_i\|\right)\\
+&=\max_{j=1:n}\max_{\boldsymbol{x}\in V_j}\|\boldsymbol{x}-\boldsymbol{x}_j\|
+\end{align*}
+$$
+
+因此，根据式 (4.9)，若要构造极小极大设计，需先找出各个沃罗诺伊区域内距离最远的点。这类点位远离设计点，故而在这些位置很难实现精准预测，其中最远的点位即为最差点位。极小极大设计的核心目标是缩小至最差点位的距离。试验区域内可能存在多个最差点位，包围单个最差点位所需的最少设计点数量，被称作该设计的（极小极大）指数。我们期望该指数尽可能大，原因在于最差点位处的预测难度极高，但若在其周边布置更多设计点，预测难度便会下降。约翰逊等人于1990 年证明了下述结论。
+
+> **定理 4.1**：设相关函数 $R(\boldsymbol{u},\boldsymbol{v})=\rho k(d(\boldsymbol{u},\boldsymbol{v}))$，其中 $d$ 为距离度量，$\rho$ 为递减函数，且 $k>0$。则当 $k\to\infty$ 时，最高指标的极小极大设计渐近满足最小均方误差最优。
+
+可以发现，我们所采用的各向同性高斯相关函数是该定理中相关函数的一种特例。具体而言，若采用 $L_q$ 距离度量 $d(\boldsymbol{u},\boldsymbol{v})=\|\boldsymbol{u}-\boldsymbol{v}\|_q$，其中 $\|\boldsymbol{x}\|_q=\left\{\sum_{i=1}^p |x_i|^q\right\}^{1/q}$，则极小极大设计可写为
+
+$$
+\min_D\max_{i=1:n}\max_{\boldsymbol{x}\in V_i}\|\boldsymbol{x}-\boldsymbol{x}_i\|_q
+\tag{4.11}
+$$
+
+除非另有说明，后续均采用欧氏距离求解极小极大设计。
+
+举个例子，假设一家石油企业打算在某片区域新建若干加油站。极小极大布局方案的思路是规划加油站位置，使得距离最近加油站最远的顾客，其这段最大距离尽可能缩短。因此采用极小极大布局，能够保证所有顾客前往该企业任意一座加油站的距离都不会过远。最高阶极小极大布局，则代表距离加油站最远的顾客，可选择的备选加油站数量达到最大值。
+
+当 $p=1$ 时，求解极小极大设计较为简便。举例来说，若 $n=2$，定义域 $X=[0,1]$ 上的极小极大设计为 $\{0.25,0.75\}$。最坏位置点为 $x=0$、$0.5$、$1$，这三个点距离两个设计点的距离均为 0.25，该数值是所有可行设计所能得到的最坏距离中的最小值。推广至一般情形，$n$ 点极小极大设计的表达式为：
+
+$$
+D=\left\{\frac{i-0.5}{n}\right\}_{i=1}^{n}\tag{4.12}
+$$
+
+总体而言，当维度 $p\ge2$ 时，求解极小极大试验设计难度很高（不过相较于最小均方误差试验设计要简单得多）。图 4.2 展示了样本量 $n=7$、维度 $p=2$ 对应的极小极大设计。和图 4.1 中的聚类型设计相比，该设计的样本点更靠近区域边界。每个设计点周围还绘制了半径为 $\phi(D)$（即填充距离）的球体。不难看出，这些球体能够完整覆盖整个区域 $\boldsymbol{X}$。实际上，极小极大设计的本质是采用半径最小且大小一致的球体铺满整个试验区域。因此，极小极大设计也被称作覆盖设计。
+
+> **图 4.2**：7 点极小极大设计
+
+![Alt Text](figures/4.2.png){width=33%}
+
+极小极大设计突破了基于模型的最优设计存在的部分实际局限。首先，该类设计无需设定尺度参数（$\theta$）。定理 4.1 表明，对于高斯相关函数而言，由于 $\theta$ 与 $k$ 呈反比关系，当 $\theta$ 趋近于 0 时，极小极大设计的效果接近于最优设计。图 3.3 中的实例证明，相较于采用较大 $\theta$ 值生成的设计，由较小 $\theta$ 值生成的设计具备更强的稳健性。除此之外，极小极大设计亦可视为适用于非高斯过程（GP）建模方法的最优设计，例如最近邻预测器（1-NN），原因在于最近邻预测器的预测性能取决于设计点与预测点之间的距离远近。实际上，仅依靠几何思路（缩小区域内空白间隔的设计方案）即可构建极小极大设计，无需依托任何建模方法，这一特性再次印证了其稳健特性。
+
+其次，极小极大设计相比对应的最小均方误差最优设计更容易构造，原因是无需计算矩阵 $\boldsymbol{R}^{-1}$；当样本量 $n$ 较大时，求解该逆矩阵不仅计算成本高昂，还容易出现数值不稳定问题。但即便如此，当 $n$ 与变量维度 $p$ 数值较大时，构造极小极大设计依旧耗费大量算力。谭（2013）提出一种二进制整数规划方法，可在给定候选点集合中求解极小极大设计，然而一旦候选点数量增多，该方法就会面临计算难解的问题。马克与约瑟夫（2018a）针对极小极大设计提出了一种基于聚类的生成方法，相关研究收录于《填充空间设计》第 52 页，具体步骤如下：第一步，从设计域 $\mathcal{X}$ 中生成规模为 $N$ 的均匀样本 $\{\boldsymbol{X}_j\}_{j=1}^N$；当 $q$ 取值足够大时，满足：
+
+$$
+\begin{align*}
+\left(\frac{1}{N}\sum_{j=1}^N\sum_{i=1}^n\delta_{ij}\|\boldsymbol{X}_j-\boldsymbol{x}_i\|^q\right)^{1/q}&\approx\max_{1\le i\le n}\max_{1\le j\le N}\delta_{ij}\|\boldsymbol{X}_j-\boldsymbol{x}_i\|\\
+&=\max_{1\le i\le n}\max_{\boldsymbol{X}_j\in V_i}\|\boldsymbol{X}_j-\boldsymbol{x}_i\|
+\end{align*}
+$$
+
+式中，若 $\boldsymbol{X}_j$ 属于聚类区域 $V_i$，则 $\delta_{ij}=1$，否则 $\delta_{ij}=0$。上述公式说明：只需将 $q$ 设置为较大数值（数值不宜过大，避免引发数值不稳定），借助劳埃德 k 均值类算法即可构造极小极大设计。由于劳埃德算法通常仅能收敛至局部最优解，二人结合粒子群优化算法进一步优化设计方案。该整套算法的实现代码封装于 R 语言程序包 minimaxdesign 中（马克，2021）。何（2017a）提出借助一类特殊格子构造极小极大设计，效率更高，但该方法仅适用于变量维度 $p$ 较小的场景，对应的工具为 R 程序包 LatticeDesign。
+
+## 4.3 极大极小设计
+
+考虑式 (3.5) 中的最大熵准则：
+
+$$
+\max_D|\boldsymbol{R}|
+\tag{4.13}
+$$
+
+设 $\lambda_1,\dots,\lambda_n$ 为矩阵 $\boldsymbol{R}$ 的特征值。根据几何均值恒小于算术均值的性质可得：
+
+$$
+\begin{align*}
+|\boldsymbol{R}|&=\prod_{i=1}^n\lambda_i\le\left(\frac{1}{n}\sum_{i=1}^n\lambda_i\right)^n\\
+&=\left(\frac{1}{n}\mathrm{tr}\{\boldsymbol{R}\}\right)^n=1=|\boldsymbol{I}_n|
+\end{align*}
+$$
+
+由此可知，最大熵准则的本质是让相关矩阵尽可能逼近单位矩阵，也就是尽可能最小化 $\boldsymbol{R}$ 的非对角元素。据此，式 (4.13) 的替代准则可写为：
+
+$$
+\min_D\|\boldsymbol{R}-\boldsymbol{I}_n\|_\alpha
+\tag{4.14}
+$$
+
+式中 $\|\cdot\|_\alpha$ 代表 $L_\alpha$ 范数。相较于式 (4.13)，式 (4.14) 的优势在于其目标函数的计算复杂度为 $\mathcal{O}(n^2)$，而式 (4.13) 的计算复杂度为 $\mathcal{O}(n^3)$，这为优化计算带来了显著的运算优势。
+
+考虑无穷范数。由于矩阵 $\boldsymbol{R}$ 为正定矩阵（针对绝大多数常用相关函数而言），式 (4.14) 可化为：
+
+$$
+\min_{D}\max_{i\neq j}|\boldsymbol{R}_{ij}|=\min_{D}\max_{i\neq j}\boldsymbol{R}_{ij}
+\tag{4.15}
+$$
+
+若在式 (4.3) 中选用各向同性高斯相关函数，则：
+
+$$
+\begin{align*}
+\max_{i\neq j}\boldsymbol{R}_{ij}
+&=\max_{i\neq j}\exp\left(-\frac{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|^2}{\theta^2}\right)\\
+&=\exp\left(-\min_{i\neq j}\frac{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|^2}{\theta^2}\right)\\
+&=\exp\left(-4\frac{\psi^2(D)}{\theta^2}\right),
+\end{align*}
+$$
+
+其中
+
+$$
+\psi(D):=\frac{1}{2}\min_{i\neq j}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|
+$$
+
+被称作设计 $D$ 的分离距离（也叫填充半径）（法斯豪尔，2007，第 136 页）。能够最大化分离距离的设计称为极大极小距离设计，简称极大极小设计（约翰逊等人，1990 年），其表达式为：
+
+$$
+D^*=\argmax_{D}\min_{i\neq j}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|
+\tag{4.16}
+$$
+
+由此可知，极大极小设计的目标是最大化所有设计点两两之间的最小距离。该类设计能够最小化矩阵 $\boldsymbol{R}$ 非对角元的最大值，进而近似最大化设计的熵。从几何角度来看，极大极小设计尽可能分散样本点，以期完整填充整个试验区域 $\mathcal{X}$。结合上一节的加油站案例进行说明：采用极大极小布局设计时，任意两座加油站之间不会距离过近，通过拉开站点间距弱化彼此间的客源竞争，因此极大极小设计更加偏向供给方视角；与之相对，极小极大设计则更多站在消费者角度进行布局。
+
+极大极小设计并非唯一。图 4.3 展示了两组具有相同分离距离的设计方案，但显然第一种设计更优，原因是该设计中仅有一组点对取到最小距离，而第二种设计存在两组这样的点对。我们将距离为 $2\psi(D)$ 的点对数量定义为该设计的（极大极小）指标。我们希望这一指标尽可能小，避免过多点位相互靠近。因此，可以将设计指标作为次级准则，对极大极小设计进行优化筛选。约翰逊等人（1990）证明了下述结论。
+
+> **定理 4.2**：设相关函数 $R(\boldsymbol{u},\boldsymbol{v})=\rho k(d(\boldsymbol{u},\boldsymbol{v}))$，其中 $d$ 为距离度量，$\rho$ 为递减函数，且 $k>0$。则当 $k\to\infty$ 时，最低指标的极大极小设计渐近等价于最大熵设计。
+
+> **图 4.3**：两组包含 7 个样本点的设计方案，二者分离距离相同，但极大极小指标不同
+
+![Alt Text](figures/4.3.png){width=67%}
+
+接下来分析表 2.1 中的有理二次（RQ）相关函数（拉斯穆森、威廉姆斯，2006 年，第 86 页），该函数也被称作逆二次核或柯西核（法斯豪尔、麦考特，2015 年，第 42 页）：
+
+$$
+R(\boldsymbol{\Delta})=\frac{1}{1+\frac{\|\boldsymbol{\Delta}\|^2}{\theta^2}}
+\tag{4.17}
+$$
+
+于是式 (4.14) 中的目标函数可写为：
+
+$$
+\begin{align*}
+\|\boldsymbol{R}-\boldsymbol{I}_n\|_\alpha^\alpha&=\sum_{i=1}^n\sum_{j\neq i}\frac{1}{\left({1+\frac{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|^2}{\theta^2}}\right)^\alpha}\\
+&\le\theta^{2\alpha}\sum_{i=1}^n\sum_{j\neq i}\frac{1}{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|^{2\alpha}}
+\end{align*}
+$$
+
+该上界中的第二项为总倒数距离（TRD），该指标的特点是不含参数 $\theta$，可作为式 (4.16) 的替代评判准则。不难看出，当 $\alpha$ 取值很大时：
+
+$$
+\begin{align*}
+\min_D\mathrm{TRD}(D)&=\min_D\sum_{i=1}^n\sum_{j\neq i}\frac{1}{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|^{2\alpha}}
+\tag{4.18}\\
+&\approx\min_D\frac{I}{\min_{i\neq j}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|^{2\alpha}}\\
+&\equiv\max_{D}\frac{\min_{i\neq j}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|}{I^{1/(2\alpha)}}
+\end{align*}
+$$
+
+式中 $I$ 代表设计索引。因此当 $\alpha$ 足够大时，最小化总倒数距离 $\mathrm{TRD}(D)$ 既能最大化样本点间的最小距离，还可实现设计索引最小化。由此可见，相较于式 (4.16) 中的极大极小准则，总倒数距离准则的表现更优（莫里斯、米切尔，1995 年）。而式 (4.16) 的优势在于其目标函数的计算复杂度为 $\mathcal{O}(n\log n)$，总倒数距离 $\mathrm{TRD}(D)$ 的计算复杂度则为 $\mathcal{O}(n^2)$。当 $\alpha=1$ 时的总倒数距离准则由奥泽与埃格莱斯于 1977 年提出，该准则存在对应的物理模型：等价于最小化放置在方框内、质量相等粒子之间的万有引力。
+
+与极小极大设计的情形类似，在一维问题中求解极大极小设计十分简便。含 $n$ 个试验点的极大极小设计表达式为：
+
+$$
+D=\left\{\frac{i-1}{n-1}\right\}_{i=1}^{n}
+\tag{4.19}
+$$
+
+当维度 $p\ge 2$ 时，除非选取 $n=2p$ 这类特殊的样本量取值，否则求解极大极小设计将会变得十分困难。优化轨迹距离准则 $\mathrm{TRD}(D)$ 的难度更低，其梯度表达式为：
+
+$$
+\frac{\partial\mathrm{TRD}(D)}{\partial\boldsymbol{x}_k}=4\alpha\sum_{j\ne k}\frac{\boldsymbol{x}_j-\boldsymbol{x}_k}{\|\boldsymbol{x}_j-\boldsymbol{x}_k\|^{2\alpha+2}},\quad k= 1,\dots, n
+$$
+
+可基于该梯度开展梯度类优化运算。但由于 $\mathrm{TRD}(D)$ 属于多峰函数，该优化过程极易收敛至局部最优解。因此，需要设置多组随机初始值，以此搜寻全局最优解。若要求解式 (4.16) 中的极大极小设计，可采用无导数全局优化算法；但当 $n$ 与 $p$ 数值较大时，该算法运算速度较慢。R 语言程序包 SFDesign（王、约瑟夫，2025c）中已实现该算法。
+
+采用 SFDesign 构造得到的样本量 $n=7$、维度 $p=2$ 的极大极小设计如图 4.4 所示，其分离距离 $\psi(D^*)=0.26795$。以各个设计点为圆心、$\psi(D^*)$ 为半径绘制圆形。极大极小设计能够最大化可布置在每个设计点周围、互不重叠的相同球体半径，这一特性使得该问题与数学领域经典的球体装填问题密切相关（康威、斯隆，2013）。不过，绝大多数球体装填相关理论成果研究的是 $\mathbb{R}^p$ 空间内球体排布问题，而非本文研究的超立方体场景。边界约束条件致使极大极小设计与最优球体装填构型存在差异，但已有研究尝试借助球体装填的相关结论求解极大极小设计问题（何，2017b）。这类问题属于复杂数学难题，仅有部分特定情形存在简易解。正如博罗达乔夫等人（2019，第 11 页）所言：“三维欧氏空间中最优装填构型的证明历经近四百年悬而未决，但但凡堆叠过橙子的人，早已知晓答案。”
+
+> **图 4.4**：包含 7 个样本点的极大极小设计
+
+![Alt Text](figures/4.4.png){width=33%}
+
+极大极小设计相较于聚类设计与极小极大设计的一大优势在于，其能够便捷地适配序贯构造流程。举例来说，我们可以先选取一个样本点 $\boldsymbol{x}_1$，随后按照下述公式依次新增 $\boldsymbol{x}_2,\dots,\boldsymbol{x}_n$：
+
+$$
+\boldsymbol{x}_{k+1}=\argmax_{\boldsymbol{x}\in X}\;\min_{i=1:k}\|\boldsymbol{x}-\boldsymbol{x}_i\|,\quad k=1,\dots,n-1
+\tag{4.20}
+$$
+
+该方法最早由肯纳德与斯通于 1969 年提出，用于物理实验设计。尚与阿普利在 2021 年针对该算法提出了多种变体形式与优化方案。需要注意的是，上述方法属于初始设计的序贯构造方法，而第七章将要介绍的序贯设计方法，是在完整获取所有包含响应值在内的数据之后再开展设计工作。
+
+图 4.5 左图展示了依据最大最小准则，向中心点依次新增六个样本点的过程。该过程可借助 SFDesign 软件包中的 maximin.augment 函数实现（王与约瑟夫，2025c）。最终生成设计的最小间距 $\psi(D)=0.25$，小于图 4.4 中最优最大最小设计的最小间距。在此设计基础上继续依次追加六个样本点，即可得到图 4.5 右侧图形对应的设计方案，该方案表现优良，但并非包含 13 个样本点的最优最大最小设计。
+
+> **图 4.5**：左侧图像展示了以中心点为初始点、逐步构建而成的最大最小距离设计。右侧图像呈现依据最大最小准则，在该设计基础上新增六个点位（红色十字标记）扩充后的设计方案
+
+![Alt Text](figures/4.5.png){width=67%}
+
+## 4.4 拉丁超立方设计
+
+我们需要处理的影响因素或许有成百上千个，但真正对输出结果起到关键作用的因素可能仅有少数几个。著名的帕累托原理指出，系统中 20% 的影响因素，便能解释输出结果 80% 的变异情况。在试验设计相关文献中，该规律被称作效应稀疏原理（吴与滨田，2021，第 169 页）。这种普遍存在的现象会对试验设计产生怎样的影响？
+
+考虑一个包含两个因子、4 次试验的试验设计，极大极小设计与极小极大设计如图 4.6 所示。本例中基于聚类的设计和极小极大设计完全一致。现假设因子 $x_2$ 无关紧要，即其对输出结果的影响可以忽略不计。那么对于左侧的设计而言，相当于在 $x_1=0$ 和 $x_1=1$ 两处各开展了两次试验；对于右侧设计，则是在 $x_1=0.25$ 和 $x_1=0.75$ 两处各重复两次试验。由于输出不存在误差，试验得到的输出数值将会完全相同。这一点在开展试验前就能预判，也就是说，重复开展这两组试验纯属浪费时间。倘若 $x_1$ 无影响、仅有 $x_2$ 起作用，也会出现相同的问题。这类不理想的情形在实际应用中极易出现，我们该如何规避？
+
+> **图 4.6**：四轮试验下的极大极小与极小极大设计，及其在各坐标轴上的投影
+
+![Alt Text](figures/4.6.png){width=67%}
+
+倘若我们事先知晓变量 $x_2$ 无关紧要，就应当针对变量 $x_1$ 采用最优试验设计开展四次试验；反之同理。图 4.7 左侧子图展示了这类设计方案，此处针对每个输入变量采用极小极大设计：$\{(i-0.5)/4\}_{i=1}^4$。可以发现，将四个试验设计点分别投影至两条坐标轴上时，两个因子各自都会得到四个互不相同的数值。因此，即便试验结束后发现其中某一个因子并无显著影响，该设计方案依旧能够拥有良好的试验效果。
+
+> **图 4.7**：4 次采样的拉丁超立方设计，其投影分别展示在各坐标轴上
+
+![Alt Text](figures/4.7.png){width=67%}
+
+构造具备优良一维投影特性的试验设计十分简便。将每一条坐标轴均划分为 $n$ 个等间距区间。随后，只需保证每行、每列仅存在一个样本点，即可得到所需投影效果，具体形式见图 4.7。拓展至高维情形时，可通过下式实现：
+
+$$
+\left\{\frac{\pi_j(i)-0.5}{n}\right\}_{i=1}^n
+\tag{4.21}
+$$
+
+上式对应设计的第 $j$ 列，其中 $\{\pi_j(1),\dots,\pi_j(n)\}$ 是整数集合 $\{1,\dots,n\}$ 的一组随机排列。这类设计被称作拉丁超立方设计（LHD）（麦凯等人，1979年）。也可在每个单元格内部对样本点做随机扰动，扰动形式写作 $\{(\pi_j(i)-u_{ij})/n\}_{i=1}^n$，式中 $u_{ij}$ 相互独立且均服从区间 $(0,1)$ 上的均匀分布，$i=1,\dots,n$，$j=1,\dots,p$。从试验设计的角度来看，无需引入随机扰动，因此本文采用单元格中心点构造设计，也就是式 (4.21) 中令 $u_{ij}=0.5$ 的形式。
+
+尽管拉丁超立方抽样（LHD）能够实现优质的一维投影，但构造该抽样时所采用的随机置换未必总能具备优良特性。图 4.7 右侧子图展示了一例随机拉丁超立方抽样样本。不难看出该拉丁超立方抽样方案效果较差，原因是两个因子完全相关，并且在试验区域内留下了大片空白区间。唐（1993）将拉丁超立方思想与正交阵列（OA）相结合，构造出性能更优的拉丁超立方抽样。例如，采用强度为 2 的正交阵列，能够让样本点在二维投影空间中分布得更加均匀。欧文（1994）尝试通过降低各列之间的相关性来改进拉丁超立方抽样方案。帕克（1994）提出参照第 3 章的思路，寻找可最小化积分均方误差（IMSE）或最大化熵的拉丁超立方抽样方案。但该方法需要预先获知相关系数，一旦系数设定有误，最优拉丁超立方抽样的稳健性就会变差。莫里斯与米切尔（1995）提出采用最大最小准则优化拉丁超立方抽样，该准则既可保证良好的空间填充特性，也能实现优质的一维投影，由此得到的设计被称为最大最小拉丁超立方抽样，简称 MmLHD。二人还特别提出采用式 (4.18) 中的 TRD 准则：
+
+$$
+\min_{D\in\mathcal{L}}\sum_{i=1}^n\sum_{j\neq i}\frac{1}{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|^{2\alpha}}
+$$
+
+式中 $\mathcal{L}$ 代表全体拉丁超立方抽样构成的集合。将最大最小准则与拉丁超立方抽样结合是十分合适的组合方式，该方法简洁高效，也使得最大最小拉丁超立方抽样成为计算机试验中应用最为广泛的设计方案。图 4.7 左侧子图中的设计即为最大最小拉丁超立方抽样。
+
+置换设计的行并不会改变该设计本身。因此，固定首列后，我们能够得到 $(n!)^{p-1}$ 个随机拉丁超立方设计（LHD）。遍历数量如此庞大的备选设计，并依据最大最小距离准则筛选出最优拉丁超立方设计并非易事。莫里斯与米切尔（1995）采用模拟退火算法实现高效全局寻优。在模拟退火算法的迭代过程中，会基于当前设计生成一个新设计；若新设计能够优化目标函数，则以一定概率接受该新设计，随后进入下一轮迭代。莫里斯与米切尔（1995）提出生成新设计的方式：随机选取一列，并交换该列中的两个元素，该操作可维持拉丁超立方设计的结构不变。金等人（2005）通过在每轮迭代中高效更新距离计算，进一步改进了该算法。R 语言程序包 SLHD（巴，2015）实现了这一算法；R 语言程序包 LHD（王等人，2022）提供了基于遗传算法的优化方式；R 语言程序包 SFDesign（王、约瑟夫，2025c）实现了模拟退火结合确定性优化步骤的优化方案。王等人（2018）提出利用数论方法构造极大极小拉丁超立方设计（MmLHD），这类构造方法运算速度快，但在样本量 $n$ 与维度 $p$ 的选取上，灵活性不如算法构造法。巴斯克斯与徐（2024）给出了针对 $L_1$ 型极大极小拉丁超立方设计的整数规划方法，可用于生成小规模设计。利用 SFDesign 程序包生成的一组 $n=7$、$p=2$ 的极大极小拉丁超立方设计如图 4.8 所示。不难看出，该设计的样本点和图 4.4 中的最大最小距离设计一样，可以均匀填充整个空间，且一维投影效果更佳。
+
+> **图 4.8**：7 点最大最小距离拉丁超立方设计
+
+![Alt Text](figures/4.8.png){width=33%}
+
+现有文献中已经提出多种拉丁超立方抽样（LHD）的改良方案。叶（1998）提出正交拉丁超立方抽样，该抽样方式能够让拉丁超立方抽样各列之间的相关系数为零。约瑟夫与洪（2008）将正交性与极大极小准则相结合，构造出正交极大极小拉丁超立方抽样（OMLHD）。若需要拟合均值部分为线性主效应回归模型的高斯过程（GP）模型，或是盲克里金模型，采用该抽样方案通常能取得优良效果（约瑟夫等人，2008）。可借助 R 语言 LHD 程序包中的 SA2008 函数生成正交极大极小拉丁超立方抽样样本（王等人，2022）。
+
+上述所有拉丁超立方设计（LHD）均采用式 (4.21) 中的中心化数值，该方式可为一维投影构造极小极大设计。德特与佩佩利舍夫（2010）提出针对一维投影采用切比雪夫设计。若将该思路融合至极大极小拉丁超立方设计（MmLHD）中，可先构造一组极大极小拉丁超立方设计，再借助式 (2.5) 对数值做变换，变换形式为 $D_{ij}\leftarrow\{1+\cos(\pi D_{ij})\}/2$，其中矩阵 $D$ 代表极大极小拉丁超立方设计。图 4.9 展示了包含 20 次试验的原始极大极小拉丁超立方设计，以及经过切比雪夫变换后的极大极小拉丁超立方设计。不难发现，切比雪夫变换会将样本点向区间边界推移。该方法与式 (4.18) 中的 TRD 准则存在紧密关联。考虑一维情形，即维度 $p=1$，易证：
+
+$$
+\lim_{\alpha\to0}
+\left\{
+\sum_{i=1}^{n}\sum_{j\neq i}\frac{1}{|x_i-x_j|^{2\alpha}}
+\right\}^{1/\alpha}
+=-2\sum_{i=1}^{n}\sum_{j\neq i}\log|x_i-x_j|
+$$
+
+等式右侧被称作对数势能。当样本量 $n$ 趋于无穷时，使对数势能准则最小化的设计服从反正弦分布，其概率密度函数为：
+
+$$
+f(x)=\frac{1}{\pi x\sqrt{1-x}}
+$$
+
+（德特、斯图登，1992）。$n$ 点切比雪夫设计能够对该密度实现最优分位数逼近。正如前文图 3.3 所示，切比雪夫设计在拟合光滑函数时表现优异，但拟合粗糙函数的效果较差。由此可见，经过切比雪夫变换得到的设计，在相关参数设定出现偏差时不具备稳健性。
+
+> **图 4.9**：左侧图像展示了经过 20 次运算的最大最小拉丁超立方抽样（MmLHD），右侧图像则是该最大最小拉丁超立方抽样经切比雪夫变换后的结果
+
+![Alt Text](figures/4.9.png){width=67%}
+
+## 4.5 最大投影设计
+
+最大最小设计以填充 $p$ 维空间为核心目标，但研究发现，这类设计映射至低维子空间时往往会产生不理想的投影效果。为解决该问题，研究人员将最大最小设计的范围限定为拉丁超立方设计（LHD），以此保证一维投影具备良好特性。然而，最大最小拉丁超立方设计（MmLHD）映射至维度为 $2,\dots,p-1$ 的子空间时，投影效果依旧可能较差。德拉古利奇等人（2012年）遍历全部子空间计算式 (4.18) 中的 TRD 准则，试图改善最大最小拉丁超立方设计的投影特性。子空间总数满足：$p+\binom{p}{2}+\dots+\binom{p}{p-1}=2^p-2$。当 $p$ 取值较大时，子空间数量十分庞大，致使基于 TRD 准则的优化计算量激增，难以实现求解。
+
+该问题的另一种构建方式是为每个变量引入权重，并将准则修改为：
+
+$$
+\mathrm{TRD}_w(D)=\sum_{i=1}^{n}\sum_{j\neq i}\frac{1}{\{\sum_{k=1}^{p}w_k(x_{ik}-x_{jk})^2\}^\alpha}
+$$
+
+式中满足 $w_i\ge0$（$i=1,\dots,p$），且 $\sum_{i=1}^{p}w_i=1$。举例来说，若已知变量 $x_1$、$x_2$ 具备重要作用，便可令 $w_1=w_2=\frac12$，其余权重 $w_i$ 全部置为 0。但难点在于，在设计阶段无法预知哪些变量是重要变量。解决该问题的一种方法是采用贝叶斯方法：先为权重向量 $\boldsymbol{w}=(w_1,\dots,w_{p-1})'$ 设定先验分布，再在权重 $\boldsymbol{w}$ 的所有可行取值上对 $\mathrm{TRD}_w(D)$ 求平均。
+
+假设我们事先并不知晓各变量的重要程度，那么对权重 $\boldsymbol{w}$ 赋予均匀先验分布是合理的：
+
+$$
+f(\boldsymbol{w})=(p-1)!,\quad\boldsymbol{w}\in\mathcal{W}=\left\{\boldsymbol{w}:\boldsymbol{w}\ge 0,\sum_{i=1}^{p-1} w_i\le 1\right\}
+\tag{4.22}
+$$
+
+于是可得：
+
+$$
+\int_{\mathcal{W}}\mathrm{TRD}_w(D)f(\boldsymbol{w})\mathrm{d}\boldsymbol{w}=\sum_{i=1}^n\sum_{j\ne i}\int_{\mathcal{W}}\frac{1}{\left\{\sum_{k=1}^p w_k(x_{ik}-x_{jk})^2\right\}^\alpha}f(\boldsymbol{w})\mathrm{d}\boldsymbol{w}
+$$
+
+高维积分的计算成本通常较高，但可以注意到，当 $\alpha=p=2$ 时，能够求得解析解：
+
+$$
+\int_0^1\frac{1}{\left[w_1(x_{i1}-x_{j1})^2 + (1-w_1)(x_{i2}-x_{j2})^2\right]^2}dw_1=\frac{1}{(x_{i1}-x_{j1})^2(x_{i2}-x_{j2})^2}
+$$
+
+借助数学归纳法即可证明下述结论（约瑟夫等人，2015）。
+
+> **定理 4.3**：若 $\alpha=p$，则在式 (4.22) 的先验分布条件下，$$\int_{\mathcal{W}}\frac{1}{\{\sum_{k=1}^{p}w_{k}(x_{ik}-x_{jk})^{2}\}^{\alpha}}f(\boldsymbol{w})\mathrm{d}\boldsymbol{w}=\frac{1}{\prod_{k=1}^{p}(x_{ik}-x_{jk})^{2}}$$
+
+因此，设计准则为
+
+$$
+\min_D\sum_{i=1}^n\prod_{j\neq i}\frac{1}{\sum_{k=1}^p(x_{ik}-x_{jk})^2}
+\tag{4.23}
+$$
+
+由于该准则能够最大化设计的投影能力，约瑟夫等人（2015）将其命名为最大投影设计。该准则的计算复杂度并未高于式 (4.18) 中的截断随机设计（TRD）准则，仅是将分母中的求和运算替换为连乘运算。连乘项能够保证任意两个坐标互不相等，因此该准则可自动满足拉丁超立方设计的约束条件。
+
+下面给出最大投影准则的另一层论证：假定选取式 (2.11) 中的各向异性高斯相关函数，并搭配无信息先验分布：$f(\theta_k)\propto 1/\theta_k^3$，其中 $k=1,\dots,p$，则：
+
+$$
+\begin{align*}
+\mathrm{E}\{\|\boldsymbol{R} -\boldsymbol{I}_n\|_1\}&\propto\sum_{i=1}^{n}\sum_{j\neq i}\int\exp\left(-\sum_{k=1}^{p}\frac{(x_{ik}-x_{jk})^2}{\theta_k^2}\right)\prod_{k=1}^{p}\frac{1}{\theta_k^3}\mathrm{d}\boldsymbol{\theta}
+\tag{4.24}\\
+&=\sum_{i=1}^{n}\sum_{j\neq i}\prod_{k=1}^{p}\int\exp\left(-\frac{(x_{ik}-x_{jk})^2}{\theta_k^2}\right)\frac{1}{\theta_k^3}d\theta_k\\
+&\propto\sum_{i=1}^{n}\sum_{j\neq i}\frac{1}{\prod_{k=1}^{p}(x_{ik}-x_{jk})^2}
+\end{align*}
+$$
+
+由此可见，各向同性高斯相关函数对应极大极小准则；而在尺度参数上配置无信息先验的各向异性高斯相关函数，则对应最大投影准则。分母中的连乘项并非严格意义上的距离度量，但可看作闵可夫斯基距离取极限的结果（约瑟夫等人，2019）：
+
+$$
+\lim_{\alpha\to0}\frac{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|_\alpha}{p^{1/\alpha}}=\left(\prod_{k=1}^{p}|x_{ik}-x_{jk}|\right)^{1/p}
+\tag{4.25}
+$$
+
+也就是说，若选取极小的 $\alpha$，结合闵可夫斯基距离度量并依据式 (4.16) 构造极大极小设计，最终得到的设计会近似于最大投影设计。
+
+还可以借助有理二次核的乘积形式，进一步说明最大投影设计的合理性：
+
+$$
+R(\boldsymbol{\Delta})=\prod_{k=1}^{p}\left(1+\frac{\Delta_k^2}{\theta_k^2}\right)^{-1}
+\tag{4.26}
+$$
+
+于是有：
+
+$$
+\begin{align*}
+\|\boldsymbol{R}-\boldsymbol{I}_n\|_1&=\sum_{i=1}^{n}\sum_{j\neq i}\prod_{k=1}^{p}\left(1+\frac{(x_{ik}-x_{jk})^2}{\theta_k^2}\right)^{-1}\\
+&=\prod_{k=1}^{p}\theta_k^{2p}\sum_{i=1}^{n}\sum_{j\neq i}\prod_{k=1}^{p}\frac{1}{\theta_k^2+(x_{ik}-x_{jk})^2}\\
+&\leq\prod_{k=1}^{p}\theta_k^{2p}\sum_{i=1}^{n}\sum_{j\neq i}\frac{1}{\sum_{k=1}^{p}(x_{ik}-x_{jk})^2}
+\end{align*}
+$$
+
+对于任意取值的参数 $\boldsymbol{\theta}$，该式均可在采用最大投影设计时取得最小值。
+
+约瑟夫等人（2015）提出一种基于梯度的优化方法来构造最大投影设计，式 (4.23) 中目标函数关于 $x_{rs}$ 的梯度表达式为：
+
+$$
+\frac{\partial}{\partial x_{rs}}\left\{\sum_{i=1}^{n}\sum_{j\neq i}\frac{1}{\prod_{k=1}^{p}(x_{ik}-x_{jk})^2}\right\}=4\sum_{i\neq r}\frac{1}{\prod_{k=1}^{p}(x_{ik}-x_{rk})^2}\cdot\frac{1}{(x_{is}-x_{rs})}
+$$
+
+但该目标函数存在大量局部最优解，想要求得全局最优解就需要设置大量随机初始点。为避免多次随机初始化寻优，他们借鉴莫里斯与米切尔（1995）所用算法，提出采用模拟退火算法先构造最大投影拉丁超立方设计（MaxPro LHD），再开展梯度优化。该方法已在 R 语言程序包 MaxPro 中实现（巴、约瑟夫，2018）。R 程序包 SFDesign（王、约瑟夫，2025c）采用了相同思路，并在模拟退火阶段结束后额外增加一步确定性优化，优化效果有所提升。维度 $p=2$、样本量分别为 7 和 20 的最大投影设计结果如图 4.10 所示。可以观察到这类设计能够很好地填充整个空间，同时具备拉丁超立方结构；但各坐标轴上的采样点不再像普通拉丁超立方设计那样均匀分布。样本点会向区域边界靠拢，不过聚拢程度低于图 4.9 中切比雪夫变换的效果。
+
+> **图 4.10**：维度 $p=2$、样本量 $n=7$（左图）与 $n=20$（右图）对应的最大投影设计
+
+![Alt Text](figures/4.10.png){width=67%}
+
+高维设计难以直观可视化。为此，图 4.11 以散点矩阵形式展示了五维、样本量 $n=50$ 的最大投影设计各样本点的二维投影。可以观察到，样本点在各个二维投影中分布均匀舒展。图 4.12 绘制了最大投影设计与最大最小距离拉丁超立方设计（MmLHD），分别在一维、二维、三维、四维投影空间以及完整维度空间内，所有样本点两两最小距离的最小值变化曲线。不难看出，在完整维度空间中，最大最小距离拉丁超立方设计的最小距离更大，这一现象符合理论预期，因为该设计的构造思路本身就是在全维度空间内最大化样本点之间的最小距离。但将样本点投影至二维、三维或四维空间后，最大投影设计的最小距离反而更大。该特性具备实用价值，原因在于开展实验前，我们无法预知哪些维度属于关键维度。最大投影设计在一维投影中的最小距离小于最大最小距离拉丁超立方设计，原因是最大投影设计中有更多样本点靠近区域边界。总体而言，在维度为 2 至 $p-1$ 的投影空间里，最大投影设计的表现通常优于最大最小距离拉丁超立方设计，因此面对各变量重要程度未知的情况，最大投影设计具备更强的稳健性。
+
+> **图 4.11**：样本量 $n=50$、维度 $p=5$ 的最大投影设计点散点矩阵图
+
+![Alt Text](figures/4.11.png){width=33%}
+
+> **图 4.12**：投影至子空间的各点之间最小距离的最小值
+
+![Alt Text](figures/4.12.png){width=33%}
+
+张等人（2021）研究发现，小型极大极小设计（样本量与维度比值 $n_1/p$ 较小）不利于相关参数的估计，该现象是极大极小设计投影效果较差所造成的固有问题。图 4.13 展示了六维、64 次试验的极大极小设计样本点两两间距的直方图。由于 $64<2^6$，所有样本点都会被挤压至超立方体 $[0,1]^6$ 的各个顶点处，最终仅存在少量互不相同的两两间距。该图同时给出了 64 次试验的最大投影设计对应的样本两两间距分布。可以观察到最大投影设计的样本间距几乎呈连续分布，能够利用形状参数为 10.1 与 12.7 的缩放贝塔分布实现良好拟合。张等人（2021）通过实证研究证实：若试验设计的样本两两间距近似服从贝塔分布，该设计在相关参数估计中表现优异。据此他们提出了优化算法，用以生成两两间距分布贴合贝塔分布的试验设计，贝塔分布的形状参数由样本量 $n$ 与维度 $p$ 确定。尽管最大投影设计的设计初衷是保障预测效果，但该类设计的样本两两间距恰好天然具备贝塔分布特性，因此可以推断，最大投影设计在相关参数估计方面同样能取得优良效果。
+
+> **图 4.13**：两组直方图分别展示 (64,6) 极大极小设计与 (64,6) 最大投影设计样本两两间距的分布；贝分布密度函数定义域缩放至 $[0,\sqrt6]$ 区间
+
+![Alt Text](figures/4.13.png){width=33%}
+
+相较于极大极小拉丁超立方设计（MmLHD），最大投影设计的一大显著优势在于：最大投影准则支持序贯构造试验设计。我们先选取 $x_1\in X$，再按照下述方式逐个添加 $x_2,\dots,x_n$（约瑟夫，2016）：
+
+$$
+\boldsymbol{x}_{k+1}=\argmin_{\boldsymbol{x}\in\mathcal{X}}\sum_{i=1}^k\frac{1}{\prod_{j=1}^p(x_j-x_{ij})^2},\quad k=1,\dots,n-1
+\tag{4.27}
+$$
+
+MaxPro 软件包中的 R 语言函数 MaxProAugment 可实现该构造方法（巴、约瑟夫，2018）。此种贪婪优化算法生成的设计，效果不及模拟退火算法与梯度优化算法构造的设计，但该方法灵活性强，能够解决多种不同类型的问题。
+
+作为式 (4.27) 中序贯最大投影构造方法的一项应用，我们考虑生成验证集以检验拟合模型拟合优度的问题。举例说明，选取仿真实验虚拟文库（苏尔雅诺维奇、宾厄姆，2013）中的二维布兰宁函数：
+
+$$
+f(x)=\left(x_2-\frac{5.1}{4\pi^2}x_1^2+\frac{5}{\pi}x_1-6\right)^2+10\left(1-\frac{1}{8\pi}\right)\cos x_1+10,\quad x_1\in[-5,10],\;x_2\in[0,15]\tag{4.28}
+$$
+
+将该函数定义域缩放至 $[0,1]^2$ 后对应的函数图像如图 4.14 左图所示，图中蓝色圆点代表包含 10 个样本点的最大投影设计。接下来借助式 (4.27) 额外生成 10 个样本点用作验证集，在同一张图中以红色三角形表示。本文利用 R 语言程序包 rkriging（黄、约瑟夫，2024）拟合普通克里金预测模型，并在验证集上计算均方根预测误差（RMSE）。作为对照，针对 100 组随机生成的 10 点验证集分别计算均方根预测误差，对应结果绘制为箱线图，见图 4.14 右图。不难发现，基于序贯最大投影方法构造的验证集所得均方根预测误差，高于箱线图上须的数值。原因在于：随机生成的验证集往往会包含靠近设计点的样本，这类样本易于预测，最终得到的均方根预测误差偏小；而序贯最大投影生成的验证样本在所有子空间内均远离设计点，由此构成的验证集预测难度更高。
+
+> **图 4.14**：左侧图像展示了马克斯普罗设计样本（蓝色圆点）与通过序贯马克斯普罗方法生成的验证点（红色三角形）叠加在布拉宁函数图像上的效果。右侧图像为 100 组随机验证集均方根误差的箱线图
+
+![Alt Text](figures/4.14.png){width=67%}
+
+### 4.5.1 约束区域
+
+到目前为止，我们研究的实验区域均为超立方体。然而，部分因子组合有时是不可采用的。例如，若已知高压与高温的组合会造成系统故障，则无需对这类组合开展实验。假设输入的可行域由一组约束条件定义：
+
+$$
+X=\{x \in[0,1]^p: g_k(x) \leq 0,\ \forall k\}
+\tag{4.29}
+$$
+
+式中 $\{g_k(x)\le 0\}_{k=1}^K$ 为 $K$ 个任意不等式约束。这些约束可以是黑箱函数，且计算代价较高。下面是取自黄等人（2021）的一个简易示例：
+
+$$
+\begin{align*}
+&g_1(x) = x_1-\sqrt{50(x_2-0.52)^2+2}+1 \le 0\\
+&g_2(x) = \sqrt{120\big((x_2-0.48)^2+1\big)}-0.75-x_1 \le 0\\
+&g_3(x) = 0.652-x_1^2-x_2^2 \le 0\\
+&\text{其中}\;0 \le x_1,x_2 \le 1
+\tag{4.30}
+\end{align*}
+$$
+
+该可行域在图 4.15 中以阴影区域呈现。假设我们的实验预算仅支持开展 20 次实验。
+
+> **图 4.15**：式 (4.30) 中约束条件对应的可行域以阴影区域展示
+
+![Alt Text](figures/4.15.png){width=33%}
+
+下面是从约束区域生成试验设计的通用方法：（1）首先从包含可行域的超立方体中生成大量均匀样本；（2）剔除不满足约束条件的样本；（3）从剩余样本（候选集）中选取试验设计点。为得到式 (4.30) 所示试验区域的 20 个设计点，我们首先生成 100000 个随机拉丁超立方样本，结果如图 4.16 左图所示。剔除不满足式 (4.30) 的点后得到 538 个点，构成候选集，如图的中间子图所示。此时可采用式 (4.27) 中的序列最大投影（MaxPro）方法得到最大投影设计，对应图 4.16 的右图。后续将在 4.6.2 节介绍一种生成候选集的更优方法，该方法能够进一步提升最大投影设计的质量。
+
+> **图 4.16**：100000 个拉丁超立方采样点（左）、可行点（中）以及最大投影设计（右）
+
+![Alt Text](figures/4.16.png){width=100%}
+
+
+### 4.5.2 定性因子
+
+到目前为止，我们研究的都是连续输入。但在实际情况中，部分输入属于定性类型。例如，1.2 节介绍的加工模拟器可以指定工件材料，如各类钛合金（Ti‑6AL‑4V 或 Ti‑6Al‑6V‑2Sn），也可以指定刀具路径优化类型（无优化、切削内优化、空切优化，或同时启用两种优化）。这类因子被称为名义定性因子。
+
+一般而言，系统输入可分为定量输入与定性输入。定量输入可以是连续型，也可以是离散数值型。离散数值因子仅可取离散值，例如 1、2、3... 举例来说，可在加工仿真器中设定铣刀的容屑槽数量，这就是一个离散数值因子。定性输入可分为名义型与有序型。有序因子的取值具备一定顺序，例如可取值：优秀、很好、良好、一般、较差。在上述加工案例中，刀具状态就属于这类有序因子。
+
+我们该如何构建可容纳定性因子的空间填充设计？现有文献中的一种处理方法是将拉丁超立方设计（LHD）切分为若干片段，并将每个片段分配给定性因子的一个水平。钱（2012）提出了分片拉丁超立方设计（SLHD），该设计能够保证每一个片段本身也属于拉丁超立方设计（LHD）。举个例子，假设有两个连续因子 $x_1$、$x_2$，以及一个含有三个水平的名义定性因子 $x_3$，试验预算为 9 次试验。图 4.17 左侧子图展示了一个随机拉丁超立方设计，其中定性因子的三个水平分别用黑色圆圈（"1"）、红色三角形（"2"）和绿色加号（"3"）表示。可以看出该设计效果不佳：定性因子取水平 1 时，$x_1$ 的取值落在区间 $[0, 1/3]$；定性因子取水平 2 时，$x_1$ 的取值落在区间 $[1/3, 2/3]$；定性因子取水平 3 时，$x_1$ 的取值落在区间 $[2/3, 1]$。也就是说，在定性因子的各个水平内部，$x_1$ 没有遍历全部取值范围。与之相对，图 4.17 中间子图中的分片拉丁超立方设计则是一个优质设计，在定性因子的每一个水平下，$x_1$ 和 $x_2$ 均可遍历全部取值范围。如图所示，若忽略定性因子，可得到一个 9×9 的拉丁超立方设计（虚线）；同时，定性因子的每个水平内部各自构成 3×3 的拉丁超立方设计（实线）。
+
+> **图 4.17**：包含两个定量因子（$x_1$、$x_2$）和一个三水平定性因子（$x_3$）的设计：随机拉丁超立方设计（左）、分片拉丁超立方设计（中）以及最大投影设计（右）
+
+![Alt Text](figures/4.17.png){width=100%}
+
+若存在 $p$ 个定性因子，其水平数分别为 $L_1,\dots,L_p$，则我们可以首先构造一个拥有 $t=\prod_{i=1}^{p}L_i$ 个水平的“新”定性因子，再构建具有 $t$ 个切片的分层拉丁超立方设计（SLHD）。分层拉丁超立方设计的高效构造方法可见杨等人（2013）与尹等人（2014）的研究。巴等人（2015）提出最大最小分层拉丁超立方设计，该设计能够保证整体设计以及各个切片均具备良好的最大最小性质。图 4.17 中间子图展示的分层拉丁超立方设计，实际是借助 R 语言软件包 SLHD（巴，2015）生成的最大最小分层拉丁超立方设计。不过分层拉丁超立方设计存在缺陷：随着定性因子数量及其水平数增加，设计规模会变得极其庞大。邓等人（2015）提出边缘耦合设计（MCD），该设计可处理更多名义因子。边缘耦合设计的结构将用于名义因子的正交表（OA）（可参考吴与浜田（2021））和用于连续因子的拉丁超立方设计（LHD）相结合，使得该拉丁超立方设计能够按照任意单个名义因子的水平拆分为多个规模更小的拉丁超立方设计。换言之，边缘耦合设计中，连续因子对应的拉丁超立方设计与任意一列名义因子组合后，就构成一个分层拉丁超立方设计。由于边缘耦合设计针对名义因子采用正交表，而非全因子组合，相较于分层拉丁超立方设计，它可以实现更精简的试验运行规模。但边缘耦合设计的结构存在约束：不仅需要存在对应规模的正交表，还需要一类特殊的拉丁超立方设计，该拉丁超立方设计与正交表的每一列配对后都能够形成分层拉丁超立方设计。约瑟夫等人（2020）提出最大投影设计来处理定性因子，该设计的试验运行规模选择灵活，由此克服了分层拉丁超立方设计与边缘耦合设计的局限。除此之外，该方法同样可以纳入离散数值因子与有序因子。
+
+在讨论针对定性因子的最大投影设计之前，我们需要掌握如何拟合含定性因子的高斯过程（GP）模型。首先，通过评分法将有序因子转换为离散数值因子（可参见吴与滨田（2021，第 14 章））。具体而言，若某有序因子的水平为“差”、“一般”和“良好”，试验人员可根据分类的实际属性，选取 $\{1,2,3\}$ 或 $\{1,4,5\}$ 这类离散数值水平来代表这三个有序等级。因此，在假定有序因子已经通过评分法转换为离散数值因子的前提下，我们仅需考虑连续因子、名义因子以及离散数值因子。
+
+钱等人（2008）提出了若干种相关关系构建方案，同时给出了可构建包含定量因子与名义型定性因子的高斯过程（GP）模型的通用框架。本文针对名义因子采用如下可交换相关结构，该结构同样被约瑟夫与德拉尼（2007）所使用：
+
+$$
+R(\boldsymbol{w}_i -\boldsymbol{w}_j; \alpha, \beta, \gamma) = \exp\left\{-\sum_{l=1}^{p_1}\alpha_l|x_{il}-x_{jl}| -\sum_{k=1}^{p_2}\beta_k|u_{ik}-u_{jk}| -\sum_{h=1}^{p_3}\gamma_hI(v_{ih} \neq v_{jh})\right\}
+\tag{4.31}
+$$
+
+式中 $\boldsymbol{w}_i = (\boldsymbol{x}_i, \boldsymbol{u}_i, \boldsymbol{v}_i)$；$\boldsymbol{x}$ 代表 $p_1$ 个连续因子；$\boldsymbol{u}$ 代表 $p_2$ 个离散数值因子（包含有序因子）；$\boldsymbol{v}$ 代表 $p_3$ 个名义因子；$I(v_{ih} \neq v_{jh})$ 为指示函数，当 $v_{ih} \neq v_{jh}$ 时取值为 1，否则取值为 0。假定离散数值因子同样缩放至区间 $[0,1]$，使得三类因子的相关参数处于同一量纲尺度。与式 (4.24) 中的高斯相关函数不同，此处对连续因子采用指数相关函数。可以发现，为指数相关函数的相关参数设置信息先验，能够得到与高斯相关函数情形下完全一致的最大投影准则。这种引入信息先验的处理方式对于离散数值因子十分关键，因为试验设计中离散数值因子无法拥有 $n$ 个水平。
+
+假定相关参数的先验分布如下：
+
+$$
+\alpha_l \stackrel{\text{iid}}{\sim} \mathrm{Gamma}(2, \overline{\alpha}_l),\ l = 1, \dots, p_1
+$$
+
+$$
+\beta_k \stackrel{\text{iid}}{\sim} \mathrm{Gamma}(2, \overline{\beta}_k),\ k = 1, \dots, p_2
+$$
+
+$$
+\gamma_h \stackrel{\text{iid}}{\sim} \mathrm{Gamma}(2, \overline{\gamma}_h),\ h = 1, \dots, p_3
+$$
+
+此处选用伽马先验，目的是得到目标函数的显式表达式。此外，将伽马分布的形状参数取为 2，使得所得结果与式 (4.23) 中连续因子的最大投影准则保持一致。于是
+
+$$
+\begin{aligned}
+&\mathrm{E}\{\|\boldsymbol{R}-\boldsymbol{I}_n\|_1\}\\
+&=\iiint\sum_{i=1}^{n}\sum_{j\neq i}R(\boldsymbol{w}_i-\boldsymbol{w}_j;\alpha,\beta,\gamma)\\
+&\quad\prod_{l=1}^{p_1}\overline{\alpha}_l^2\alpha_l e^{-\overline{\alpha}_l\alpha_l}
+\prod_{k=1}^{p_2}\overline{\beta}_k^2\beta_k e^{-\overline{\beta}_k\beta_k}
+\prod_{h=1}^{p_3}\overline{\gamma}_h^2\gamma_h e^{-\overline{\gamma}_h\gamma_h}d\alpha d\beta d\gamma\\
+&=\sum_{i=1}^{n}\sum_{j\neq i}
+\prod_{l=1}^{p_1}\int \overline{\alpha}_l^2\alpha_l e^{-\{|x_{il}-x_{jl}|+\overline{\alpha}_l\}\alpha_l}d\alpha_l
+\prod_{k=1}^{p_2}\int \overline{\beta}_k^2\beta_k e^{-\{|u_{ik}-u_{jk}|+\overline{\beta}_k\}\beta_k}d\beta_k\\
+&\quad\prod_{h=1}^{p_3}\int \overline{\gamma}_h^2\gamma_h e^{-\{I(v_{ih}\neq v_{jh})+\overline{\gamma}_h\}\gamma_h}d\gamma_h\\
+&=\sum_{i=1}^{n}\sum_{j\neq i}
+\prod_{l=1}^{p_1}\frac{\overline{\alpha}_l^2}{\{|x_{il}-x_{jl}|+\overline{\alpha}_l\}^2}
+\prod_{k=1}^{p_2}\frac{\overline{\beta}_k^2}{\{|u_{ik}-u_{jk}|+\overline{\beta}_k\}^2}\\
+&\quad\prod_{h=1}^{p_3}\frac{\overline{\gamma}_h^2}{\{I(v_{ih}\neq v_{jh})+\overline{\gamma}_h\}^2}\end{aligned}
+$$
+
+由此得到一个新的设计准则，即最小化
+
+$$
+\sum_{i=1}^{n}\sum_{j\neq i}
+\frac{1}{\prod_{l=1}^{p_1}\{|x_{il}-x_{jl}|+\overline{\alpha}_l\}^2
+\prod_{k=1}^{p_2}\{|u_{ik}-u_{jk}|+\overline{\beta}_k\}^2
+\prod_{h=1}^{p_3}\{I(v_{ih}\neq v_{jh})+\overline{\gamma}_h\}^2}
+\tag{4.32}
+$$
+
+直观来看，为提高式 (4.32) 对设计变更的敏感度，应当在该式中采用较小的 $\overline{\alpha}_l$、$\overline{\beta}_k$ 与 $\overline{\gamma}_h$ 值。对于连续因子，我们可直接令 $\overline{\alpha}_l = 0$（$l=1,\dots,p_1$），这会强制每个连续因子拥有 $n$ 个不同水平。但对于名义因子与离散数值因子，每个因子可使用的总水平数小于 $n$。因此必须取 $\overline{\beta}_k > 0$（$k=1,\dots,p_2$）和 $\overline{\gamma}_h > 0$（$h=1,\dots,p_3$），避免当存在某些 $(i,j)$ 使得 $u_{ik}=u_{jk}$ 或 $v_{ih}=v_{jh}$ 时，式 (4.32) 的分母变为零。设 $L_h$ 为第 $h$ 个名义因子的不同水平数，$h=1,\dots,p_3$。由于 $P\{I(v_{ih} \neq v_{jh}) = 0\}=1/L_h$，可得对 $h=1,\dots,p_3$，$\mathrm{E}\{I(v_{ih} \neq v_{jh})\}=1-1/L_h$。据此建议选取 $\overline{\gamma}_h=1/L_h$，该值是使 $\mathrm{E}\{I(v_{ih} \neq v_{jh})+\overline{\gamma}_h\}$ 与 $L_h$ 无关的 $\overline{\gamma}_h$ 的最小可行取值。与之类似，对于离散数值因子，同样可令 $\overline{\beta}_k=1/m_k$，其中 $m_k$ 为第 $k$ 个离散数值因子的水平数。可以看出，随着 $m_k$ 增大，对应的离散数值因子行为会愈发接近连续因子，相应的 $\overline{\beta}_k$ 也会如预期般趋近于 0。
+
+在上述超参数取值下，最优设计准则变为
+
+$$
+\min_{D}\sum_{i=1}^{n-1}\sum_{j\neq i}\frac{1}{\prod_{l=1}^{p_1}(x_{il}-x_{jl})^2\prod_{k=1}^{p_2}\left\{|u_{ik}-u_{jk}|+\frac{1}{m_k}\right\}^2\prod_{h=1}^{p_3}\left\{I(v_{ih}\neq v_{jh})+\frac{1}{L_h}\right\}^2}
+\tag{4.33}
+$$
+
+当仅存在连续因子（$p_1\ge 1$，$p_2=p_3=0$）时，该准则退化为式 (4.23) 中的最大投影准则。因此，该准则具备最大投影设计全部优良性质，不仅可以在整个设计空间，还可以在所有向低维子空间的投影上最大化空间填充特性。对于名义因子，该准则的思想与徐 (2002) 在构造混合水平正交表与近似正交表时提出的 $\boldsymbol{J}_2$ 最优性准则相近，后者通过最大化行之间的相异程度实现，其定义为 $\min_{D}\sum_{i=1}^{n-1}\sum_{j=i+1}^{n}\{\sum_{h=1}^{p_3}I(v_{ih}=v_{jh})\}^2$。
+
+式 (4.33) 中的最大投影设计可通过 R 语言 MaxPro 程序包中的 MaxProQQ 函数生成（巴与约瑟夫，2018）。包含 9 次试验、2 个连续因子以及 1 个具有 3 个水平的定性名义因子的最大投影设计如图 4.17 右侧子图所示。可以发现，尽管在优化过程中并未施加相关约束，但该最大投影设计具备分层拉丁超立方设计的性质。另一方面，最大投影设计灵活性很高：它可以针对任意试验次数、任意数量的定量与定性因子生成。关于 MaxProQQ 在液体制剂设计中的近期应用可参见奇特雷等人（2025）的研究。
+
+### 4.5.3 分支设计
+
+洪等人（2009）报道了一项计算机仿真试验，该试验旨在优化采用立方氮化硼（cBN）刀具对淬硬轴承钢进行车削加工的工艺。该工艺通常被称为硬车削。由于被加工材料硬度很高（洛氏 C 硬度超过 60），加工过程中刀具会承受巨大的切削力、应力与温度。实际应用中，刀具切削刃会被加工成特定形状，使其能够承受极端工况。存在两种常用的切削刃构型：钝化刃和倒角刃。倒角刃刀具可通过两个参数进行调整：倒角长度与倒角角度，而钝化刃的结构是固定不变的。换言之，长度与角度这两个参数嵌套于倒角刃工况下，钝化刃工况不存在嵌套参数。参照田口（1987）与法德克（1995，第 168 页）的研究，我们将刀具刃口称为分支因子。因此，当分支因子取倒角刃水平时，试验中会存在另外两个因子；当分支因子取钝化刃水平时，则无额外因子。还有部分因子对两种刃口均适用，例如切削刃圆角半径、刀尖圆角半径和前角。切削速度、进给量、切削深度等加工参数同样不随刀具刃口类型改变。为与分支因子、嵌套因子加以区分，这类因子称为共享因子。本试验涉及的全部因子及其允许取值范围如表 4.1 所示。该试验采用商用有限元软件 AdvantEdge 完成。
+
+> **表 4.1**：硬车削实验中的因子及其取值范围
+
+|因子类型|符号|因子|取值范围|
+|:--|:--|:--|:--|
+|分支因子|$z_1$|切削刃形状|钝化或倒角|
+|嵌套因子|$v_1\|z_1$：倒角|角度（度）|$[-20,-17]$|
+||$v_2\|z_1$：倒角|长度（微米）|$[-140,-115]$|
+||$v_1\|z_1$：钝化|无|无|
+||$v_2\|z_1$：钝化|无|无|
+|公共因子|$x_1$|切削刃半径（微米）|$[-25,-5]$|
+||$x_2$|前角（度）|$[-15,-5]$|
+||$x_3$|刀尖圆弧半径（毫米）|$[-1.6,-0.4]$|
+||$x_4$|切削速度（米/分钟）|$[-240,-120]$|
+||$x_5$|进给量（毫米/转）|$[-0.15,-0.05]$|
+||$x_6$|切削深度（毫米）|$[-0.25,-0.1]$|
+
+由于分支因子的每个层级下嵌套因子可以各不相同，因此每个分支因子层级内的投影就显得十分重要。洪等人（2009）提出了分支拉丁超立方设计，该设计兼顾公共因子空间，以及分支因子各层级下嵌套因子与公共因子共同构成空间中的距离。由于分支因子通常属于定性因子，我们也可以采用上一节介绍的 MaxProQQ 设计。但需要对该设计做相应调整，以适配嵌套因子。
+
+我们将以硬车削实验为例对该方法进行说明。我们的预算可支持 30 次试验。首先，可以借助 MaxProQQ 生成 MaxPro(30,9) 设计，将切削刃形状设为名义因子，其余八个因子设为连续因子。接下来选取两列，剔除与钝化刃刀具对应的条目，并对倒角刃刀具对应的条目重新缩放与优化。我们可以计算分支因子两个水平内，共享因子设计以及嵌套‑共享设计的最大投影准则，并针对这两列的选取对其进行优化。最终设计的优劣同样取决于初始的 MaxPro(30,9) 设计。因此，整个流程可以重复若干次，并依据最大投影准则选出最优设计。由此得到的最优设计的散点图矩阵如图 4.19 所示。
+
+> **图 4.19**：硬车削实验 30 次分支设计的散点图矩阵
+
+![Alt Text](figures/4.19.png){width=33%}
+
+### 4.5.4 嵌套设计
+
+有时可以编写计算机代码，求解描述物理系统的数学方程，这些方程可具备不同保真度等级，例如有限元分析中的相关方程。例如，金属板的热传导问题，采用了两种网格布置方式来施加混合边界条件：底边温度恒定为 100 摄氏度，顶边与左边向 0 摄氏度的外界环境发生热对流，右边为绝热边界（卡梅伦等人，1986）。细网格能够得到精度更高的数值解，但计算耗时也会更长。因此，在既定计算资源限制下，开展大量粗网格（低保真度）仿真，搭配少量细网格（高保真度）仿真是合理的做法。
+
+假设存在 $K$ 个保真度等级，其中“1”代表最低保真度，“$K$”代表最高保真度。设 $D_k=\{\boldsymbol{x}_i^{(k)}\}_{i=1}^{n_k}$ 为第 $k$ 级保真度下包含 $n_k$ 次试验的试验设计，$\{y_k=h_k(\boldsymbol{x}_i^{(k)})\}_{i=1}^{n_k}$ 为对应的输出数据，满足 $n_1 \ge n_2 \ge \dots \ge n_K$。肯尼迪与奥黑根（2000）提出下述模型对数据进行融合：
+
+$$
+h_k(\boldsymbol{x})=h_{k-1}(\boldsymbol{x})+\delta_k(\boldsymbol{x}),\quad k=2,\dots,K
+\tag{4.34}
+$$
+
+式中 $\delta_k(\boldsymbol{x})$ 表示第 $k-1$ 级与第 $k$ 级保真度输出之间的偏差。作出如下高斯过程假设：
+
+$$
+\begin{align*}
+&\delta_k(\boldsymbol{x})\sim GP(0,\tau_k^2R_k(\cdot)),\quad k=2,\dots,K
+\tag{4.35}\\
+&y_1(\boldsymbol{x})\sim GP(\mu,\tau_1^2R_1(\cdot))
+\tag{4.36}
+\end{align*}
+$$
+
+我们应当如何选取 $D_1,\dots,D_K$ 开展多保真度模拟，从而拟合上述模型，并得到最高保真度水平下响应曲面的良好近似？肯尼迪与奥黑根（2000）推荐采用嵌套设计 $D_1 \supseteq D_2 \supseteq \dots \supseteq D_K$，该类设计有助于估计各 $\delta_k(\cdot)$，且不必过度依赖模型假设。钱等人（2006）介绍了一个两级保真度的实际应用案例：基于正交阵列的拉丁超立方设计选取 $D_1$，再依据极小极大准则从 $D_1$ 中选出子集作为 $D_2$。钱等人（2009）给出了多种构造嵌套空间填充设计的代数方法。
+
+为理解嵌套空间填充设计的适用性，我们首先考察基于模型的设计。为简化符号表示，考虑 $K=2$ 的情形，即仅存在两种保真度水平：“1”（低保真）与“2”（高保真）。设 $\boldsymbol{y}_1$ 和 $\boldsymbol{y}_2$ 为采用设计 $D_1$ 和 $D_2$ 开展实验得到的数据。由于此处涉及两套设计，我们需要引入适用性更广的符号来定义相关矩阵。令 $A = \{\boldsymbol{a}_i\}_{i=1}^m$、$B = \{\boldsymbol{b}_i\}_{i=1}^n$，其中 $\boldsymbol{a}_i,\boldsymbol{b}_i \in \mathcal{X} \subset \mathbb{R}^p$。再令 $\boldsymbol{R}(A,B)$ 为 $m\times n$ 矩阵，其第 $ij$ 个元素为 $R(\boldsymbol{a}_i-\boldsymbol{b}_j)$。由此可知，此前我们将 $\boldsymbol{R}(D,D)$ 简记为 $\boldsymbol{R}$。易知：
+
+$$
+\begin{bmatrix}
+\boldsymbol{y}_1\\\boldsymbol{y}_2
+\end{bmatrix}
+\sim \mathcal{N}_{n_1+n_2}\left(\mu
+\begin{bmatrix}
+\boldsymbol{1}_{n_1}\\\boldsymbol{1}_{n_2}
+\end{bmatrix},
+\begin{bmatrix}
+\tau_1^2 \boldsymbol{R}_1(D_1,D_1) & \tau_1^2 \boldsymbol{R}_1(D_1,D_2)\\
+\tau_1^2 \boldsymbol{R}_1(D_2,D_1) & \tau_1^2 \boldsymbol{R}_1(D_2,D_2)+\tau_2^2 \boldsymbol{R}_2(D_2,D_2)
+\end{bmatrix}\right)
+\tag{4.37}
+$$
+
+现在考虑最大熵设计：
+
+$$
+\max_{D_1,D_2}
+\begin{vmatrix}
+\tau_1^2 \boldsymbol{R}_1(D_1,D_1) & \tau_1^2 \boldsymbol{R}_1(D_1,D_2)\\
+\tau_1^2 \boldsymbol{R}_1(D_2,D_1) & \tau_1^2 \boldsymbol{R}_1(D_2,D_2)+\tau_2^2 \boldsymbol{R}_2(D_2,D_2)
+\end{vmatrix}
+$$
+
+利用分块矩阵相关结论（引理 2.1），该问题等价于
+
+$$
+\max_{D_1,D_2}\left|\tau_1^2 \boldsymbol{R}_1(D_1,D_1)\right|\times
+\left|\tau_1^2 \boldsymbol{R}_1(D_2,D_2)+\tau_2^2 \boldsymbol{R}_2(D_2,D_2)-\tau_1^2 \boldsymbol{R}_1(D_2,D_1)\boldsymbol{R}_1^{-1}(D_1,D_1)\boldsymbol{R}_1(D_1,D_2)\right|
+\tag{4.38}
+$$
+
+注意若 $D_2 \subseteq D_1$，则 $\boldsymbol{R}_1(D_2,D_2)-\boldsymbol{R}_1(D_2,D_1)\boldsymbol{R}_1^{-1}(D_1,D_1)\boldsymbol{R}_1(D_1,D_2)=0$。因此，当 $D_2$ 嵌套于 $D_1$ 内时，式 (4.38) 可简化为
+
+$$
+\max_{D_1,D_2\subseteq D_1} \left|\boldsymbol{R}_1(D_1,D_1)\right| \times \left|\boldsymbol{R}_2(D_2,D_2)\right|
+\tag{4.39}
+$$
+
+作为式 (4.39) 的一种近似，我们可以考虑两组规模更小的序贯优化问题：
+
+$$
+\begin{align*}
+D_1^* &= \argmax_{D_1}\left|\boldsymbol{R}_1(D_1,D_1)\right|\\
+D_2^* &= \argmax_{D_2\subseteq D_1^*}\left|\boldsymbol{R}_2(D_2,D_2)\right|\tag{4.40}
+\end{align*}
+$$
+
+这表明可以先针对低保真度层级求解最大熵设计，再通过求解式 (4.40) 得到高保真度层级的设计。但在实际中无法求得上述设计，因为我们并不知晓 $R_1(\cdot)$ 与 $R_2(\cdot)$ 中的相关参数。因此，和前文一样，我们寻找合适的空间填充设计来近似上述最优解。
+
+如 4.5 节所述，最大投影设计是 $D^*_1$ 与 $D^*_2$ 的理想选择，因为这类设计倾向于使熵最大化。我们需要解决的唯一问题是如何求解嵌套于另一套设计内的最大投影设计。一种实现思路是从 $D^*_1$ 中逐次剔除样本点，以此构造 $D^*_2$。由于
+
+$$
+\sum_{i=1}^{n}\sum_{j\neq i}\frac{1}{\prod_{l}\left\{\left|x_{il}-x_{jl}\right|+\beta_{l}\right\}^{2}}
+=\sum_{i=1,i\neq k}^{n}\sum_{j\neq i}\frac{1}{\prod_{l}\left\{\left|x_{il}-x_{jl}\right|+\beta_{l}\right\}^{2}}
++\sum_{j\neq k}\frac{1}{\prod_{l}\left\{\left|x_{kl}-x_{jl}\right|+\beta_{l}\right\}^{2}}
+$$
+
+由此可以确定应当从 $D_1$ 中剔除的最优样本点：
+
+$$
+x^*_k=\argmax_{x_k\in D_1}\sum_{j\neq k}\frac{1}{\prod_{l=1}^{p}\left\{\left|x_{kl}-x_{jl}\right|+\beta_{l}\right\}^{2}}
+\tag{4.41}
+$$
+
+注意我们在分母中引入了大于 0 的常数 $\beta_l$。这是因为 $D_2$ 中的取值不再具备连续性，只能选取 $D_1$ 中的离散取值。因此，参照式 (4.33)，对所有 $l=1,\dots,p$，可取 $\beta_l=1/n_1$。倘若将式 (4.31) 中的指数相关函数替换为高斯相关函数，则相应准则变为：
+
+$$
+x^*_k=\argmax_{x_k\in D_1}\sum_{j\neq k}\frac{1}{\prod_{l=1}^{p}\left\{(x_{kl}-x_{jl})^{2}+\beta_{l}\right\}}
+\tag{4.42}
+$$
+
+该准则在 R 语言程序包 SFDesign 的 maxpro.remove 函数中已实现（王和约瑟夫，2025c），此时对 $l=1,\dots,p$，需要设定 $\beta_l=1/n_1^2$。
+
+上述嵌套设计的算法构造方法，相较于前文提到的代数构造方法，通用性与灵活性要强得多。此外，该方法可轻松拓展至任意数量的保真度层级。我们来看一个简单示例：设定两层保真度，$p=2$。假设我们需要从低保真度层级得到 $n_1=100$ 次运算，从高保真度层级得到 $n_2=10$ 次运算。图 4.21 展示了通过最大投影设计得到的 $D_1$ 的 100 个点（蓝色圆点），以及利用 maxpro.remove 函数从 $D_1$ 中选出的属于 $D_2$ 的 10 个点（红色三角形）。
+
+> **图 4.21**：包含两个保真度层级的多保真度模拟嵌套设计。$D_1$ 以蓝色圆点表示，$D_2$ 以红色三角形表示
+
+![Alt Text](figures/4.21.png){width=33%}
+
+成硕等人（2024）提出了一种嵌套设计（称为堆叠设计），该设计会考虑每个保真度水平下代码的计算成本与精度。许与成硕（2025）近期提出了可关联两个相邻保真度水平数据的非线性模型：
+
+$$
+h_k(\boldsymbol{x}) = W_k(\boldsymbol{x}, h_{k-1}(\boldsymbol{x}))
+$$
+
+该模型是式 (4.34) 中加法模型的推广。非线性函数 $W_k$ 被建模为另一高斯过程，其建模方式与深度高斯过程类似（达米亚努与劳伦斯，2013；绍尔等人，2023）。许与成硕（2025）探讨了基于该嵌套设计结构、采用此模型的序贯设计（第 7 章）。针对保真度水平无法按从低到高排序的场景，季等人（2024）提出了图高斯过程模型，该模型借助有向无环图（DAG）嵌入多保真度代码间的科学依赖关系。此外，他们还提出了嵌套广度优先遍历设计，用于对此类代码开展高效试验。
+
+## 4.6 最小能量设计
+
+图 4.22 展示了美国（不含阿拉斯加州与夏威夷州）不同邮政编码区域的人口密度（罗齐，2022）。图中的点以粉色绘制，点的大小与对数人口密度成正比。假设我们计划布设 200 个传感器，用以监测全美各地的污染水平。获取传感器的测量数据后，我们可以利用克里金插值法或高斯过程（GP）来预测美国任意地点的污染情况。应当如何布设这些传感器，才能保证预测结果准确？图 4.22 左图展示了借助 R 语言 maximin 包生成的 200 个采样点极大极小设计（孙与格拉马西，2024），该设计的实际意义不大，因为我们知道人口稠密区域的污染程度会更高。因此理想情况下，我们应当在人口密度较高的区域布设更多传感器，在人口密度较低的区域布设更少传感器。由此我们需要一种加权空间填充设计（鲍曼与伍兹，2013），其权重与人口密度成正比。约瑟夫等人（2015）提出的最小能量设计便是这类方案中的一种。
+
+> **图 4.22**：极大极小设计与最小能量设计以蓝色圆点展示。2020 年人口普查得到的美国各地邮政编码点位以粉色圆点展示，圆点大小与人口密度成正比
+
+![Alt Text](figures/4.22.png){width=67%}
+
+最小能量设计（MED）具有一种物理类比。考虑 $n$ 个带电粒子。不失一般性，将它们视作带正电。若把这些粒子放置在一个盒子内部，粒子之间会相互排斥，并在盒子内占据使总势能最小的位置。设 $q(x)$ 为粒子位于位置 $x \in X = [0, 1]^p$ 处时的电荷量。那么 $n$ 个粒子的总势能由下式给出：
+
+$$
+E=\sum_{i=1}^{n-1}\sum_{j=i+1}^{n}\frac{q(\boldsymbol{x}_i)q(\boldsymbol{x}_j)}{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|}
+$$
+
+最小能量设计可通过对设计 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$ 最小化 $E$ 得到。若对所有 $\boldsymbol{x}\in[0,1]^p$ 都有 $q(\boldsymbol{x})=1$，则该准则退化为式 (4.18) 中当 $\alpha=1/2$ 时的 TRD 准则。因此，我们考虑能量准则的一种广义形式：
+
+$$
+\min_{D}\left\{\sum_{i=1}^{n-1}\sum_{j=i+1}^{n}\left(\frac{q(\boldsymbol{x}_i)q(\boldsymbol{x}_j)}{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|_\alpha}\right)^k\right\}^{1/k}
+$$
+
+式中 $\|\boldsymbol{x}\|_\alpha=\left\{\sum_{i=1}^p|x_i|^\alpha\right\}^{1/\alpha}$。当 $k\to\infty$ 时，该准则变为
+
+$$
+\min_{D}\max_{i\neq j}\frac{q(\boldsymbol{x}_i)q(\boldsymbol{x}_j)}{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|_\alpha}\equiv\max_{D}\min_{i\neq j}\frac{\|\boldsymbol{x}_i-\boldsymbol{x}_j\|_\alpha}{q(\boldsymbol{x}_i)q(\boldsymbol{x}_j)}
+\tag{4.43}
+$$
+
+这可以看作是式 (4.16) 中极大极小准则的加权形式。约瑟夫等人（2019）证明了下述渐近结果。
+
+> **定理 4.4**：假设电荷函数 $q(\cdot)$ 是利普希茨连续的，即对任意 $\boldsymbol{u},\boldsymbol{v}\in \mathcal{X}=[0,1]^p$，满足 $|q(\boldsymbol{u})-q(\boldsymbol{v})|\le Ld(\boldsymbol{u},\boldsymbol{v})$，其中常数 $L>0$。设 $D^*=\{\boldsymbol{x}^*_1,\dots,\boldsymbol{x}^*_n\}$ 为采用式 (4.43) 得到的具有最小指标的 $n$ 点最小能量设计，$\mathscr{B}$ 为 $\mathcal{X}$ 上的博雷尔 $\sigma$ 代数。在可测空间 $(\mathcal{X},\mathscr{B})$ 上定义如下概率测度：$$P_n(A)=\frac{\mathrm{card}\{\boldsymbol{x}^*_i:1\le i\le n,\;\boldsymbol{x}^*_i\in A\}}{n},\quad \forall A\in \mathscr{B}\tag{4.44}$$ 则当 $n\to\infty$ 时，对任意固定的 $\alpha\in(0,\infty)$，存在概率测度 $P$ 使得 $P_n$ 弱收敛于 $P$。此外，在集合 $\mathcal{X}$ 上，$P$ 具有与 $q^{-2p}(\boldsymbol{x})$ 成比例的密度。
+
+有趣的是，在球堆积相关文献中，最小能量设计也被称作极小里斯能量点。当 $\alpha = 2$ 时，与定理 4.4 相类似的结果可见于博罗达乔夫等人（2008a,b）的研究。
+
+定理 4.4 十分实用，因为如果我们预先设定一个目标密度，例如 $f(\boldsymbol{x})$，那么我们可以将电荷函数取为 $q(\boldsymbol{x})=f(\boldsymbol{x})^{-1/(2p)}$，这样最大熵分布（MED）就会近似服从目标分布。采用该电荷函数时，最大熵分布（MED）可表示为
+
+$$
+\max_{D}\min_{i\neq j} f^{1/(2p)}(\boldsymbol{x}_i)f^{1/(2p)}(\boldsymbol{x}_j)\|\boldsymbol{x}_i-\boldsymbol{x}_j\|_\alpha
+\tag{4.45}
+$$
+
+最小能量设计具有很好的概率解释。当 $\alpha=2$ 时，式 (4.45) 中的准则等价于
+
+$$
+\max_{\boldsymbol{x}_{D}}\min_{i\neq j}\sqrt{f(\boldsymbol{x}_i)f(\boldsymbol{x}_j)}V_S(\boldsymbol{x}_i,\boldsymbol{x}_j)
+$$
+
+式中 $V_S(\boldsymbol{x}_i,\boldsymbol{x}_j)=\frac{\pi^{p/2}}{\Gamma(p/2+1)}\{\frac{d(\boldsymbol{x}_i,\boldsymbol{x}_j)}{2}\}^p$ 是以 $\frac{(\boldsymbol{x}_i+\boldsymbol{x}_j)}{2}$ 为球心、且经过点 $\boldsymbol{x}_i$ 与 $\boldsymbol{x}_j$ 的球体体积。项 $\sqrt{f(\boldsymbol{x}_i)f(\boldsymbol{x}_j)}$ 是 $\boldsymbol{x}_i$ 和 $\boldsymbol{x}_j$ 处密度值的几何均值。因此，$P_{ij}(D)=\sqrt{f(\boldsymbol{x}_i)f(\boldsymbol{x}_j)}V_S(\boldsymbol{x}_i,\boldsymbol{x}_j)$ 近似为 $x$ 落入该球体的概率。令 $i^*=\arg\min_{j\neq i}P_{ij}(D)$，则最小能量设计准则可写成
+
+$$
+\max_{\boldsymbol{x}_{D}}\min_{i=1:n}P_{ii^*}(D)
+$$
+
+最大化最小概率会使得所有 $i=1,\dots,n$ 对应的概率 $P_{ii^*}(D)$ 趋于相等。因此粗略来讲，最小能量设计准则力求使试验设计中相邻点之间的概率达到均衡。如式 (4.25) 所示，当 $\alpha=0$ 时，式 (4.45) 中的准则等价于
+
+$$
+\max_{\boldsymbol{x}_{D}}\min_{i\neq j}\sqrt{f(\boldsymbol{x}_i)f(\boldsymbol{x}_j)}V_R(\boldsymbol{x}_i,\boldsymbol{x}_j)
+$$
+
+式中 $V_R(\boldsymbol{x}_i,\boldsymbol{x}_j)=\prod_{l=1}^{p}|\boldsymbol{x}_{il}-\boldsymbol{x}_{jl}|$ 为超长方体的体积；该超长方体以 $\boldsymbol{x}_i$、$\boldsymbol{x}_j$ 为一对对角顶点，各边平行于坐标轴。因此该准则同样具备与欧氏距离情形一致的概率均衡解释，只需将超球体体积元替换为超长方体体积元即可。当 $f(x)=1$ 时，$\alpha=2$ 与 $\alpha=0$ 两种情况分别对应极大极小设计与最大投影设计。
+
+约瑟夫等人（2015）提出了最小能量设计的如下序贯构造方法：
+
+$$
+\boldsymbol{x}_{k+1}=\argmax_{\boldsymbol{x}\in \mathcal{X}}\min_{i=1:k} f(\boldsymbol{x})f(\boldsymbol{x}_i)\|\boldsymbol{x}-\boldsymbol{x}_i\|^{2p}_\alpha,\quad k=2,\dots,n
+\tag{4.46}
+$$
+
+其中
+
+$$
+\boldsymbol{x}_1=\argmax_{\boldsymbol{x}\in \mathcal{X}}f(\boldsymbol{x})
+$$
+
+再次考虑这样一个问题：依据人口密度函数 $f(x)$ 在美国各地布设传感器，用以测量污染水平。公式 (4.46) 中的序贯算法已在 R 语言包 mined 中实现。取 $\alpha=1$，采用最小能量设计方法选出的 200 个点位如图 4.22 右侧子图所示。可以看到，人口更多的邮政编码区域分配到了更多传感器，这有助于构建精度更高的美国全域污染水平预测模型。
+
+### 4.6.1 贝叶斯计算
+
+假设数据 $\boldsymbol{y}$ 由抽样模型 $f(\boldsymbol{y}|\boldsymbol{\theta})$ 生成，其中 $\boldsymbol{\theta}$ 为未知参数集合。在经典统计学中，通过最大化似然函数得到 $\boldsymbol{\theta}$ 的估计值，即 $\widehat{\boldsymbol{\theta}} = \argmax_{\boldsymbol{\theta}} f(\boldsymbol{y}|\boldsymbol{\theta})$，之后利用该抽样模型对 $\boldsymbol{y}$ 进行重复抽样，以此评估 $\widehat{\boldsymbol{\theta}}$ 的不确定性。在贝叶斯统计学中，会设定先验分布 $f(\boldsymbol{\theta})$，用以表征观测数据之前 $\boldsymbol{\theta}$ 的不确定性；随后借助贝叶斯定理（假定 $\boldsymbol{\theta}$ 为连续型）得到更新后的分布，即后验分布：
+
+$$
+f(\boldsymbol{\theta}|y) = \frac{f(y|\boldsymbol{\theta})f(\boldsymbol{\theta})}{\int f(y|\boldsymbol{\theta})f(\boldsymbol{\theta})\mathrm{d}\boldsymbol{\theta}}
+$$
+
+分母（归一化常数）可能是高维积分，计算难度较大。因此，通常采用马尔可夫链蒙特卡洛（MCMC）方法，从 $f(\boldsymbol{\theta}|\boldsymbol{y})$ 中抽取若干个 $\boldsymbol{\theta}$ 样本值完成推断，该方法无需获知归一化常数。
+
+马尔可夫链蒙特卡洛（MCMC）方法通常需要大量样本（数千甚至数百万个），才能对后验分布实现较好的近似。若未归一化后验分布 $h(\boldsymbol{\theta})=f(\boldsymbol{y}|\boldsymbol{\theta})f(\boldsymbol{\theta})$ 的计算代价很高，该过程就会十分耗时。在这类情形下，我们可以考虑采用试验设计来计算未归一化后验分布，并利用高斯过程（GP）模型对其进行近似（Joseph，2012，2013）。
+
+如何获取适合近似后验分布的实验设计？显然，我们应当在后验分布的高密度区域放置更多采样点，而在后验分布的低密度区域放置少量采样点或者不放置采样点。这很适合采用最小能量设计，其中电荷函数取为 $q(\boldsymbol{x}) = f(\boldsymbol{\theta}|\boldsymbol{y})^{-1/(2p)}$。因此，
+
+$$
+\begin{align*}
+D^* &= \argmax_{D}\min_{i\neq j} f(\boldsymbol{\theta}_i|\boldsymbol{y})f(\boldsymbol{\theta}_j|\boldsymbol{y})\|\boldsymbol{\theta}_i -\boldsymbol{\theta}_j\|^{2p}_\alpha \\
+&\propto \argmax_{D}\min_{i\neq j} h(\boldsymbol{\theta}_i)h(\boldsymbol{\theta}_j)\|\boldsymbol{\theta}_i -\boldsymbol{\theta}_j\|^{2p}_\alpha \\
+&\propto \argmax_{D}\min_{i\neq j} \left\{\log h(\boldsymbol{\theta}_i) + \log h(\boldsymbol{\theta}_j) + 2p\log \|\boldsymbol{\theta}_i -\boldsymbol{\theta}_j\|_\alpha\right\}
+\tag{4.47}
+\end{align*}
+$$
+
+注意，在该优化过程中归一化常数已被分离出去。因此，求解最小能量设计（MED）时我们并不需要归一化常数，这一点十分有利！我们在最后一步取对数，是因为未归一化的后验分布数值可能会变得极小，进而引发数值计算误差。
+
+上述公式存在一个问题。式 (4.47) 中的优化过程需要对未归一化后验分布进行大量求值计算，这就违背了采用试验设计来近似计算开销高昂的后验分布的初衷。约瑟夫等人（2019）提出了一种高效算法，仅通过少量对未归一化后验分布的求值即可生成最小能量设计。其核心思路是使用退火形式的未归一化后验密度：
+
+$$
+h^\gamma(\boldsymbol{\theta}),\ \gamma\in[0,1]
+\tag{4.48}
+$$
+
+其中 $\gamma=1$ 对应目标分布。当 $\gamma=0$ 时，得到后验分布支撑集上的均匀分布。假设经过适当缩放后，后验分布的支撑集为 $\mathcal X=[0,1]^p$。那么我们可以从 $[0,1]^p$ 内的一个设计出发，缓慢将 $\gamma$ 增大至 1，同时迭代学习未归一化后验分布。
+
+例如，考虑哈里奥等人（1999）提出的香蕉形密度函数
+
+$$
+f(\boldsymbol{\theta}) \propto \exp\left\{-\frac12\frac{\theta_1^2}{100}-\frac12\left(\theta_2+0.03\theta_1^2-3\right)^2\right\},\quad \boldsymbol{\theta}\in\mathbb R^2
+\tag{4.49}
+$$
+
+该后验分布的计算开销并不大，此处仅用于举例说明。假设我们已知该后验分布的高密度区域位于 $[-40,40]\times[-25,10]$。我们可以将该矩形区域缩放为单位正方形 $[0,1]^2$。首先在该正方形上选取一个包含 20 次试验的最大投影（MaxPro）设计。图 4.24 左子图中，在后验分布云图上展示了这 20 个采样点。可以看到，最大投影设计完全没有覆盖到后验分布的高密度区域。接下来，我们新增 80 个最大能量设计（MED）点，这些点由式 (4.46) 给出的序贯算法生成，其中 $\gamma=1/4$，且 $h(\cdot)$ 替换为局部近似 $\widehat h(\cdot)$。该过程依次取 $\gamma=2/4$、$3/4$，最终取 $\gamma=1$。该算法在 R 语言包 mined 中实现（王与约瑟夫，2022）。由此生成的 100 个 MED 点展示在图 4.24 的右子图中。可以看到采样点分布在了后验分布的高密度区域内，这显然是一套能够对后验分布进行近似的优良试验设计。
+
+> **图 4.24**：左图展示初始 20 次试验的最大投影设计点（红色）叠加在香蕉形后验分布上。右图展示经过四步退火处理后依次添加得到的 80 个最小能量设计点（蓝色）
+
+![Alt Text](figures/4.24.png){width=67%}
+
+考虑约瑟夫（2013）提出的基于试验设计的插值技术（DoIt），该技术用于近似后验分布。设 $D = \{\boldsymbol{\nu}_1, \dots, \boldsymbol{\nu}_n\}$ 为试验设计点集，且对 $i=1,\dots,n$，有 $h_i = h(\boldsymbol{\nu}_i)$。那么，未归一化密度的平方根可通过基函数展开进行近似：
+
+$$
+\sqrt{h(\boldsymbol{\theta})} \approx \sum_{i=1}^{m} c_i g(\boldsymbol{\theta}; \nu_i, \boldsymbol{\Sigma})
+\tag{4.50}
+$$
+
+取平方根是为了保证密度的预测值非负，
+
+$$
+g(\boldsymbol{\theta}; \boldsymbol{\mu}, \boldsymbol{\Sigma}) = \exp\left\{ -\frac12\sum_{i=1}^{p}\frac{(\theta_i-\mu_i)^2}{\sigma_i^2} \right\}
+$$
+
+且 $\boldsymbol{\Sigma} = diag\{\sigma_1^2,\dots,\sigma_p^2\}$。$\sigma_i^2$ 可按照 2.1.2 节所述的交叉验证方法进行估计。对每个 $\theta_i$在$(-\infty,+\infty)$ 上积分，可得归一化常数
+
+$$
+\int \widehat h(\boldsymbol{\theta})\mathrm{d}\boldsymbol{\theta} = \int \widehat{\boldsymbol{c}}'g(\boldsymbol{\theta})g(\boldsymbol{\theta})'\widehat{\boldsymbol{c}} \,\mathrm{d}\boldsymbol{\theta} = \pi^{d/2}|\boldsymbol{\Sigma}|^{1/2}\widehat{\boldsymbol{c}}'\boldsymbol{G}_2\widehat{\boldsymbol{c}}
+\tag{4.51}
+$$
+
+其中 $\boldsymbol{G}_2$ 为 $n\times n$ 矩阵，其第 $ij$ 个元素为 $g(\nu_i;\nu_j,2\boldsymbol{\Sigma})$。由此，后验密度的近似表达式为
+
+$$
+\widehat f(\boldsymbol{\theta}|y) = \frac{\{\widehat{\boldsymbol{c}}'g(\boldsymbol{\theta})\}^2}{\pi^{d/2}|\boldsymbol{\Sigma}|^{1/2}\widehat{\boldsymbol{c}}'\boldsymbol{G}_2\widehat{\boldsymbol{c}}}
+\tag{4.52}
+$$
+
+由上式可以得到边缘密度：
+
+$$
+\widehat p(\theta_k|y) = \frac{\sum_{i=1}^{n}\sum_{j=1}^{n} d_{ij}\phi\left(\theta_k;\frac{\boldsymbol{\nu}_{ik}+\boldsymbol{\nu}_{jk}}{2},\frac{\boldsymbol{\Sigma}_{kk}}{2}\right)}{\sum_{i=1}^{n}\sum_{j=1}^{n} d_{ij}}
+\tag{4.53}
+$$
+
+式中 $\phi(\theta;\mu,\sigma^2)$ 代表均值为 $\mu$、方差为 $\sigma^2$ 的正态密度函数，且 $d_{ij}=\widehat c_i\widehat c_j g(\boldsymbol{\nu}_i;\boldsymbol{\nu}_j,2\boldsymbol{\Sigma})$。
+
+由于基于试验设计的插值技术方法应用于 $\sqrt{h(\boldsymbol{\theta})}$，由此生成了一个 100 点的最小能量设计（MED），如图 4.24 所示，其中 $\sqrt{h(\boldsymbol{\theta})}$ 为目标密度。公式 (4.49) 中香蕉形密度下，$\theta_1$ 与 $\theta_2$ 的基于试验设计的插值技术边缘密度如图 4.25 所示。该情形下的真实后验分布可通过数值积分求得，在同一幅图中以绿色曲线展示。作为对比，采用维霍拉（2012）提出的自适应梅特罗波利斯算法生成的 10000 个马尔可夫链蒙特卡洛（MCMC）样本对应的密度，也在该图中以红色曲线展示。可以看出，相较于马尔可夫链蒙特卡洛方法，基于试验设计的插值技术对真实后验分布的逼近效果要好得多。在此案例中，基于试验设计的插值技术仅使用 100 次函数求值，而马尔可夫链蒙特卡洛则需要 10000 次函数求值，这在处理计算开销较大的后验分布时具备优势。
+
+> **图 4.25**：采用数值积分（绿色）、基于 100 点最小能量设计的基于试验设计的插值技术方法（蓝色）以及采样量为 10000 的自适应梅特罗波利斯算法（红色）得到的香蕉形后验分布的边缘后验密度
+
+![Alt Text](figures/4.25.png){width=67%}
+
+### 4.6.2 候选集生成
+
+回顾 4.5.1 节，我们是先在可行域内生成候选点集，再从中构造试验设计。当可行域在单位超立方体 $\boldsymbol X=[0,1]^p$ 中占比很小时，该节所用的拒绝采样法效率会变得很低。如图 4.16 所示，在二维单位正方形 $[0,1]^2$ 中抽取 10000 个均匀样本，最终仅有 538 个样本满足可行条件。基于这样规模很小的候选点集得到的设计，效果往往欠佳。此外，如果约束条件的计算代价很高，大量样本被拒绝会造成大量算力资源浪费。我们可以采用最小能量设计（黄等人，2021）来提升这一流程的效率。
+
+核心思想是将不等式约束 $\{g_k(\boldsymbol x)\le 0\}_{k=1}^K$ 转化为概率分布，从而可以利用最小能量设计（MED）进行采样。戈尔奇与勒普基（2015）提出了如下基于概率单位函数的概率松弛：
+
+$$
+f_\tau(\boldsymbol x) \propto \Phi(-\tau g(\boldsymbol x))
+\tag{4.54}
+$$
+
+式中 $\Phi$ 为标准正态累积分布函数；$\tau\ge0$ 是控制约束严格程度的参数。可以看到，函数 $\rho_\tau=\Phi(-\tau g(\boldsymbol x))$ 对满足约束的 $\boldsymbol x$ 取值接近于 1，不满足约束的 $\boldsymbol x$ 取值接近于 0。此外，取极限可得：
+
+$$
+\lim_{\tau\to\infty}f_\tau(\boldsymbol x) \propto \lim_{\tau\to\infty}\Phi(-\tau g(\boldsymbol x)) = I(g(\boldsymbol x)\le 0) \tag{4.55}
+$$
+
+该形式可以推广到多个不等式约束 $\{g_k(\boldsymbol x)\le 0\}_{k=1}^K$：
+
+$$
+f_\tau(\boldsymbol x) \propto \prod_{k=1}^K \Phi(-\tau g_k(\boldsymbol x)) \tag{4.56}
+$$
+
+现在选取刚度参数的一个递增序列 $0 = \tau_0 < \tau_1 < \dots < \tau_T$，并依次求解最小能量设计问题：
+
+$$
+\boldsymbol{x}_{m+1}=\argmax_{\boldsymbol{x}}\min_{i=1:m}\left\{\sum_{k=1}^{K}\log\Phi(-\tau_t g_k(\boldsymbol{x}))+\sum_{k=1}^{K}\log\Phi(-\tau_t g_k(\boldsymbol{x}_i))+2p\log\|\boldsymbol{x}_i-\boldsymbol{x}\|_\alpha\right\}
+\tag{4.57}
+$$
+
+其中 $t=1,\dots,T$。该算法的完整细节可参见黄等人（2021）的研究。
+
+再次考虑式 (4.30) 中的约束条件。图 4.26 左图展示了利用上述算法生成的 2340 个点，其中参数 $T=8$，目标是构造一个 53 次运行的最大投影（MaxPro）设计。右图展示了 925 个可行候选点。由此可得，可行点占比为 $\frac{925}{2340} \times 100 = 39.5\%$；相较于采用 10000 个拉丁超立方样本生成得到的可行点占比 $\frac{538}{10000} \times 100 = 5.4\%$，该占比处于很高水平。当约束条件的计算代价很高时，这一特性将会带来极大的优势。
+
+> **图 4.26**：左图展示了通过约束最小能量设计法得到的 2340 个候选点。右图展示了 925 个可行候选点
+
+![Alt Text](figures/4.26.png){width=67%}
+
+### 4.6.3 连续保真度参数
+
+在许多仿真代码中，可以通过连续参数来控制结果的保真度，例如有限元分析中的网格密度。相比粗网格，更细密的网格能够得到更为精确的结果，但会带来更高的计算开销。
+
+设网格密度调节参数为 $t$，$t$ 可以为正方形或长方体网格单元的边长。涂等人（2014）提出了如下模型：
+
+$$
+y(\boldsymbol{x},t)=y(\boldsymbol{x},0)+\delta(\boldsymbol{x},t)=\phi(\boldsymbol{x})+\delta(\boldsymbol{x},t)
+\tag{4.58}
+$$
+
+式中 $\phi(\boldsymbol{x})$ 为真实响应，$\delta(\boldsymbol{x},t)$ 表示网格密度为 $t$ 时输入 $\boldsymbol{x}$ 对应的仿真偏差。在有限元分析（FEA）中无法得到真实响应函数 $\phi(\boldsymbol{x})$，因为无法执行 $t=0$ 条件下的仿真计算。涂等人方法的精妙之处在于：通过对不同保真度等级的数据进行建模，我们可以外推并预测 $t=0$ 条件下的响应。该模型与肯尼迪和奥黑根（2000）所用模型类似，$\phi(\boldsymbol{x})$ 与 $\delta(\boldsymbol{x},t)$ 这两项可分别由两个独立高斯过程建模，其中 $\phi(\boldsymbol{x})$ 采用平稳协方差函数：
+
+$$
+\mathrm{cov}\{\phi(\boldsymbol{x}_1),\phi(\boldsymbol{x}_2)\}=\sigma_0^2R_0(\boldsymbol{x}_1-\boldsymbol{x}_2)
+\tag{4.59}
+$$
+
+但 $\delta(\boldsymbol{x},t)$ 不能使用平稳高斯过程建模，因为无论 $\boldsymbol{x}$ 取何值，当 $t\to0$ 时 $\delta(\boldsymbol{x},t)\to0$，这破坏了平稳过程所需满足的条件。因此，涂等人（2014）提出采用非平稳协方差函数：
+
+$$
+\mathrm{cov}\{\delta(\boldsymbol{x}_1,t_1),\delta(\boldsymbol{x}_2,t_2)\}=\sigma_1^2 R_1(\boldsymbol{x}_1-\boldsymbol{x}_2)K(t_1,t_2)
+\tag{4.60}
+$$
+
+具体而言，他们选用布朗运动核：
+
+$$
+K(t_1,t_2)=\min(t_1,t_2)^l
+$$
+
+受有限元仿真误差分析启发，参数 $l$ 一般取 4。注意 $\mathrm{var}\{\delta(\boldsymbol{x},t)\}=\sigma_1^2 t^l$，当 $t\to0$ 时该值趋于 0，因此模型中的偏差会消失。古尔等人（2018）提出了另一种协方差形式。设 $Z(t)$ 为协方差函数，是 $\tau^2R_t(t-\cdot)$ 的平稳高斯过程，则过程 $Z(t)-Z(0)$ 在 $t=0$ 时取值为 0，其协方差函数为：
+
+$$
+\begin{align*}
+K(t_1,t_2)&=\mathrm{cov}\{Z(t_1)-Z(0),Z(t_2)-Z(0)\}\\
+&=\tau^2\{R_t(t_1-t_2)-R_t(t_1)-R_t(t_2)+1\}.
+\tag{4.61}
+\end{align*}
+$$
+
+关于该非平稳协方差函数在多保真度核物理问题中的近期应用，可参见纪等人（2024）的研究。
+
+如何最优选取设计方案 $D=\{(\boldsymbol{x}_i,t_i)\}_{i=1}^n$？尉迟等人（2023）提出了一种基于最小能量设计（MED）的方法，下文将对该方法进行介绍。其核心思想是构造多精度仿真，使其计算成本与单精度仿真保持一致。假设单次仿真的计算时间（$T$）与网格单元数量（$M$）成正比：
+
+$$
+T=\beta M
+\tag{4.62}
+$$
+
+式中 $\beta$ 为比例常数，其取值取决于几何形状、自适应特性等网格划分相关参数。网格单元数量（$M$）与网格密度（$t$）满足如下关系：
+
+$$
+t\propto\frac{1}{M^{1/k}}
+\tag{4.63}
+$$
+
+其中 $k$ 为网格维度（通常取 2 或 3）。由此，我们可以选定 $\{M_i\}_{i=1}^n$，进而得到 $\{t_i\}_{i=1}^n$。
+
+假设在 $\widetilde{M}$ 与 $\overline{M}$ 区间内的有限元分析（FEA）仿真能够收敛并得到合理结果。若我们在单一保真度下完成全部仿真，可选取上界 $\overline{M}$ 作为网格单元数量。假设我们拥有在 $\overline{M}$ 下开展 $\overline{n}$ 次仿真的预算，那么总时间预算为 $\overline{n}\times\beta\overline{M}$。我们希望将该仿真计算预算分配到 $n$ 个不同的保真度等级 $M_1,\dots,M_n$，因此有 $\sum_{i=1}^n\beta M_i=\overline{n}\beta\overline{M}$。由此可得，各等级需要满足约束条件：
+
+$$
+\sum_{i=1}^nM_i=\overline{n}\,\overline{M}
+\tag{4.64}
+$$
+
+由于在小 $M$ 条件下我们需要比大 $M$ 条件下更多的模拟计算，尉迟等人（2023）提出采用如下密度函数来选取 $M$ 的最优水平：
+
+$$
+f(M)\propto\frac{1}{M},\quad\text{其中}M\in[\widetilde{M},\overline{M}]
+$$
+
+通过求解
+$$
+\max_{M_1,\dots,M_n}\min_{i\neq j}\frac{1}{\sqrt{M_iM_j}}\left|M_i-M_j\right|
+\tag{4.65}
+$$
+即可得到该目标密度下的最小能量设计。
+
+我们可以利用式 (4.46) 中的序贯构造法来求解 $M$ 的最优水平。尉迟等人（2023）提出了一种逆概率变换方法来求解该问题，在该特定情形下该方法要简便得多。更多细节参见 5.2.1 节。容易得到目标分布的概率密度函数为
+
+$$
+f(M)=\frac{1}{M\log\left(\overline{M}/\widetilde{M}\right)},\quad M\in\left[\widetilde{M},\overline{M}\right]
+$$
+
+其累积分布函数为
+
+$$
+F(M)=\frac{\log\left(M/\widetilde{M}\right)}{\log\left(\overline{M}/\widetilde{M}\right)},\quad M\in\left[\widetilde{M},\overline{M}\right]
+$$
+
+因此，$u=F(M)$ 服从区间 $[0,1]$ 上的均匀分布。于是，经过该变换后，式 (4.65) 转化为
+
+$$
+\max_{u_1,\dots,u_n}\min_{i\neq j}|u_i-u_j|
+$$
+
+我们已经知道该一维极大极小设计问题的解由式 (4.19) 给出。因此式 (4.65) 的解为
+
+$$
+M_i=F^{-1}(u_i)=\widetilde{M}\left(\frac{\overline{M}}{\widetilde{M}}\right)^{u_i},\quad i=1,\dots,n
+\tag{4.66}
+$$
+
+其中 $u_i=(i-1)/(n-1)$。将式 (4.66) 代入式 (4.64)，可得
+
+$$
+\sum_{i=1}^n\left(\frac{\overline{M}}{\widetilde{M}}\right)^{u_i}=\overline{n}\left(\frac{\overline{M}}{\widetilde{M}}\right)
+\tag{4.67}
+$$
+
+令 $\lambda=\overline{M}/\widetilde{M}$，则式 (4.67) 变为
+
+$$
+\sum_{i=1}^n\lambda^{\frac{i-1}{n-1}}=\overline{n}\lambda
+$$
+
+整理得到
+
+$$
+\frac{\lambda^{\frac{n}{n-1}}-1}{\lambda^{\frac{1}{n-1}}-1}=\overline{n}\lambda
+$$
+
+求解 $n$ 并选取最接近的整数解，得到
+
+$$
+n=1+\left\lfloor\frac{\log\lambda}{\log\nu}\right\rfloor
+\tag{4.68}
+$$
+
+其中 $\nu=(\overline{n}\lambda-1)/\left\{\lambda(\overline{n}-1)\right\}$，$[x]$ 表示取 $x$ 的最邻近整数。求出 $n$ 之后，即可由式 (4.66) 得到 $\{M_1,\dots,M_n\}$。由于式 (4.63) 中的比例常数会被归入 $\sigma_1^2$，因此可取 $t$ 的最优水平为 $\left\{\frac{1}{M_i^{1/k}}\right\}_{i=1}^n$ 或
+
+$$
+\{t_i\}_{i=1}^n=\left\{\left(\frac{M_1}{M_n}\right)^{1/k},\left(\frac{M_1}{M_{n-1}}\right)^{1/k},\dots,1\right\}
+\tag{4.69}
+$$
+
+参考宋等人（2024）给出的一个简易算例，其中输出依赖于两个输入变量 $(x_1,x_2)$ 以及一个调参 $M$：
+
+$$
+y=\phi(\boldsymbol{x})+\frac{16}{M} e^{-1.4x_1}\cos(3.5\pi x_2)
+$$
+
+式中
+
+$$
+\phi(\boldsymbol{x})=\left(1-e^{-0.5/x_2}\right)\frac{2300x_1^3+1900x_1^2+2092x_1+60}{100x_1^3+500x_1^2+4x_1+20}
+\tag{4.70}
+$$
+
+真实的输入‑输出关系为 $y=\phi(\boldsymbol{x})$，但该关系无法直接计算，因为计算代价与 $M$ 成正比。沿用宋等人（2024）的设定，令 $M\in[2,16]$。若我们在 $M=16$ 下开展单精度仿真，总可用预算为 $\overline n=50$ 次仿真。若将 $M$ 分布在区间 $[2,16]$ 内，在相同计算代价下我们可以执行更多次仿真。由式 (4.68) 可得 $n=118$；结合式 (4.66) 与 (4.69)，可以得到对应 $t=1/M$ 的 $n$ 个水平。接下来构造试验设计：首先生成三因子下 118 次运行的最大投影设计，将第三列中对应 $t$ 的水平替换为最优水平；把该变量视作离散‑数值因子，调用 MaxProQQ 函数（巴与约瑟夫，2018）得到最终设计。该设计的散点图如图 4.27 所示，可以观察到 $t$ 呈现明显的非均匀分布特征。
+
+> **图 4.27**：多精度仿真算例设计的散点图矩阵
+
+![Alt Text](figures/4.27.png){width=33%}
+
+在式 (4.58) 中，设 $\phi(\boldsymbol{x})\sim GP(\mu,\sigma_0^2R_0(\boldsymbol{x}-\cdot))$，$\delta(\boldsymbol{x},t)\sim GP(0,\sigma_1^2R_1(\boldsymbol{x}-\cdot)K(t,\cdot))$。由于两个高斯过程之和仍为高斯过程，因此在式 (4.58) 条件下，$y(\boldsymbol{x},t)$ 同样服从高斯过程：
+
+$$
+y(\boldsymbol{x},t)\sim GP\left(\mu,\sigma_0^2R_0(\boldsymbol{x}-\cdot)+\sigma_1^2R_1(\boldsymbol{x}-\cdot)K(t,\cdot)\right)
+$$
+
+由此，所有超参数均可按照 2.1.4 节所述方法进行估计。本文采用式 (4.61) 中的核函数，其中 $R_t(\cdot)$ 为高斯相关函数。拟合得到的模型可用于预测 $t=0$（或 $M=\infty$）处的输出。我们按照 4.5 节的说明，利用 MaxProAugment 生成了 100 个测试点。在该简易算例中，真实输出可通过式 (4.70) 计算得到。这 100 个测试点的均方根误差（RMSE）为 0.054。作为对比，我们还在 $M=16$ 的条件下，采用样本量 $\overline n=50$ 的 MaxPro 试验设计拟合了单精度模型，其均方根误差为 0.420，显著高于多精度建模得到的结果。
+
+# 5 代表点
+
+第 3 章的图 3.1 展示了从 $[0,1]^2$ 上的均匀分布中随机采样得到的 7 个点。我们曾指出，这些点并不适合用作实验设计，原因是其空间填充特性较差。然而，是否可以采样得到在空间中分布更加均匀的点？本章将详细探讨该问题，并由此引出均匀设计的概念。后续我们会对该概念进行推广，以从任意分布中获取代表点。这类代表点集并非直接用于函数逼近，但当目标为积分计算或不确定性传递时，它们具备特定的最优性质。
+
+## 5.1 均匀设计
+
+本节将重点介绍在 $[0,1]^p$ 均匀分布下的最优采样方法。关于均匀设计的更多细节可参阅方等人（2005）所著书籍。
+
+### 5.1.1 均匀性
+
+首先考虑一维变量的情形。假设我们从均匀分布 $U[0,1]$ 中随机抽取七个样本值，经排序后得到：$D=\{0.202,0.266,0.372,0.573,0.898,0.908,0.945\}$。我们可以为每个样本分配 $1/n$ 的概率质量：
+
+$$
+P(x= x_i)=\frac{1}{n}
+$$
+
+由此得到其累积分布函数：
+
+$$
+F_n(x)=\frac{1}{n}\sum_{i=1}^{n}I\{x_i\le x\}
+\tag{5.1}
+$$
+
+式中 $I(\cdot)$ 为指示函数，即若事件 $A$ 发生，则 $I(A)=1$，否则 $I(A)=0$。$F_n(x)$ 称为试验设计 $D$ 的经验分布函数，其图像如图 5.1 左子图所示。均匀随机变量的分布函数为：当 $x\in[0,1]$ 时，$F(X)=x$，该函数在同一幅图中以绿色虚线绘制。我们可以通过对比 $F_n(x)$ 与 $F(x)$，衡量样本集 $D$ 与均匀分布变量的接近程度。其中一种度量为：
+
+$$
+\sup_{x\in[0,1]}|F_n(x)-F(x)|
+$$
+
+该度量在数值数学中称为星偏差，在统计学中等价于柯尔莫哥洛夫‑斯米尔诺夫拟合优度检验统计量。已有研究证明（方、王，1993，第 16 页）
+
+$$
+\left\{\frac{i-0.5}{n}\right\}_{i=1}^{n}
+$$
+
+可以使星偏差达到最小。该结果与式 (4.12) 中的极小极大设计完全一致，充分建立起其与空间填充设计之间的联系。最优设计（即均匀设计）对应的经验分布绘制于图 5.1 的右子图。
+
+> **图 5.1**：7个随机采样点（左）与最优采样点（右）的经验分布函数
+
+![Alt Text](figures/5.1.png){width=67%}
+
+现在来考虑高维情形。和之前一样，对于设计 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$，其中 $\boldsymbol{x}_i\in[0, 1]^p$，我们可以定义其经验分布：
+
+$$
+F_n(\boldsymbol{x})=\frac{1}{n}\sum_{i=1}^{n}I(\boldsymbol{x}_i\le\boldsymbol{x})
+$$
+
+式中 $\sum_{i=1}^{n}I(\boldsymbol{x}_i\le\boldsymbol{x})$ 就是落在 $p$ 维超立方体 $[\boldsymbol{0},\boldsymbol{x}]=[0,x_1]\times\cdots\times[0,x_p]$ 内的样本点数量。星偏差定义为：
+
+$$
+\mathcal{S}\mathcal{D}(D)=\sup_{\boldsymbol{x}\in[0,1]^p}|F_n(\boldsymbol{x})-F(\boldsymbol{x})|
+$$
+
+其中 $F(\boldsymbol{x})=x_1x_2\cdots x_p$。
+
+遗憾的是，当 $p\ge2$ 时，星偏差的极小元完全不清楚。事实上，当 $p\ge2$ 时，其计算甚至都并不容易。一种更便于计算的度量是星 $L_2$ 偏差，其定义为
+
+$$
+\mathcal{S}\mathcal{L}_2(D)=\int_{[0,1]^p}\{F_n(\boldsymbol{x})-F(\boldsymbol{x})\}^2\mathrm{d}\boldsymbol{x}
+$$
+
+该度量等价于用于检验均匀分布拟合优度的克拉默‑冯·米泽斯统计量。沃诺克（1972）给出了计算星 $L_2$ 偏差的显式表达式：
+
+$$
+\mathcal{S}\mathcal{L}_2=\frac{1}{3^p}-\frac{2^{1-p}}{n}\sum_{i=1}^n\prod_{l=1}^p\left(1-x_{il}^2\right)+\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n\prod_{l=1}^p\{1-\max(x_{il},x_{jl})\}
+\tag{5.2}
+$$
+
+尽管均匀设计能够很好地逼近 $[0,1]^p$ 上的均匀分布，但它们在逼近给定函数方面的最优性尚不明确。不过，若目标是对函数进行积分，均匀设计确实具备优良的最优性性质，这将在下一节展开讨论。
+
+### 5.1.2 积分
+
+假设我们的目标是对函数进行积分：
+
+$$
+I=\int_{[0,1]^p} h(\boldsymbol{x})\mathrm{d}\boldsymbol{x}
+\tag{5.3}
+$$
+
+对于一维积分，可以使用常见的数值积分方法，例如梯形法则或辛普森法则。这类方法本质上将积分近似为
+
+$$
+\widehat{I}=\sum_{i=1}^{n} w_i h(x_i)
+\tag{5.4}
+$$
+
+其中 $\{x_1,\dots,x_n\}$ 为积分节点，$w_i$ 为对应权重。已知梯形法则的积分绝对误差 $|\widehat{I}-I|$ 为 $\mathcal{O}(1/n^2)$，辛普森法则的积分绝对误差为 $\mathcal{O}(1/n^3)$。但在高维情形下，该收敛速度会大幅下降。为说明这一点，考虑利用张量积构造 $p$ 维下的 $m$ 点积分公式，此时总共需要 $n=m^p$ 次函数求值。这意味着，以函数求值次数衡量，梯形法则的收敛阶降为 $\mathcal{O}(1/n^{2/p})$，辛普森法则降为 $\mathcal{O}(1/n^{3/p})$。因此，这类方法并不适用于高维积分。
+
+评估式 (5.3) 的另一种思路是，注意到 $I$ 可以表示为均匀随机变量的期望：
+
+$$
+I = \mathrm{E}\{h(X)\}
+$$
+
+其中 $X \sim \mathcal{U}[0,1]^p$。均值的一个简单估计为样本均值：
+
+$$
+\widehat{I} = \frac{1}{n}\sum_{i=1}^{n}h(\boldsymbol{x}_i)
+$$
+
+式中 $\boldsymbol{x}_i \stackrel{\text{iid}}{\sim} \mathcal{U}[0,1]^p$，$i = 1,\dots,n$。根据强大数定律，当 $n \to \infty$ 时，$\widehat{I}$ 几乎必然收敛于 $I$。实际上，可求得 $\widehat{I}$ 的方差为
+
+$$
+\mathrm{var}\{\widehat{I}\} = \frac{1}{n^2}\sum_{i=1}^{n}\mathrm{var}\{h(\boldsymbol{x}_i)\} = \frac{\tau^2}{n}
+$$
+
+其中 $\tau^2 = \mathrm{var}\{h(\boldsymbol{X})\}$。因此，$I$ 的 95% 置信区间可构造为 $\widehat{I} \pm 2\tau/\sqrt{n}$。换言之，积分误差以 $\mathcal{O}_P(1/\sqrt{n})$ 的速率趋于零。虽然对于一维积分，该收敛速率相较于梯形法则或辛普森法则并不占优，但当维度 $p$ 大于 4 或 6 时，它在高维积分问题中表现要好得多。关于蒙特卡洛方法的详细内容可参阅罗伯特等人（2010）所著书籍。
+
+奥黑根（1987）对将蒙特卡洛方法用于积分运算提出了批评，但真正关键的是样本点的“均匀性”，而非“随机性”。积分误差的科克斯马‑赫拉瓦卡不等式（尼德赖特，1992）体现了这一点：
+
+$$
+|\widehat{I}-I| \le \mathcal{S}\mathcal{D}(D)V(h)
+$$
+
+式中 $V(h)$ 为函数 $h$ 的变差度量。因此，通过最小化点集相对于均匀分布的偏差度量，就能够对任意函数 $h$ 最小化积分误差的上界。上述推导建立在再生核希尔伯特空间理论之上。如 2.2.2 节与 2.2.3 节所述，由于再生核希尔伯特空间理论与高斯过程联系十分紧密，我们将采用统计学视角，借助高斯过程来阐述相关细节（布里奥尔等人，2019）。
+
+假设
+
+$$
+h(\boldsymbol{x})\sim GP(\mu,\tau^2K(\boldsymbol{x},\cdot))
+$$
+
+其中 $\mathrm{cov}\{h(\boldsymbol{u}),h(\boldsymbol{v})\}=\tau^2K(\boldsymbol{u},\boldsymbol{v})$。于是，
+
+$$
+\begin{align*}
+\mathrm{E}\{\widehat{I}-I\}&=\mathrm{E}\left\{\frac{1}{n}\sum_{i=1}^nh(\boldsymbol{x}_i)-\int_{[0,1]^p}h(\boldsymbol{x})\mathrm{d}\boldsymbol{x}\right\}\\
+&=\frac{1}{n}\sum_{i=1}^n\mu-\int_{[0,1]^p}\mu \mathrm{d}\boldsymbol{x}\\
+&=\mu-\mu=0
+\end{align*}
+$$
+
+因此方差为
+
+$$
+\begin{align*}
+\mathrm{var}\{\widehat{I}-I\}&=\mathrm{var}\left\{\frac{1}{n}\sum_{i=1}^nh(\boldsymbol{x}_i)-\int_{[0,1]^p}h(\boldsymbol{x})\mathrm{d}\boldsymbol{x}\right\}\\
+&=\mathrm{E}\left\{\frac{1}{n}\sum_{i=1}^nh(\boldsymbol{x}_i)-\int_{[0,1]^p}h(\boldsymbol{x})\mathrm{d}\boldsymbol{x}\right\}^2\\
+&=\mathrm{E}\left\{\frac{1}{n}\sum_{i=1}^n\int_{[0,1]^p}\left[h(\boldsymbol{x})-h(\boldsymbol{x}_i)\right]\mathrm{d}\boldsymbol{x}\right\}^2\\
+&=\frac{1}{n^2}\mathrm{E}\left\{\sum_{i=1}^n\sum_{j=1}^n\int_{[0,1]^p}\left[h(\boldsymbol{x})-h(\boldsymbol{x}_i)\right]\mathrm{d}\boldsymbol{x}\int_{[0,1]^p}\left[h(\boldsymbol{x})-h(\boldsymbol{x}_j)\right]\mathrm{d}\boldsymbol{x}\right\}\\
+&=\frac{1}{n^2}\mathrm{E}\left\{\sum_{i=1}^n\sum_{j=1}^n\int_{[0,1]^p}\int_{[0,1]^p}\left[h(\boldsymbol{u})-h(\boldsymbol{x}_i)\right]\left[h(\boldsymbol{v})-h(\boldsymbol{x}_j)\right]\mathrm{d}\boldsymbol{u}\mathrm{d}\boldsymbol{v}\right\}\\
+&=\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n\int_{[0,1]^p}\int_{[0,1]^p}\mathrm{E}\left\{\left[h(\boldsymbol{u})-h(\boldsymbol{x}_i)\right]\left[h(\boldsymbol{v})-h(\boldsymbol{x}_j)\right]\right\}\mathrm{d}\boldsymbol{u}\mathrm{d}\boldsymbol{v}
+\end{align*}
+$$
+
+注意到
+
+$$
+\begin{align*}
+&\mathrm{E}\left\{\left[h(\boldsymbol{u})-h(\boldsymbol{x}_i)\right]\left[h(\boldsymbol{v})-h(\boldsymbol{x}_j)\right]\right\}\\
+&=\mathrm{cov}\left\{h(\boldsymbol{u})-h(\boldsymbol{x}_i),\,h(\boldsymbol{v})-h(\boldsymbol{x}_j)\right\}\\
+&=\tau^2K(\boldsymbol{u},\boldsymbol{v})-\tau^2K(\boldsymbol{u},\boldsymbol{x}_j)-\tau^2K(\boldsymbol{v},\boldsymbol{x}_i)+\tau^2K(\boldsymbol{x}_i,\boldsymbol{x}_j)
+\end{align*}
+$$
+
+于是
+
+$$
+\begin{align*}
+&\int_{[0,1]^p}\int_{[0,1]^p}\mathrm{E}\{\left[h(\boldsymbol{u})-h(\boldsymbol{x}_i)\right]\left[h(\boldsymbol{v})-h(\boldsymbol{x}_j)\right]\}\mathrm{d}\boldsymbol{u}\mathrm{d}\boldsymbol{v}\\
+&=\tau^2\left\{\int_{[0,1]^p}\int_{[0,1]^p}K(\boldsymbol{u},\boldsymbol{v})\mathrm{d}\boldsymbol{u}\mathrm{d}\boldsymbol{v}-\int_{[0,1]^p}K(\boldsymbol{x},\boldsymbol{x}_j)\mathrm{d}\boldsymbol{x}-\int_{[0,1]^p}K(\boldsymbol{x},\boldsymbol{x}_i)\mathrm{d}\boldsymbol{x}+K(\boldsymbol{x}_i,\boldsymbol{x}_j)\right\}
+\end{align*}
+$$
+
+由此可得
+
+$$
+\mathrm{var}\{\widehat{I}-I\}=\tau^2\mathcal{K}(D)
+$$
+
+其中
+
+$$
+\mathcal{K}(D)=\int_{[0,1]^p}\int_{[0,1]^p}K(\boldsymbol{u},\boldsymbol{v})\mathrm{d}\boldsymbol{u}\mathrm{d}\boldsymbol{v}
+-\frac{2}{n}\sum_{i=1}^n\int_{[0,1]^p}K(\boldsymbol{x},\boldsymbol{x}_i)\mathrm{d}\boldsymbol{x}
++\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^nK(\boldsymbol{x}_i,\boldsymbol{x}_j)
+\tag{5.5}
+$$
+
+称为核偏差（Hickernell，1998a，1999）。
+
+希克内尔还通过选取不同类型的核函数推导得到了多种偏差度量。例如，式 (5.2) 中的星型 $L_2$ 偏差可以通过使用布朗片核函数
+
+$$
+K(\boldsymbol{u},\boldsymbol{v})=\prod_{l=1}^{p}\{1-\max(u_l,v_l)\}
+$$
+
+得到。希克内尔（1998a,b）同时发现，$\mathcal{S}\mathcal{D}(D)$ 与 $\mathcal{S}\mathcal{L}_2(D)$ 均无法生成投影性质优良的点集。为此，他提出了如下两种偏差度量：
+
+$$
+\begin{align*}
+\mathcal{C}\mathcal{L}_2(D)=& \left(\frac{13}{12}\right)^p-\frac{2}{n}\sum_{i=1}^{n}\sum_{l=1}^{p}\left\{1+\frac12|x_{il}-0.5|-\frac12(x_{il}-0.5)^2\right\} \\
+&+\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\sum_{l=1}^{p}\left\{1+\frac12|x_{il}-0.5|+\frac12|x_{jl}-0.5|-\frac12|x_{il}-x_{jl}|\right\}
+\tag{5.6}
+\end{align*}
+$$
+
+以及
+
+$$
+\mathcal{W}(D)=-\left(\frac43\right)^p+\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\sum_{l=1}^{p}\left\{\frac32-|x_{il}-x_{jl}|+(x_{il}-x_{jl})^2\right\}
+\tag{5.7}
+$$
+
+二者分别称为中心化 $L_2$ 偏差与环绕偏差。它们可分别由核函数
+
+$$
+K(\boldsymbol{u},\boldsymbol{v})=\prod_{l=1}^{p}\left\{1+\frac12|u_l-0.5|+\frac12|v_l-0.5|-\frac12|u_l-v_l|\right\}
+$$
+
+和
+
+$$
+K(\boldsymbol{u},\boldsymbol{v})=\prod_{l=1}^{p}\left\{\frac32-|u_l-v_l|+(u_l-v_l)^2\right\}
+$$
+
+得到。
+
+最小化偏差测度并非易事。因此，拟蒙特卡罗（QMC）领域的大部分研究都聚焦于生成低偏差点集。这类点集采用数论方法进行构造（方和王，1993），生成速度较快。对于任意 $\epsilon>0$，这些点集可以达到接近 $\mathcal{O}(1/n^{1-\epsilon})$ 的收敛速度，远优于蒙特卡罗方法 $\mathcal{O}(1/\sqrt{n})$ 的收敛速度。关于拟蒙特卡罗方法的更多细节可参阅莱奥巴赫与皮利希沙默（2014）以及欧文（2013）的著作。图 5.2 的中间子图展示了借助 R 语言包 spacefillr（摩根‑沃尔，2025）生成的、定义在 $[0,1]^2$ 上包含 20 个点的索博尔序列。该程序包实现的一类索博尔序列具备更优的二维投影性质（乔和郭，2008）。显而易见，相较于该图左侧子图展示的 20 点蒙特卡罗样本，它在 $[0,1]^2$ 空间内分布得更加均匀。
+
+> **图 5.2**：在二维单位正方形 $[0, 1]^2$ 内，包含 20 个采样点的蒙特卡洛样本（左）、索博尔序列（中）以及均匀设计（右）
+
+![Alt Text](figures/5.2.png){width=100%}
+
+虽然低差异序列生成速度快且应用广泛，但并不适合计算机代码每次求值成本很高的计算机试验。对于计算代价高昂的函数 $h$，可以花费一定时间优化差异度量，以此得到适用于积分的最优样本集。可以采用一些交换算法最小化差异度量，这类算法与用于最大最小拉丁超立方设计、最大投影拉丁超立方设计的算法类似，可参见金等人（2005）的研究。图 5.2 右侧子图展示了由 SFDesign 程序包（王与约瑟夫，2025c）得到的定义在 $[0,1]^2$ 上、共 20 个样本点的均匀设计，该均匀设计实现了环绕差异最小化。从可视化效果来看，与索博尔序列相比，该设计具备更优异的空间填充性与均匀性。从定量角度，该均匀设计的环绕差异值 $\mathcal{W}(D)=0.0412$，远小于索博尔序列的 $\mathcal{W}(D)=0.0591$以及蒙特卡洛样本的 $\mathcal{W}(D)=0.1810$。
+
+举个例子，考虑计算如下二维积分的问题：
+
+$$
+I=\int_{0}^{1}\int_{0}^{1}e^{-(x_1-0.5)^2-(x_2-0.5)^2}dx_1dx_2
+$$
+
+该积分可通过解析积分求得 $I = \pi\left\{\Phi\left(0.5\sqrt{2}\right)-\Phi\left(-0.5\sqrt{2}\right)\right\}^2=0.8511$，其中 $\Phi(\cdot)$ 为标准正态分布函数。下面考虑采用样本均值法对该积分进行估计，样本由三种方法生成：蒙特卡洛法、索博尔序列以及均匀设计。我们将样本量 $n$ 以 10 为步长，从 10 变化至 100；对每个 $n$ 重复生成 30 组样本。因此，对每个 $n$，三种方法各自可以得到 30 个不同的积分估计值。图 5.3 右侧子图绘制了各方法结果的中位数，以及 5% 和 95% 分位数（阴影区域）；图左侧子图给出对应的环绕偏差 $\mathcal{W}(D)$。可以看到，蒙特卡洛（MC）方法的环绕偏差最大，均匀设计的环绕偏差最小。虽然蒙特卡洛样本的平均结果接近积分真实值，但结果波动很大；均匀设计在真实值附近的波动最小。这就是更优试验设计（更小偏差值）带来的优势，能够更好地应对最坏情形。
+
+> **图5.3**：三种采样方法（蒙特卡洛、索博尔序列、均匀设计）对应的环绕偏差（左）与二维积分计算结果（右）
+
+![Alt Text](figures/5.3.png){width=67%}
+
+## 5.2 非均匀分布
+
+在本节中，我们将研究从非均匀分布中进行最优采样的问题。本节所得结果在数据科学领域也有着重要应用，我们将在本书的第四部分后续展开探讨。
+
+### 5.2.1 变换方法
+
+假设我们的目标是获取分布 $f(\boldsymbol{x})$（$\boldsymbol{x}\in\mathbb{R}^p$）的代表性样本。一旦得到样本 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$，就可以利用该样本，通过样本均值
+
+$$
+\widehat{I}=\frac{1}{n}\sum_{i=1}^nh(\boldsymbol{x}_i)
+$$
+
+来近似积分
+
+$$
+I=\int h(\boldsymbol{x})f(\boldsymbol{x})\mathrm{d}\boldsymbol{x}
+$$
+
+我们的目标是找到最优样本集 $D$，使得对任意被积函数 $h(\cdot)$，积分误差 $|\widehat{I}-I|$都尽可能小。
+
+既然我们已经知道如何求解均匀分布情形下的上述问题，那么对于一般分布的情形，是否可以设法利用该结果呢？为解答这一问题，首先考虑一维问题的情况。概率论中的如下结论会很有用。
+
+> **引理 5.1**：若 $U\sim\mathcal{U}(0,1)$，则 $X=F^{-1}(U)$ 的分布函数为 $F(\cdot)$。
+
+该结果易于证明，因为
+
+$$
+P\{X\le x\}=P\{F^{-1}(U)\le x\}=P\{U\le F(x)\}=F(x)
+$$
+
+因此，若有独立同分布的随机样本 $u_i\sim U(0,1)$，其中 $i=1,\dots,n$，则 $\{F^{-1}(u_i)\}_{i=1}^n$ 是服从分布 $F$ 的随机样本。如方与王（1993）所述，若 $\{u_i\}_{i=1}^n$ 在均匀分布下使星型偏差达到最小，则 $\{F^{-1}(u_i)\}_{i=1}^n$ 可使星型偏差 $\sup|F(x)-F_n(x)|$ 最小。据此我们可以采用下式得到 $I$ 的估计值：
+
+$$
+\widehat I=\frac1n\sum_{i=1}^nh(F^{-1}(u_i))
+$$
+
+其中 $\{u_i\}_{i=1}^n$ 为蒙特卡罗样本、拟蒙特卡罗样本或是均匀设计样本。若对积分做变量替换，令 $F(x)=u$，该结论便显而易见：
+
+$$
+I=\int h(x)f(x)\,\mathrm{d}x=\int_0^1h(F^{-1}(u))\,\mathrm{d}u
+$$
+
+遗憾的是，一般情况下，除部分特殊情形外，上述结果并不能用于多维积分。该变换方法能够适用的一类重要特殊情形是随机变量相互独立：
+
+$$
+F(\boldsymbol{x})=\prod_{i=1}^{p}F_i(x_i)
+$$
+
+其中 $F_i(x_i)$ 为第 $i$ 个变量的分布函数。此时我们可以对每个变量执行逆概率变换，将积分写为：
+
+$$
+\begin{align*}
+I&=\int h(\boldsymbol{x})f(\boldsymbol{x})\,\mathrm{d}\boldsymbol{x}\\
+&=\int h(\boldsymbol{x})\prod_{i=1}^{p}f_i(x_i)\,dx_1\cdots dx_p\\
+&=\int_{[0,1]^p} h\big(F_1^{-1}(u_1),\dots,F_p^{-1}(u_p)\big)du_1\cdots du_p.
+\end{align*}
+$$
+
+图 5.4 左子图展示了利用均匀设计的逆概率变换生成的 50 个独立二元正态分布样本点。该图右子图给出 50 个样本点，对应两个变量分别服从形状参数为 2、率参数为 1 的独立伽马分布。两组样本点均能够较好表征对应分布。李等人（2020）阐述了逆概率变换可以生成具备良好代表性分布样本集的相关条件。
+
+> **图 5.4**：通过均匀设计的逆概率变换得到的二元正态分布（左）与伽马分布（右）的 50 个代表点。图中同时展示了两种分布的图像与等高线
+
+![Alt Text](figures/5.4.png){width=67%}
+
+当变量存在相关性时，有时可以采用如下罗森布拉特变换（罗森布拉特，1952）：
+
+$$
+\begin{align*}
+u_1&=F_1(x_1)\\
+u_2&=F_2(x_2|x_1)\\
+&\vdots\\
+u_p&=F_p(x_p|x_1,\dots,x_{p-1})
+\end{align*}
+$$
+
+式中 $F_i(x_i|x_1,\dots,x_{i-1})$ 为给定 $x_1,\dots,x_{i-1}$ 条件下 $x_i$ 的条件分布函数，且 $u_i$ 独立同分布服从 $\mathcal{U}(0,1)$。为证明该变换的有效性，首先给出变换的雅可比行列式：
+
+$$
+|J|=\left|\frac{\partial(u_1,\dots,u_p)}{\partial(x_1,\dots,x_p)}\right|
+=f_1(x_1)f_2(x_2|x_1)\cdots f_p(x_p|x_1,\dots,x_{p-1})
+=f(x_1,x_2,\dots,x_p)
+$$
+
+该结果来源于雅可比矩阵为上三角矩阵，其行列式等于对角线元素的乘积。由关系式 $f(x_1,\dots,x_p)=f_u(u_1,\dots,u_p)|J|$，可得 $u_1,\dots,u_p$ 的概率密度必为 1。
+
+举一个示例，考虑从如下二元正态分布生成样本点：
+
+$$
+\begin{bmatrix}x_1\\x_2\end{bmatrix}
+\sim \mathcal{N}_2\left(\begin{bmatrix}0\\0\end{bmatrix},
+\begin{bmatrix}1&\rho\\\rho&1\end{bmatrix}\right)
+\tag{5.8}
+$$
+
+依据引理 2.2 可得：
+
+$$
+\begin{align*}
+x_1&\sim N(0,1)\\
+x_2|x_1&\sim N(\rho x_1,1-\rho^2)
+\end{align*}
+$$
+
+因此可以按如下方式生成样本点：
+
+$$
+\begin{align*}
+x_{1i}&=\Phi^{-1}(u_{1i})\\
+x_{2i}&=\rho x_{1i}+\sqrt{1-\rho^2}\Phi^{-1}(u_{2i})
+\end{align*}
+$$
+
+其中 $i=1,\dots,n$，$\{(u_{1i},u_{2i})\}_{i=1}^n$ 为均匀设计样本，$\Phi(\cdot)$ 代表标准正态分布函数。图 5.5 展示了取 $\rho=0.5$ 时按上述方式生成的 50 个样本点。可以看到，这些样本点能够很好地还原图示分布的特征。
+
+> **图 5.5**：通过对均匀设计进行罗森布拉特变换得到的相关二元正态分布代表点，叠加绘制于该分布的图像之上
+
+![Alt Text](figures/5.5.png){width=33%}
+
+方与王（1993）阐述了如何利用罗森布拉特变换在球体或单纯形内生成拟蒙特卡罗（QMC）样本或均匀设计。但该变换无法适用于约束条件更为复杂的区域，例如 4.5.1 节所讨论的各类区域。此外，上述变换方法在其他统计问题中的适用范围有限。举例来说，在贝叶斯统计中，通常仅能得到未归一化的后验密度，即我们一般无法获知概率密度及其分布函数；变量之间还很可能存在相关性，且条件分布未知。因此，总体而言，我们无法使用逆概率变换或罗森布拉特变换开展抽样。更为棘手的是常规数据分析问题：我们仅拥有样本数据，却对生成该数据的分布一无所知。由此，我们需要一种适用性更广的非均匀分布抽样方法，相关内容将在下一节展开讨论。
+
+### 5.2.2 支撑点
+
+要获取一般类型分布的代表点，我们可以参照 5.1 节的做法，定义一个拟合优度统计量，并逆向推导该方法以求得最优样本。但如前文所述，柯尔莫哥洛夫‑斯米尔诺夫、克拉默‑冯·米泽斯、安德森‑达林等常用拟合优度测度在高维情形下计算困难，难以开展优化。为此，马克与约瑟夫（2018c）提出采用基于能量距离度量的拟合优度测度，该测度便于计算与优化。
+
+塞凯伊与里佐（2013）提出了如下能量距离，用于度量两个分布 $F$ 和	$G$ 之间的“距离”：
+
+> **定义 5.1**：设 $F$ 与 $G$ 为非空集合 $\mathcal{X}\subseteq\mathbb{R}^p$ 上的两个分布函数，且均具有有限均值；令 $\boldsymbol{X},\boldsymbol{X}'\stackrel{\text{iid}}{\sim}G$，$\boldsymbol{Y},\boldsymbol{Y}'\stackrel{\text{iid}}{\sim}F$。则 $F$ 与 $G$ 之间的能量距离定义为：$$\mathcal{E}(F,G)\equiv2E\|\boldsymbol{X}-\boldsymbol{Y}\|-E\|\boldsymbol{X}-\boldsymbol{X}'\|-E\|\boldsymbol{Y}-\boldsymbol{Y}'\|\tag{5.9}$$
+
+当 $G=F_n$，即 $\{\boldsymbol{x}_i\}_{i=1}^n\subseteq\mathcal{X}$ 的经验分布函数时，该能量距离变为：
+
+$$
+\mathcal{E}(F,F_n)=\frac{2}{n}\sum_{i=1}^nE\|\boldsymbol{x}_i-\boldsymbol{Y}\|_2-\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n\|\boldsymbol{x}_i-\boldsymbol{x}_j\|_2-E\|\boldsymbol{Y}-\boldsymbol{Y}'\|_2
+\tag{5.10}
+$$
+
+该式可作为拟合优度统计量，用于检验样本 $\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$ 是否服从分布 $F$。马克与约瑟夫（2018c）并未将其用作拟合优度统计量，而是提出寻找能够尽可能拟合给定分布 $F$ 的最优样本。他们将这类样本称作该分布的支撑点，其正式定义如下。
+
+> **定义 5.2**：设 $\mathcal{X}\subseteq\mathbb{R}^p$ 上给定分布 $F$ 具有有限均值，则 $F$ 的支撑点定义为： $$\argmin_{D}\mathrm{E}(F,F_n)=\argmin_{D}\left\{\frac{2}{n}\sum_{i=1}^{n}\mathrm{E}\|\boldsymbol{x}_i-\boldsymbol{X}\|-\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|\right\}\tag{5.11}$$ 其中 $\boldsymbol{X}\sim F$，$F_n$ 为点集 $D=\{\boldsymbol{x}_i\}_{i=1}^{n}\subseteq\mathcal{X}$ 的经验分布函数。
+
+此外，马克与约瑟夫（2018c）得出了如下重要结论。
+
+> **定理 5.1**：设 $\boldsymbol{X}\sim F$，$\boldsymbol{X}_n\sim F_n$，其中 $F_n$ 为式 (5.11) 中支撑点的经验分布函数。则 $\boldsymbol{X}_n\stackrel{d}{\to}\boldsymbol{X}$，记号 $\stackrel{d}{\to}$ 依分布收敛。
+
+该定理证明了使用支撑点作为分布 $F$ 的代表性样本是合理的。尽管依分布收敛仅在 $n\to\infty$ 时成立，但依据能量距离测度，对于任意给定的 $n$，支撑点都能提供最优的代表性样本。
+
+从设计角度来看，5.11 中的公式可作如下解释。通过最小化第一项 $\sum_{i=1}^{n}E\|\boldsymbol{x}_i-\boldsymbol{Y}\|$，可以最小化每个样本点到 $F$ 的期望欧氏距离，以此保证所有设计点都贴近目标分布。同理，通过最大化第二项 $\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|$，能够最大化各设计点两两之间的距离之和，从而让样本点在试验区域 $X$ 内相互分散开来。对于均匀分布 $F=U[0,1]^p$，这两个优化目标与我们在第 4 章介绍的极小极大设计和极大极小设计的目标十分相近。
+
+马克与约瑟夫（2018c）还针对绝对积分误差证明了如下科克斯马‑赫拉瓦卡型不等式：
+
+$$
+|\widehat{I}-I|\le V(h)\sqrt{\mathcal{E}(F,F_n)}
+$$
+
+该式表明可通过使用支撑点将误差的上界最小化。此外，在一定正则性条件下，他们证明对任意 $\epsilon>0$，有
+
+$$
+|\widehat{I}-I|=O\left(\frac{1}{\sqrt{n}(\log n)^\epsilon}\right)
+$$
+
+这说明支撑点的收敛速率优于蒙特卡洛样本。尽管收敛速率上的理论提升幅度不大，但马克和约瑟夫（2018c）发现实际应用中其收敛速率几乎可以达到 $\mathcal{O}(1/n)$。
+
+为对接高斯过程框架（马克、约瑟夫，2025），假设 $h(\boldsymbol{x})$ 服从布朗运动，满足：
+
+$$
+\mathrm{E}\{h(\boldsymbol{u})-h(\boldsymbol{v})\}=0,\quad \mathrm{var}\{h(\boldsymbol{u})-h(\boldsymbol{v})\}=\tau^2\|\boldsymbol{u}-\boldsymbol{v}\|
+\tag{5.12}
+$$
+
+布朗运动是非平稳高斯过程的一种特例，也被称为本征克里金（马瑟龙，1963）。张与阿普利（2014）将其推广应用于计算机实验领域。此时
+
+$$
+\begin{align*}
+\mathrm{E}\{\widehat{I}-I\}&=\mathrm{E}\left\{\frac{1}{n}\sum_{i=1}^n h(\boldsymbol{x}_i)-\int h(\boldsymbol{x})dF(\boldsymbol{x})\right\}\\
+&=\frac{1}{n}\sum_{i=1}^n\int \mathrm{E}\{h(\boldsymbol{x}_i)-h(\boldsymbol{x})\}dF(\boldsymbol{x})=0
+\end{align*}
+$$
+
+因此，沿用 5.1.2 节中的相同推导步骤，可得方差：
+
+$$
+\begin{align*}
+\mathrm{var}\{\widehat{I}-I\}&=\mathrm{var}\left\{\frac{1}{n}\sum_{i=1}^n h(\boldsymbol{x}_i)-\int h(\boldsymbol{x})dF(\boldsymbol{x})\right\}\\
+&=\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n\iint \mathrm{E}\left\{\left[h(\boldsymbol{u})-h(\boldsymbol{x}_i)\right]\left[h(\boldsymbol{v})-h(\boldsymbol{x}_j)\right]\right\}dF(\boldsymbol{u})dF(\boldsymbol{v})\\
+&=\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n\iint \mathrm{E}\left\{\left[h(\boldsymbol{u})-h(\boldsymbol{x}_i)\right]\left[h(\boldsymbol{v})-h(\boldsymbol{x}_i)\right]\right\}dF(\boldsymbol{u})dF(\boldsymbol{v})\\
+&\quad -\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n\iint \mathrm{E}\left\{\left[h(\boldsymbol{u})-h(\boldsymbol{x}_i)\right]\left[h(\boldsymbol{x}_j)-h(\boldsymbol{x}_i)\right]\right\}dF(\boldsymbol{u})dF(\boldsymbol{v})
+\end{align*}
+$$
+
+注意：对任意 $\boldsymbol{x}_i$，有
+
+$$
+\mathrm{cov}\left\{h(\boldsymbol{u})-h(\boldsymbol{x}_i),h(\boldsymbol{v})-h(\boldsymbol{x}_i)\right\}=\frac{\tau^2}{2}\left\{\|\boldsymbol{u}-\boldsymbol{x}_i\|+\|\boldsymbol{v}-\boldsymbol{x}_i\|-\|\boldsymbol{u}-\boldsymbol{v}\|\right\}
+$$
+
+于是
+
+$$
+\begin{align*}
+\mathrm{var}\{\widehat{I}-I\}&=\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n\iint\left[\frac{\tau^2}{2}\left\{\|\boldsymbol{u}-\boldsymbol{x}_i\|+\|\boldsymbol{v}-\boldsymbol{x}_i\|-\|\boldsymbol{u}-\boldsymbol{v}\|\right\}\right]dF(\boldsymbol{u})dF(\boldsymbol{v})\\
+&\quad -\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n\iint\left[\frac{\tau^2}{2}\left\{\|\boldsymbol{u}-\boldsymbol{x}_i\|+\|\boldsymbol{x}_j-\boldsymbol{x}_i\|-\|\boldsymbol{u}-\boldsymbol{x}_j\|\right\}\right]dF(\boldsymbol{u})dF(\boldsymbol{v})\\
+&=\frac{\tau^2}{n}\sum_{i=1}^n\int\|\boldsymbol{u}-\boldsymbol{x}_i\|dF(\boldsymbol{u})-\frac{\tau^2}{2n^2}\sum_{i=1}^n\sum_{j=1}^n\|\boldsymbol{x}_i-\boldsymbol{x}_j\|-\frac{\tau^2}{2}\iint\|\boldsymbol{u}-\boldsymbol{v}\|dF(\boldsymbol{u})dF(\boldsymbol{v})\\
+&=\frac{\tau^2}{2}\mathcal{E}(F,F_n)
+\end{align*}
+$$
+
+综上，当被积函数服从布朗运动时，支撑点能够最小化积分误差的方差（马克、约瑟夫，2025）。
+
+使用能量距离的一大优势在于可以高效完成支撑点的优化。我们首先通过蒙特卡洛均值对式 (5.11) 中的期望做近似。假设我们拥有取自分布 $F$ 的大容量样本：$\{\boldsymbol{X}_1,\dots,\boldsymbol{X}_N\}$。此时待求解的最小化问题为：
+
+$$
+\frac{2}{nN}\sum_{i=1}^{n}\sum_{j=1}^{N}\|\boldsymbol{x}_i-\boldsymbol{X}_j\|-\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|
+\tag{5.13}
+$$
+
+此处的关键结论是：该目标函数是关于 $(\boldsymbol{x}_1,\cdots,\boldsymbol{x}_n)$ 的两个凸函数之差。该结构十分有价值，因为可以采用凸差规划（d.c. 规划）方法对该表达式开展优化。由于凸差规划的全局优化算法运算速度较慢，马克与约瑟夫（2018c）采用了名为凸‑凹过程的局部优化算法（尤尔和兰加拉詹，2003），该算法是统计领域广泛使用的极大化‑极小化技术的一类特例（兰格，2016）。若 $(\boldsymbol{x}_1^0,\dots,\boldsymbol{x}_n^0)$ 为当前迭代点，则可通过下式得到下一迭代点：
+
+$$
+\boldsymbol{x}_i=
+\left(\sum_{j=1}^{N}\|\boldsymbol{x}_i^0-\boldsymbol{X}_j\|^{-1}\right)^{-1}
+\left(\frac{N}{n}\sum_{j=1,j\ne i}^{n}\frac{\boldsymbol{x}_i^0-\boldsymbol{x}_j^0}{\|\boldsymbol{x}_i^0-\boldsymbol{x}_j^0\|}\sum_{j=1}^{N}\frac{\boldsymbol{X}_j}{\|\boldsymbol{x}_i^0-\boldsymbol{X}_j\|}\right)
+\tag{5.14}
+$$
+
+其中 $i=1,\cdots,n$。迭代持续执行直至算法收敛。该算法的计算复杂度为 $\mathcal O(Nnp)$，借助极大化‑极小化算法的随机版本，可将复杂度降至 $\mathcal O(n^2p)$。该算法已在 R 语言软件包 support 中实现（马克，2018）。第 10.3 节将介绍一种速度更快、复杂度为 $\mathcal O(pN\log N)$ 的算法。
+
+由二元正态分布与伽马分布生成的 50 个支持点如图 5.6 所示。显然，相比图 5.4 中通过均匀设计逆概率变换得到的样本，这些支持点的效果要好得多。变换操作会破坏变换后空间的空间填充特性，而支持点是在原始空间中完成优化，因此能够更好地表征目标分布。
+
+> **图 5.6**：双变量正态分布（左）与伽马分布（右）的 50 个支撑点。图中同时展示了两类分布的图像与等高线
+
+![Alt Text](figures/5.6.png){width=67%}
+
+考虑上一节讨论的相关二元正态分布。我们生成包含 10000 个点的蒙特卡洛样本，再借助支撑集包得到 50 个支撑点，结果如图 5.7 左图所示。显然，该点集的效果远优于图 5.5 中经罗森布拉特变换得到的点集。接下来考察式 (4.49) 中更为复杂的香蕉形后验密度示例，该例子中我们仅知晓密度的比例常数形式。本案例使用 R 包 adaptMCMC（沙伊德格，2024）实现的自适应梅特罗波利斯算法获取 10000 个样本，再基于这些样本求解 50 个支撑点。支撑点绘制于图 5.7 的右图，同样能够很好地表征底层分布。
+
+> **图 5.7**：式 (5.8) 中相关二元正态分布的 50 个支撑点（左图）以及式 (4.49) 中香蕉形密度（右图）。同时展示了各分布的图像与等高线
+
+![Alt Text](figures/5.7.png){width=67%}
+
+如果 $h(\boldsymbol{x})$ 中仅有少量变量是活跃的，那么正如 4.4 节与 4.5 节所讨论的，支撑点同样会出现投影问题，这会造成活跃维度的空间填充性质变差。马克与约瑟夫（2018b）借鉴最大投影设计的相关思路，拓展了支撑点框架。核心思想是采用如下有理二次核的乘积形式：
+
+$$
+K(\boldsymbol{u},\boldsymbol{v})=\prod_{l=1}^{p}\frac{1}{(u_l-v_l)^2+\lambda}
+$$
+
+其中 $\lambda>0$。参照式 (5.5) 中的核偏差进行推导，可得到如下定义。
+
+> **定义 5.3**：设 $\mathcal{X}\subseteq\mathbb{R}^p$ 上给定分布 $F$ 具有有限均值，则 $F$ 的投影支撑点 $D=\{\boldsymbol{x}_i\}_{i=1}^n\subseteq\mathcal{X}$ 定义为：$$\argmin_{D}\left\{\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\prod_{l=1}^{p}\frac{1}{(x_{il}-x_{jl})^2+\lambda}-\frac{2}{n}\sum_{i=1}^{n}\mathrm{E}\left[\prod_{l=1}^{p}\frac{1}{(x_{il}-X_l)^2+\lambda}\right]\right\}\tag{5.15}$$ 其中 $\boldsymbol{X}\sim F$ 且 $\lambda>0$。
+
+考察 $F=\mathcal{U}[0,1]^p$ 的情形十分有趣。此时式 (5.15) 中的目标函数变为（马克与约瑟夫，2025）
+
+$$
+\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\frac{1}{\prod_{l=1}^{p}\left[(x_{il}-x_{jl})^2+\lambda\right]}-\frac{2}{n\lambda^{p/2}}\sum_{i=1}^{n}\sum_{l=1}^{p}\left[\tan^{-1}\left(\frac{x_{il}}{\sqrt{\lambda}}\right)+\tan^{-1}\left(\frac{1-x_{il}}{\sqrt{\lambda}}\right)\right]
+\tag{5.16}
+$$
+
+当 $\lambda$ 取值较小时，第一项与最大投影准则的目标函数一致；而第二项会将靠近边界的样本点拉向试验区域内部，从而让最大投影设计具备均匀性。
+
+核群算法（陈等人，2012）是与支持点密切相关的一类方法。该算法为逐点顺序算法，形式如下：
+
+$$
+\boldsymbol{x}_{k+1}=\argmax_{\boldsymbol{x}}\left\{\mathrm{E}[K(\boldsymbol{x},\boldsymbol{X})]-\frac{1}{n+1}\sum_{i=1}^{n}K(\boldsymbol{x},\boldsymbol{x}_i)\right\},\quad k=1,\dots,n-1
+$$
+
+其中 $K(\boldsymbol{u},\boldsymbol{v})$ 为对称正定核函数，例如高斯核。相较于核群算法，支持点具备多项优势。第一，支持点通过凸差规划方法求解，相比逐点贪心算法，能够得到代表性质量高得多的样本集。第二，支持点采用基于距离的核函数，与极大极小、极小极大试验设计思路相近，具备良好的几何解释。此外，支持点所使用的欧几里得核不像高斯核那样包含长度尺度参数，因此得到的最优点集不会受这类参数选取的影响，鲁棒性更强。另一个概念——最大均值差异（MMD），基于再生核希尔伯特空间定义，现已成为机器学习领域的常用工具（格雷顿等人，2012）。最大均值差异与式 (5.5) 中的核差异密切相关，相关最新综述可参考奥茨（2021）。最大均值差异同样使用带有未知长度尺度参数的对称正定核函数，因此会受到参数设置不当的影响。这正是支持点的一大优势，支持点可看作鲁棒性更强的分布代表点集。
+
+生成代表点的另一种方法是采用 4.1 节介绍的基于聚类的设计。这类点被称为均方误差代表点（方与王，1993）或主点（弗卢里，1990）。与支撑点不同，它们的经验分布无需收敛到目标分布（见式 (5.19)），因此需要为这些点赋予一定权重，以此修正分布产生的偏差。方等人（2025）新近出版的著作对该方法进行了阐述。
+
+### 5.2.3 不确定性传播
+
+考虑第一章中提及的加工问题。在该问题中，存在若干服从已知分布的输入变量。研究目标是将该输入不确定性通过高成本加工模拟器进行传递，得到输出量（刀具受力）的分布。
+
+解决该不确定性传播问题有多种方法。第一种，我们可以生成大量服从分布 $F$ 的独立同分布蒙特卡洛样本 $\boldsymbol{x}_i$（$i=1,\dots,n$），将仿真器运行 $n$ 次，得到输出 $\{y_1,\dots,y_n\}$，其中 $y_i=h(\boldsymbol{x}_i)$。基于这组输出，我们可以得到 $h(\boldsymbol{x})$ 的经验分布或者其核密度估计。该方法计算成本较高，因此仅适用于仿真器运行开销低的场景。我们可以改用变换后的低差异序列替代蒙特卡洛样本，以此降低计算开销。还可以采用支撑点进一步缩减开销，相较于低差异序列，支撑点能够用更少的样本得到同等精度的输出分布。但倘若仿真器运行成本过高，则应当先借助高斯过程模型这类替代模型对其做近似处理。由于输入分布很可能是非均匀分布，我们可以选用 4.6 节介绍的投影支撑点或者最小能量设计作为试验设计。完成替代模型建模后，便可使用大量蒙特卡洛样本求解输出分布。
+
+例如，考虑用于模拟钻孔中水流量（$y$）的函数（莫里斯等人，1993）：
+
+$$
+y=\frac{2\pi x_3(x_4-x_6)}{\log\left(\frac{x_2}{x_1}\right)\left[1+\frac{2x_7x_3}{\ln(x_2/x_1)x_2}+\frac{x_3}{x_5x_8}\right]}
+$$
+
+其中 8 个输入变量的不确定分布如表 5.1 所示。为便于说明，假设该钻孔模型计算成本较高，但尚未高到必须使用代理模型的程度。
+
+> **表 5.1**：钻孔模型的输入变量及其对应的不确定性分布。此处 $\mathcal{L}\mathcal{N}$ 代表对数正态分布
+
+|输入变量|符号|不确定性分布|
+|:--:|:--:|:--:|
+|钻孔半径|$x_1$|$\mathcal{N}(0.1,0.01618^2)$|
+|影响半径|$x_2$|$\mathcal{LN}(7.71,1.0056^2)$|
+|上部透射率|$x_3$|$\mathcal{U}[63070,115600]$|
+|上部水头|$x_4$|$\mathcal{U}[990,1110]$|
+|下部透射率|$x_5$|$\mathcal{U}[63.1,116]$|
+|下部水头|$x_6$|$\mathcal{U}[700,820]$|
+|钻孔长度|$x_7$|$\mathcal{U}[1120,1680]$|
+|钻孔导水系数|$x_8$|$\mathcal{U}[9855,12045]$|
+
+由于能量距离采用欧氏距离，因此不应直接在表 5.1 中各变量所定义的空间上生成支撑点。我们需要对变量做缩放处理，使欧氏距离中的平方差之和具备合理意义。注意：若 $X,X'$ 独立同分布，服从分布 $F$，则
+
+$$
+\mathrm{E}\{(X-X')^2\}=2\mathrm{var}\{X\}
+$$
+
+因此应当对变量进行缩放，使各变量方差相等，这可通过常规标准化方法实现。设 $\mu_i$ 和 $\sigma_i$ 分别为 $x_i$ 的均值与标准差，令
+
+$$
+z_i=\frac{x_i-\mu_i}{\sigma_i},\quad i=1,\dots,p
+$$
+
+可在该标准化空间内生成支撑点。得到支撑点后，再由 $x_i=\mu_i+\sigma_i z_i$ 换算得到原始空间中的支撑点。
+
+对于钻孔模型，我们首先生成 100000 个蒙特卡罗（MC）样本。由于钻孔模型是易于求值的函数，我们可以对这 100000 个样本进行求值，并通过核密度估计得到输出分布，其结果如图 5.8 中黑色虚线所示。接下来考虑使用支撑点开展不确定性传播计算。首先，对 100000 个蒙特卡罗样本做标准化处理，借助 R 语言的 support 程序包（马克，2018）得到 $n=100$ 个支撑点 $\{z_j\}_{j=1}^{100}$。再通过变换公式 $x_{ji}=\mu_i+\sigma_iz_{ji}$ 将这些支撑点还原至原始量纲。在这 100 个点上对钻孔函数求值，将 $y_i$ 的核密度估计结果以绿色实线绘制在同一幅图中。可以看到，该结果能够很好地逼近由 100000 个蒙特卡罗样本得到的“真实”密度。作为对比，图中还以红色虚线给出 100 个蒙特卡罗样本对应的密度。不难看出，基于支撑点得到的密度估计更加贴近真实密度。
+
+> **图 5.8**：采用 100 个蒙特卡洛样本（红色虚线）与 100 个支撑点（绿色实线）得到的钻孔函数输出分布。真实输出分布以黑色点线展示
+
+![Alt Text](figures/5.8.png){width=33%}
+
+### 5.2.4 种群拟蒙特卡洛
+
+考虑贝叶斯计算问题，我们希望从后验分布中获取样本 $D=\{\boldsymbol{x}_i\}_{i=1}^{n}$：
+
+$$
+f(\boldsymbol{x})=\frac{h(\boldsymbol{x})}{Z}
+$$
+
+其中 $h(\boldsymbol{x})$ 为未归一化的后验密度（似然函数与先验的乘积），$Z=\int h(\boldsymbol{x})\mathrm{d}\boldsymbol{x}$ 为归一化常数。由于计算 $Z$ 需要求解高维积分，通常采用马尔可夫链蒙特卡洛（MCMC）方法完成采样，该方法无需获知 $Z$。马尔可夫链蒙特卡洛生成的样本存在相关性，因此需要大量样本才能收敛到目标分布。假设我们已得到该大规模样本 $\{\boldsymbol{X}_i\}_{i=1}^{N}$。为降低存储开销与后续计算量，通常会采用抽稀策略减少样本数量。该操作一般是从马尔可夫链蒙特卡洛链中每隔 $k$ 个样本选取一个（例如取 $k=10$）。借助支撑点方法（马克和约瑟夫，2018b）显然可以得到质量高得多的抽稀样本。但该方法需要取自未归一化后验分布的 $N$ 个样本，当 $h(\boldsymbol{x})$ 的计算成本很高时，该过程的开销有时会很大。
+
+假设对 $h(\boldsymbol{x})$ 的评估成本很高，因此我们无法获得大规模的马尔可夫链蒙特卡罗（MCMC）样本。在 4.6.1 节中，我们采用最小能量设计（MED）来解决该问题。然而，与支撑点不同，最小能量设计无法保证得到规模为 $n$ 的最优样本。因此，相较于最小能量设计，使用支撑点可以得到对目标密度效果好得多的近似结果。为求解支撑点，我们需要求解如下优化问题：
+
+$$
+\min_{D}\left\{\frac{2}{n}\sum_{i=1}^{n}\int \|\boldsymbol{x}_i-\boldsymbol{X}\|\frac{h(\boldsymbol{X})}{Z}\mathrm{d}\boldsymbol{X}-\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|\right\}
+$$
+
+遗憾的是，归一化常数 $Z$ 无法像在最小能量设计中那样从目标函数中分离出来，因此该优化问题难以直接求解。
+
+假设我们能够从建议密度 $q(\boldsymbol{x})$ 中获取大样本。那么，上述优化问题可以写为：
+
+$$
+\min_{D}\left\{\frac{2}{n}\sum_{i=1}^{n}\|\boldsymbol{x}_i-\boldsymbol{X}\|\frac{h(\boldsymbol{X})}{Zq(\boldsymbol{X})}q(\boldsymbol{X})\mathrm{d}\boldsymbol{X}-\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|\right\}
+$$
+
+其中
+
+$$
+Z=\int h(\boldsymbol{X})\mathrm{d}\boldsymbol{X}=\int\frac{h(\boldsymbol{X})}{q(\boldsymbol{X})}q(\boldsymbol{X})\mathrm{d}\boldsymbol{X}.
+$$
+
+设 $\boldsymbol{X}_1,\dots,\boldsymbol{X}_N \sim q(\boldsymbol{X})$。于是我们可以求解如下问题：
+
+$$
+\min_{D}\left\{\frac{2}{n}\sum_{i=1}^{n}\sum_{j=1}^{N}\|\boldsymbol{x}_i-\boldsymbol{X}_j\|w_j-\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{x}_i-\boldsymbol{x}_j\|\right\}
+\tag{5.17}
+$$
+
+式中 $w_j$ 为重要性权重，定义为
+
+$$
+w_j=\frac{h(\boldsymbol{X}_j)/q(\boldsymbol{X}_j)}{\sum_{j=1}^{N}h(\boldsymbol{X}_j)/q(\boldsymbol{X}_j)}
+$$
+
+黄等人（2022）将式 (5.17) 得到的最优样本称为重要性支撑点（ISP）。
+
+尽管式 (5.17) 可以高效求解，但在高维条件下寻找合适的重要性采样提议分布 $q(\boldsymbol{X})$ 并非易事。为此，黄等人（2022）提出将该思路融入种群蒙特卡洛（PMC）框架（卡佩等人，2004）。种群蒙特卡洛迭代执行三个步骤。算法以 $K$ 个样本作为初始值，我们可以在每个样本处构建一个正态分布，由此得到 $K$ 个提议分布：$q_1(\boldsymbol{X}),\dots,q_K(\boldsymbol{X})$。第一步为采样：从每一个提议分布中抽取 $J$ 个样本，总共得到 $KJ$ 个样本。第二步为加权：为全部样本计算重要性权重。最后一步为自适应更新：基于重要性权重，对 $KJ$ 个样本进行重采样，得到 $K$ 个新样本。该过程循环执行 $T$ 步，完整流程见算法 1。利用这些带权重的样本，我们可以通过下式对积分 $I=\int h(x)f(x)\mathrm{d}x$ 进行估计：
+
+$$
+\widehat{I}^{PMC}=\frac{1}{TKJ}\sum_{t=1}^{T}\sum_{k=1}^{K}\sum_{j=1}^{J}w_{k,j}^{(t)}h(x_{k,j}^{(t)})/\widehat{Z}
+$$
+
+其中 $\widehat{Z}=\sum_{t=1}^{T}\sum_{k=1}^{K}\sum_{j=1}^{J}w_{k,j}^{(t)}/TKJ$。
+
+> **算法 1**：种群蒙特卡洛
+> - **目标分布**：$f=h/Z$，其中 $Z$ 为未知归一化常数。
+> - **初始化**：为初始建议分布设置参数 $\{q^{(1)}_k=\mathcal{N}(\cdot|\mu^{(1)}_k,\Sigma)\}_{k=1}^K$。对 $t=1,\dots,T$ 执行：
+>   - **采样**：从每个建议分布 $k=1,\dots,K$ 中抽取 $J$ 个样本 $$x^{(t)}_{k,j}\sim q^{(t)}_k,\quad j=1,\dots,J,\quad k=1,\dots,K$$ 由此共生成 $KJ$ 个模拟样本。
+>   - **加权**：计算确定性混合权重 $$w^{(t)}_{k,j}=\frac{h(x^{(t)}_{k,j})}{K^{-1}\sum_{i=1}^Kq^{(t)}_i(x^{(t)}_{k,j}|\mu^{(t)}_i,\Sigma)},\quad j=1,\dots,J,\quad k=1,\dots,K$$ 并按如下方式归一化权重 $$\overline{w}^{(t)}_{k,j}=\frac{w^{(t)}_{k,j}}{\sum_{i=1}^K\sum_{l=1}^Jw^{(t)}_{i,l}}$$
+>   - **自适应更新**：执行重采样更新建议分布中心 $$\mu^{(t+1)}_k\stackrel{\text{iid}}{\sim}\sum_{k=1}^K\sum_{j=1}^J\overline{w}^{(t)}_{k,j}\delta_{x^{(t)}_{k,j}},\quad k=1,\dots,K$$
+> - **返回**：$\{(x^{(t)}_{k,j},w^{(t)}_{k,j})\}_{t=1}^T{}_{k=1}^K{}_{j=1}^J$，其中 $w^{(t)}_{k,j}$ 为未归一化权重。
+
+黄等人（2022）的核心思路是在式 (5.17) 的自适应步骤中采用重要性支持点重采样。这 $K$ 个支持点能够更好地表征 $KJ$ 个样本，从而为新的提议分布提供更优质的中心点。他们将这套改进后的方法命名为种群拟蒙特卡洛（PQMC）。黄等人（2022）还针对采样与加权步骤提出了若干优化方案，本文在此不再赘述具体细节。
+
+举个例子，考虑如下混合正态分布：
+
+$$
+f(x)=\frac{1}{5}\sum_{i=1}^{5}N(\boldsymbol{x};\mu_i,\boldsymbol{\Sigma}_i)
+$$
+
+其中 $\mu_1=(0.250,0.250)'$，$\mu_2=(0.500,0.900)'$，$\mu_3=(0.825,0.700)'$，$\mu_4=(0.275,0.675)'$，$\mu_5=(0.850,0.150)'$，$\boldsymbol{\Sigma}_1=40^{-2}[2,0.6;0.6,1]$，$\boldsymbol{\Sigma}_2=40^{-2}[2,-0.4;-0.4,2]$，$\boldsymbol{\Sigma}_3=40^{-2}[2,0.8;0.8,2]$，$\boldsymbol{\Sigma}_4=40^{-2}[3,0;0,0.5]$，$\boldsymbol{\Sigma}_5=40^{-2}[2,-0.1;-0.1,2]$。令 $K=20$，$J=10$，$T=4$。该设置下总共需要进行 800 次密度求值。图 5.9 展示了种群蒙特卡洛（采用多项式重采样）与种群拟蒙特卡洛的样本以及最终重采样得到的中心点集合。可以看到，相较于种群蒙特卡洛，种群拟蒙特卡洛的样本与提议中心点很好地分布在高密度区域。因此，种群拟蒙特卡洛得到的加权样本质量远高于种群蒙特卡洛。
+
+> **图 5.9**：该混合正态示例中，来自种群蒙特卡洛（左图）与种群拟蒙特卡洛（右图）的 800 个样本（红色叉号）以及最终的候选中心集合（蓝色实心圆）
+
+![Alt Text](figures/5.9.png){width=67%}
+
+# 6 筛选设计
+
+稀疏性在绝大多数系统中都十分常见，也就是说，即便一个系统包含数百个因子，但其中只有少数因子会对输出结果产生重要影响。在前两章中，我们学习了一类试验设计，这类设计可以覆盖全部因子构成的空间，而不考虑各个因子效应的大小。但倘若我们能够事先知晓哪些是重要因子，就可以合理调配资源，仅针对重要因子所构成的空间开展试验。我们之前介绍过最大投影设计，该设计通过对所有可能情况取平均，保证在低维子空间上具备良好的投影性质。例如，图 4.11 展示了一个 5 因子、50 次试验的最大投影设计。该设计在所有二维子空间上都能给出尚可的投影效果，但也做出了一定妥协。倘若我们事先就知道只有 $x_4$ 和 $x_5$ 是重要因子，那么试验效果还可以大幅提升。本章将介绍能够快速识别重要因子的试验设计方法，即筛选设计。
+
+## 6.1 敏感性分析
+
+在开发筛选设计之前，我们首先需要了解如何量化因子的重要性。若函数为线性形式，即 $h(x) = \beta_0+\beta_1x_1+\dots+\beta_px_p$，在各 $x_i$ 的变异程度相同的前提下，可通过 $|\beta_i|$ 轻松量化各个因子的重要性。但当函数为非线性时，该工作就不再简单。下面将介绍两种量化因子重要性的方法：一种基于方差，另一种基于导数。
+
+### 6.1.1 基于方差的灵敏度测度
+
+索博尔（1990，1993）提出了基于方差的灵敏度指标，用于衡量因子的重要程度。为求解该指标，首先利用函数型方差分析对函数 $y=h(x)$（其中 $x\in[0,1]^p$）做分解：
+
+$$
+h(x)=h_0+\sum_{i=1}^{p}h_i(x_i)+\sum_{i<j}h_{ij}(x_i,x_j)+\dots+h_{12\dots p}(x_1,\dots,x_p)
+\tag{6.1}
+$$
+
+为保证分解的唯一性，需满足条件：
+
+$$
+\int h_I(\boldsymbol{x}_I)\mathrm{d}x_k=0,\quad\forall\,k\in I
+\tag{6.2}
+$$
+
+利用式 (6.2)，不难得到总体均值为
+
+$$
+h_0=\int h(\boldsymbol{x})\mathrm{d}\boldsymbol{x}
+$$
+
+第 $i$ 个主效应为
+
+$$
+h_i(x_i)=\int h(\boldsymbol{x})\mathrm{d}x_{\sim i}-h_0
+$$
+
+$x_i$ 与 $x_j$ 之间的二因子交互效应为
+
+$$
+h_{ij}(x_i,x_j)=\int h(\boldsymbol{x})\mathrm{d}\boldsymbol{x}_{\sim i,\sim j}-h_i(x_i)-h_j(x_j)-h_0
+$$
+
+依此类推，其中记号 $x_{\sim i}$ 表示除 $x_i$ 之外的全部变量。当 $I_1\neq I_2$ 时，有
+
+$$
+\int h_{I_1}(\boldsymbol{x}_{I_1})h_{I_2}(\boldsymbol{x}_{I_2})\mathrm{d}\boldsymbol{x}=0
+$$
+
+因此式 (6.1) 中的所有项两两正交。于是
+
+$$
+\int h^2(\boldsymbol{x})\mathrm{d}\boldsymbol{x}=h_0^2+\sum_{i=1}^{p}\int h_i^2(x_i)\mathrm{d}x_i+\dots+\int h_{12\dots p}^2(x_1,\dots,x_p)\mathrm{d}\boldsymbol{x}
+$$
+
+记
+
+$$
+V=\int h^2(\boldsymbol{x})\mathrm{d}\boldsymbol{x}-h_0^2,\quad V_I=\int h_I^2(\boldsymbol{x}_I)\mathrm{d}\boldsymbol{x}_I
+$$
+
+则
+
+$$
+V=\sum_{i=1}^{p}V_i+\sum_{i<j}V_{ij}+\dots+V_{12\dots p}
+$$
+
+该式将总方差分解为由主效应、二因子交互效应等贡献的方差之和，与传统方差分析（ANOVA）形式一致。因此 $S_I=V_I/V$ 代表 $x_I$ 所能解释的 $h(\cdot)$ 的变异占比。该指标类似于线性回归中用于评价整体拟合效果的 $R^2$，但此处通过一组指标量化单个效应或一组效应的重要程度，这类指标被称为索博尔灵敏度指数。特别地，
+
+$$
+S_i=\frac{V_i}{V},\quad i=1,\dots,p
+\tag{6.3}
+$$
+
+称为一阶索博尔灵敏度指数。
+
+$S_i$ 数值较大，代表 $x_i$ 对输出的影响较大。不过，即便 $S_i$ 数值很小，我们也不能忽略 $x_i$。这是因为尽管 $x_i$ 的主效应较小，但它与其他因素之间可能存在不可忽视的交互效应。因此，为量化 $x_i$ 的重要程度，应当把所有包含 $x_i$ 的方差项相加，得到总方差（本间和萨泰利，1996）：
+
+$$
+V_i^{\text{tot}}=V_i+\sum_{j\neq i}V_{ij}+\dots
+$$
+
+不难看出，上式等价于：
+
+$$
+V_i^{\text{tot}}=V-V_{\sim i}
+$$
+
+据此可定义索博尔总指数：
+
+$$
+T_i=\frac{V_i^{\text{tot}}}{V}=1-\frac{V_{\sim i}}{V}
+\tag{6.4}
+$$
+
+如果 $T_i$ 数值很小，则可以判定该因素不重要。
+
+索博尔指数的计算并不简单，因为其涉及高维积分。蒙特卡洛方法常用于高维积分计算。首先从 $p$ 维均匀分布中抽取 $m$ 个随机向量：
+
+$$
+\boldsymbol{a}_i\stackrel{\text{iid}}{\sim}U[0,1]^p,\;i=1,\dots,m
+$$
+
+这等价于从一元均匀分布中抽取 $mp$ 个样本 $\{a_{ij}\}$，其中 $i=1,\dots,m$，$j=1,\dots,p$。我们将所有样本整理为矩阵 $\boldsymbol{A}=(\boldsymbol{a}'_1,\dots,\boldsymbol{a}'_m)'$，该矩阵可看作一个 $m\times p$ 的随机设计矩阵。
+
+总体均值的蒙特卡洛估计可按如下方式得到：
+
+$$
+\widehat{h}_0=\frac{1}{m}\sum_{i=1}^{m}h(a_i)
+$$
+
+根据强大数定律，该估计会以 $\mathcal{O}(1/\sqrt{m})$ 的收敛速度收敛到真实值 $h_0$。上一章介绍过的拟蒙特卡洛方法可实现接近 $\mathcal{O}(1/m)$ 的收敛速度，该方法同样可在此处使用。主效应的蒙特卡洛估计可由下式求得：
+
+$$
+\widehat{h}_i(x_i)=\frac{1}{m}\sum_{j=1}^{m}h(a_{j1},\dots,x_i,\dots,a_{jp})-\widehat{h}_0
+$$
+
+同理，也可以计算高阶交互效应。
+
+总方差 $V=\int h^2(x)\mathrm{d}x - h_0^2=\int\{h(x)-h_0\}^2\mathrm{d}x$ 可估计为
+
+$$
+\widehat V=\frac{1}{m-1}\sum_{i=1}^{m}\{h(\boldsymbol{a}_i)-\widehat h_0\}^2
+\tag{6.5}
+$$
+
+同理，$V_1=\int h_1^2(x_1)\mathrm{d}x_1$ 的无偏估计可以写为
+
+$$
+\begin{align*}
+\widehat V_1&=\frac{1}{m-1}\sum_{i=1}^{m}\widehat h_1^2(a_{i1})\\
+&=\frac{1}{m-1}\sum_{i=1}^{m}\left(\frac{1}{m}\sum_{j=1}^{m}h(a_{i1},a_{j2},\dots,a_{jp})-\widehat h_0\right)^2
+\end{align*}
+$$
+
+$\widehat V_2,\dots,\widehat V_p$ 可按同样方式得到。上述每一个估计都需要对 $h(\cdot)$ 做 $m^2$ 次求值，当 $m$ 较大时计算成本很高。因此，需要效率更高的估计方法来计算主效应与高阶交互效应的方差。索博尔（1993）提出了若干新颖的求解方法，这类方法也被称作冻结‑选取法（达·维加等人，2021）。在介绍这些方法之前，我们先利用期望算子与方差算子重新书写各指标。
+
+主效应可以写为
+
+$$
+\begin{align*}
+h_i(x_i)&=\int h(\boldsymbol{x})\mathrm{d}\boldsymbol{x}_{\sim i}-h_0\\
+&=\mathrm{E}\{h(\boldsymbol{x})|\boldsymbol{x}_i\}-\mathrm{E}\{h(\boldsymbol{x})\}
+\end{align*}
+$$
+
+于是，
+
+$$
+\begin{align*}
+V_i=\int h_i^2(x_i)\mathrm{d}x_i
+=\mathrm{var}\{h_i(x_i)\}
+=\mathrm{var}\{\mathrm{E}[h(\boldsymbol{x})|\boldsymbol{x}_i]\}
+\end{align*}
+$$
+
+简化计算的核心思路是利用条件方差公式交换期望与方差算子：
+
+$$
+\mathrm{var}\{h(\boldsymbol{x})\}=\mathrm{var}\{\mathrm{E}[h(\boldsymbol{x})|\boldsymbol{x}_i]\}+\mathrm{E}\{\mathrm{var}[h(\boldsymbol{x})|\boldsymbol{x}_i]\}
+$$
+
+因此，
+
+$$
+V_i=V-\mathrm{E}\{\mathrm{var}[h(\boldsymbol{x})|\boldsymbol{x}_i]\}
+$$
+
+假设我们有两次函数求值 $h(\boldsymbol{a})$ 和 $h(\boldsymbol{b})$，其中 $\boldsymbol{a},\boldsymbol{b}\stackrel{\text{iid}}{\sim}U[0,1]^p$，则方差的无偏估计为
+
+$$
+\begin{align*}
+\widehat{\mathrm{var}}\{h(\boldsymbol{x})\}&=\left(h(\boldsymbol{a})-\frac{h(\boldsymbol{a})+h(\boldsymbol{b})}{2}\right)^2+\left(h(\boldsymbol{b})-\frac{h(\boldsymbol{a})+h(\boldsymbol{b})}{2}\right)^2\\
+&=\frac12\{h(\boldsymbol{a})-h(\boldsymbol{b})\}^2
+\end{align*}
+$$
+
+若需要固定 $x_i$ 的取值来估计条件方差，则将向量 $\boldsymbol{b}$ 的第 $i$ 个分量替换为 $a_i$，记该向量为 $\boldsymbol{b}^{(i)}$。于是
+
+$$
+\widehat{\mathrm{var}}\{h(\boldsymbol{x})|\boldsymbol{x}_i=a_i\}=\frac12\{h(\boldsymbol{a})-h(\boldsymbol{b}^{(i)})\}^2
+$$
+
+对多组样本求取方差估计再取平均，可以得到 $\mathrm{E}\{\mathrm{var}[h(\boldsymbol{x})|\boldsymbol{x}_i]\}$ 的更优估计。令 $\boldsymbol b_i\stackrel{\text{iid}}{\sim}U[0,1]^p$，$i=1,\dots,m$，将其按行构成矩阵 $\boldsymbol B=(\boldsymbol b_1',\dots,\boldsymbol b_m')'$。已知已有函数求值结果 $h(\boldsymbol A)=(h(\boldsymbol{a}_1),\dots,h(\boldsymbol{a}_m))'$，该结果曾用于计算式 (6.5) 中的总方差。接下来进行一组新的函数求值 $h(\boldsymbol B^{(\boldsymbol{A}_i)})=\left(h(\boldsymbol{b}_1^{(i)}),\dots,h(\boldsymbol{b}_m^{(i)})\right)'$，其中 $\boldsymbol b_j^{(i)}$ 是将向量 $\boldsymbol b_j$ 的第 $i$ 个分量替换为 $\boldsymbol a_j$ 的第 $i$ 个分量得到的向量，即
+
+$$
+\boldsymbol B^{(\boldsymbol{A}_i)}=
+\begin{bmatrix}
+b_{11}&\cdots&a_{1i}&\cdots&b_{1p}\\
+\vdots&\vdots&\vdots&\vdots&\vdots\\
+b_{m1}&\cdots&a_{mi}&\cdots&b_{mp}
+\end{bmatrix},\quad i=1,\dots,p
+$$
+
+也就是说，$\boldsymbol B^{(\boldsymbol{A}_i)}$ 是将矩阵 $\boldsymbol B$ 的第 $i$ 列替换为矩阵 $\boldsymbol A$ 的第 $i$ 列后得到的矩阵。
+
+然后，第 $i$ 个主效应的方差可通过下式估计：
+
+$$
+\widehat{V}_i=\widehat{V}^{-1}\frac{1}{2m}\sum_{j=1}^m\left\{h(\boldsymbol{a}_j)-h(\boldsymbol{b}_j^{(i)})\right\}^2=\widehat{V}^{-1}\frac{1}{2m}\|h(\boldsymbol{A})-h(\boldsymbol{B}^{(\boldsymbol{A}_i)})\|^2
+\tag{6.6}
+$$
+
+该方法由扬森（1999）提出，萨尔泰利等人（2010）对其做了进一步完善。该计算仅需 $2m$ 次函数求值。因此，全部因子的一阶索博尔指数可通过 $m(p+1)$ 次函数求值完成计算，计算开销相当合理。
+
+同理，为计算索博尔总效应指数，首先将 $V_i^{\text{tot}}$ 写为：
+
+$$
+\begin{align*}
+V_i^{\text{tot}} &= V - V_{\sim i}\\
+&= \mathrm{var}\{h(\boldsymbol{x})\} - \mathrm{var}\{\mathrm{E}[h(\boldsymbol{x})|\boldsymbol{x}_{\sim i}]\}\\
+&= \mathrm{E}\{\mathrm{var}[h(\boldsymbol{x})|\boldsymbol{x}_{\sim i}]\}.
+\end{align*}
+$$
+
+为求解该条件方差，需要固定向量 $\boldsymbol{a}_j$ 除第 $i$ 个分量以外的所有取值，并将其第 $i$ 个分量替换为 $\boldsymbol{b}_j$ 的第 $i$ 个分量，记该向量为 $\boldsymbol{a}_j^{(i)}$。接下来开展新一轮函数求值：$h(A(B_i)) = (h(\boldsymbol{a}_1^{(i)}),\dots,h(\boldsymbol{a}_m^{(i)}))'$，其中 $A(B_i)$ 表示将矩阵 $A$ 的第 $i$ 列替换为矩阵 $B$ 的第 $i$ 列后得到的矩阵。由此可得到估计式（扬森，1999）：
+
+$$
+\widehat{V}_i^{\text{tot}}=\frac{1}{2m}\sum_{j=1}^{m}\{h(\boldsymbol{a}_j)-h(\boldsymbol{a}_j^{(i)})\}^2=\frac{1}{2m}\|h(A)-h(A(B_i))\|^2
+\tag{6.7}
+$$
+
+因此，对全部 $p$ 个输入因子求解索博尔总效应指数，共需要 $m(p+1)$ 次函数求值。目前还有许多其他高效算法可用于求解一阶与总效应敏感性指数，相关细节可参阅萨尔泰利（2008）以及达·维加等人（2021）的著作。
+
+举个例子，考虑模拟钻孔水流的函数（莫里斯等人，1993）：
+
+$$
+y=\frac{2\pi x_3(x_4-x_6)}{\log\left(\frac{x_2}{x_1}\right)\left[1+\frac{2x_7x_3}{\log(x_2/x_1)x_1^2x_8}+\frac{x_3}{x_5}\right]}
+$$
+
+其中输入变量为：钻孔半径 $x_1$，取值区间 $[0.05, 0.15]\mathrm{m}$；影响半径 $x_2$，取值区间 $[100, 50000]\mathrm{m}$；上层含水层透射率 $x_3$，取值区间 $[63070, 115600]\mathrm{m^2/yr}$；上层含水层测压水头 $x_4$，取值区间 $[990, 1110]\mathrm{m}$；下层含水层透射率 $x_5$，取值区间 $[63.1, 116]\mathrm{m^2/yr}$；下层含水层测压水头 $x_6$，取值区间 $[700, 820]\mathrm{m}$；钻孔长度 $x_7$，取值区间 $[1120, 1680]\mathrm{m}$；钻孔水力传导系数 $x_8$，取值区间 $[9855, 12045]\mathrm{m/yr}$。输出响应 $y$ 为水流量，单位为 $\mathrm{m^3/yr}$。一阶索博尔指数与总索博尔指数可通过 R 语言 sensitivity 程序包中的 soboljansen 函数计算得到（约斯等人，2024）。本文对矩阵 A、B 均采用 10000 个蒙特卡洛采样点。图 6.1 左侧面板以柱状图形式展示了估算得到的总索博尔指数。每根柱子分为两部分：浅蓝色代表 $S$（用于量化主效应），粉色代表 $T-S$（用于量化交互效应）。可以看出，钻孔半径 $x_1$ 是最重要的影响因子；因子集合 $\{x_4, x_6, x_7, x_8\}$ 具备不可忽略的影响，而 $\{x_2, x_3, x_5\}$ 的影响可以忽略。
+
+> **图 6.1**：（左）钻孔函数的索博尔总指数。一阶指数以浅蓝色显示，总指数与一阶指数的差值以粉色显示。（右）主效应图
+
+![Alt Text](figures/6.1.png){width=67%}
+
+对于计算密集型模型，基于蒙特卡洛方法估计索博尔指数的计算成本会很高。一种降低计算负担的方法是，先采用空间填充设计对计算机模型进行求值，再利用高斯过程模型对其做近似处理。实际上，若采用乘积高斯相关函数，主效应与一阶索博尔指数的解析表达式可以很容易推导得到（奥克利和奥黑根，2004；陈等人，2005）。但对于高阶灵敏度指数，对应的计算公式会变得较为繁杂。在拟合得到高斯过程模型后，使用蒙特卡洛方法计算灵敏度指数会简便得多。针对钻孔函数，我们采用样本量 $n=80$ 的最大投影设计开展试验，并借助 rkriging 工具包拟合了带有高斯相关函数的高斯过程模型（黄和约瑟夫，2024）。估计得到的主效应绘制于图 6.1 的右侧子图。该图的可视化结果与前文计算得到、展示在同一幅图左侧子图中的一阶指数保持一致。不过该方法存在若干局限：（1）空间填充设计在估计索博尔指数时未必高效或最优；（2）针对高维问题，可能需要规模极大的空间填充设计；（3）高斯过程模型对高维问题的拟合效果可能并不理想。受限于上述不足，本章后续将构建专门面向灵敏度指数估计的筛选设计。
+
+### 6.1.2 基于导数的灵敏度度量
+
+函数 $h(\boldsymbol{x})$ 在 $x_i=x_i^0$ 处关于 $x_i$ 的局部灵敏度，可通过在 $x_i=x_i^0$ 处求导得到的偏导数 $\partial h(\boldsymbol{x})/\partial x_i$ 进行度量。基于该局部灵敏度，可定义一种全局度量指标（索博尔与库切连科，2009）：
+
+$$
+\nu_i=\int_{[0,1]^p}\left(\frac{\partial h(\boldsymbol{x})}{\partial x_i}\right)^2\mathrm{d}\boldsymbol{x}
+\tag{6.8}
+$$
+
+索博尔和库切连科（2009）给出了该指标与索博尔总效应指数之间的如下关系：
+
+$$
+T_i \le \frac{\nu_i}{\pi^2 V}
+\tag{6.9}
+$$
+
+若 $\nu_i=0$，则 $T_i=0$。因此，不重要因子的 $\nu_i\approx0$，可利用该性质筛选剔除不重要因子。复杂模型的导数可采用有限差分法求解，并可在单位超立方体的多个采样点上重复计算。设 $\boldsymbol{a}_j \stackrel{\text{iid}}{\sim} U(0,1)^p$，其中 $j=1,\dots,m$。则 $\nu_i$ 可通过下式估计：
+
+$$
+\widehat{\nu}_i=\frac{1}{m}\sum_{j=1}^{m}\left(\frac{\widehat{\partial h(\boldsymbol{x})}}{\partial x_i}\right)^2_{\boldsymbol{x}=\boldsymbol{a}_j}
+$$
+
+假定至少存在一个 $\widehat{\nu}_i>0$，可采用如下归一化形式量化因子的重要度：
+
+$$
+\overline{\nu}_i=\frac{\widehat{\nu}_i}{\sum_{j=1}^{p}\widehat{\nu}_j}
+$$
+
+再次考察钻孔函数。假设我们取 $m=4$ 个样本。可借助 R 语言 sensitivity 程序包中的 delsa 函数完成该估计（约斯等人，2024）。图 6.2 以箱线图展示了 100 次重复试验得到的灵敏度估计结果。可以看到，该方法正确识别出 $\{x_2,x_3,x_5\}$ 为非重要因子。由于仅使用 4 个样本，该计算的运算速度也远快于总索博尔指数的计算。
+
+> **图 6.2**：钻孔函数的基于导数的灵敏度指数，该估计过程在 $[0,1]^8$ 范围内采用四类样本重复执行 100 次
+
+![Alt Text](figures/6.2.png){width=33%}
+
+尽管对于钻孔函数而言，基于导数的灵敏度分析方法可以正确识别出 $x_1$ 为最重要因子，但遗憾的是，一般情况下较大的 $\nu_i$ 并不代表因子 $i$ 具备重要性。为理解这一点，考虑一个包含四个因子的简单可加函数：
+
+$$
+h(x)=\sum_{k=1}^{4}\frac{1}{k}\sin\left(\{k^2+1\}\pi x_k\right)
+$$
+
+该函数的图像见图 6.3 左图。四个因子的索博尔总灵敏度指标与基于导数的灵敏度度量绘制于该图的右图。可以看到，索博尔总指标判定 $x_1$ 为最重要因子，$x_4$ 为最不重要因子；而基于导数的度量给出的因子重要性排序则完全相反。从函数图像中不难看出原因：模型输出对 $x_1$ 变化表现平滑，但影响幅度很大；而对 $x_4$ 的变化波动剧烈，但其整体变异程度很小。该实例表明：基于导数的灵敏度度量虽可用于因子筛选，但不能依据其结果对因子的重要性进行排序。
+
+> **图 6.3**：（左）四维可加正弦函数图像；（右）四个因子对应的索博尔总指标与 $\nu_i$ 值
+
+![Alt Text](figures/6.3.png){width=67%}
+
+## 6.2 莫里斯筛选设计
+
+图 6.1 所示钻孔函数的总索博尔指数通过 $10000\times(8+1)=90000$ 次函数求值计算得到。这样处理是可行的，因为钻孔函数的求值成本较低。但对于计算开销大的模型，则无法采用该方式。我们能否构建一种试验设计方法，仅通过少量函数求值就能识别出重要影响因子？莫里斯（1991）提出了一种基于单因素轮换（OFAT）设计的方法。一般而言，由于单因素轮换设计估计效率低下，且无法估计交互效应，在统计学文献中对其评价不高。不过莫里斯的思路是采用一组单因素轮换设计，以此克服上述部分缺陷。
+
+莫里斯筛选法可说明如下：定义基本效应，通过单次变动一个因子来估计各因子的局部灵敏度。设 $\boldsymbol{x}_i(\Delta)=(x_1,\dots,x_i\pm\Delta,\dots,x_p)'$，其中 $\Delta$ 取正号或负号需满足 $x_i+\Delta\in[0,1]$ 或 $x_i-\Delta\in[0,1]$。则 $p$ 个基本效应定义为：
+
+$$
+d_i(\boldsymbol{x})=\frac{h(\boldsymbol{x}_i(\Delta))-h(\boldsymbol{x})}{\Delta},\quad i=1,\dots,p
+$$
+
+当 $\Delta \to 0$ 时，$d_i(\boldsymbol{x})$ 收敛于 $h(\boldsymbol{x})$ 的导数，这表明基于导数的灵敏度度量与莫里斯筛选法之间存在紧密联系。事实上，索博尔与库切连科（2009）提出的基于导数的度量正是受莫里斯方法启发得到。但由于莫里斯方法实际采用较大的 $\Delta$ 值，其计算结果是基于方差的方法与基于导数的方法之间的一种折中。
+
+从具有 $L$ 个层级的规则网格 $\{0, 1/(L-1), \dots, 1\}^p$ 中随机选取 $m$ 个 $\boldsymbol{x}$，用于计算基本效应，其中 $\Delta$ 取 $1/(L-1)$ 的整数倍。图 6.4 左图展示了 $m=L=4$、$p=2$ 且 $\Delta=1/(L-1)$ 的算例。该示意图采用了丹尼尔（1973）分类中的“严格”单因子一次变动（OFAT）设计，每一次试验都基于上一次试验开展。也可采用该图右侧所示的“标准”单因子一次变动（OFAT）设计，所有变量调整均从标准基准试验出发（图中以黑色圆点表示）。实际应用中“严格”版本使用更为普遍（萨泰利，2008；达·韦加等人，2021）。
+
+> **图 6.4**：莫里斯设计，左侧为严格单因素法，右侧为标准单因素法。箭头展示了单因素法的结构
+
+![Alt Text](figures/6.4.png){width=67%}
+
+设 $d_i(j)$ 为变量 $x_i$ 在 $x=x_j$ 处的基本效应，其中 $j=1,\dots,m$。随后，我们可以计算下述汇总统计量以分析各因子的全局效应：
+
+$$
+\mu_i=\frac{1}{m}\sum_{j=1}^{m}d_i(j),\quad\sigma_i=\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}\left(d_i(j)-\mu_i\right)^2}
+$$
+
+依据这两个统计量，可将因子效应划分为：（1）可忽略效应（$|\mu_i|$ 小且 $\sigma_i$ 小）；（2）线性可加效应（$|\mu_i|$ 大且 $\sigma_i$ 小）；（3）非线性效应和/或交互效应（$\sigma_i$ 大）。
+
+坎波隆戈等人（2007）对 $d_i(j)$ 取绝对值，提出了另一个统计量：
+
+$$
+\mu_i^*=\frac{1}{m}\sum_{j=1}^{m}|d_i(j)|
+\tag{6.10}
+$$
+
+该统计量与基于导数的灵敏度测度 $\int\left|\partial h(\boldsymbol{x})/\partial x_i\right|\mathrm{d}\boldsymbol{x}$ 相关。
+
+再次考察钻孔函数。假设取 $L=m=4$，步长 $\Delta=3/(L-1)$。函数总调用次数为 $m(p+1)=36$。我们可以使用 R 语言 sensitivity 包中的 morris 函数（约斯等人，2024）生成试验设计并计算基本效应。$\mu^*$ 相对于 $\sigma$ 的散点图如图 6.5 左图所示。可以看到，该方法正确识别出 $x_1$ 为影响最大的因子，其次是 $\{x_7,x_4,x_6,x_8\}$。该方法仅需 36 次函数调用，而采用蒙特卡洛方法计算总索博尔指数需要 90000 次函数调用，效率十分突出。由于莫里斯筛选设计存在较强随机性，我们将该实验重复 100 次，结果以箱线图形式绘制在图 6.5 右图。可见该方法能够成功筛选出不重要因子 $\{x_2,x_3,x_5\}$。
+
+> **图 6.5**：（左）钻孔函数的莫里斯筛选设计结果。（右）100 次重复实验得到的 $\mu^*$ 箱线图
+
+![Alt Text](figures/6.5.png){width=67%}
+
+尽管莫里斯筛选法不像基于蒙特卡洛的索博尔设计那样具备强随机性，但该方法仍然存在随机性：用于单因素逐次试验（OFAT）的 $m$ 个基准点是从试验区域内随机选取的，并且单因素逐次试验中变量的调整顺序同样是随机的。这种随机性会生成空间填充特性较差的试验设计，不利于后续开展试验。坎波隆戈等人（2007）提出通过最大化各单因素逐次试验之间的距离来提升空间填充性能。两组单因素逐次试验之间的距离定义为两组试验所有样本点两两之间距离的总和。孙等人（2013）研究了其他可行的距离度量方式。但正如第 4 章中所讨论的，采用最大化最小距离或距离总和的方式，会将样本点推向试验区域边界，进而造成样本点投影效果变差。坎波隆戈等人（2011）提出采用索博尔点这类拟随机序列（详见下一章）作为基准运行点，搭配标准单因素逐次试验设计（该文献中将其称为径向设计），替代传统严格的单因素逐次试验设计。普霍尔（2009）尝试采用单纯形设计替代单因素逐次试验设计以改善投影效果，但该方法需要拟合线性模型来估计效应，会引入偏差。另一项针对莫里斯筛选设计的改进方案，即最大单因子逐次（MOFAT）试验设计，将在下一节展开详细阐述。
+
+## 6.3 最大单因素逐次设计
+
+肖等人（2023）指出，用于估计总索博尔指数的基于蒙特卡洛的索博尔设计可以看作是一组标准单因素轮换试验（OFAT）。如 6.1.1 节所述，为估计总索博尔指数，首先需要生成两个随机矩阵 $\boldsymbol{A}=(a_{ij})_{m\times p}$ 与 $\boldsymbol{B}=(b_{ij})_{m\times p}$，其中 $a_{ij}$、$b_{ij}$ 独立同分布服从均匀分布 $U(0,1)$。随后试验设计矩阵为：
+
+$$
+\boldsymbol{D}=\begin{bmatrix}\boldsymbol{A}\\\boldsymbol{A}^{(1)}\\\vdots\\\boldsymbol{A}^{(p)}\end{bmatrix}
+\tag{6.11}
+$$
+
+式中 $\boldsymbol{A}^{(i)}$ 表示将矩阵 $\boldsymbol{A}$ 的第 $i$ 列替换为 $\boldsymbol{B}$ 的第 $i$ 列得到的矩阵，是前文所用记号 $\boldsymbol{A}^{(\boldsymbol{B}_i)}$ 的简写。提取 $\boldsymbol{A},\boldsymbol{A}^{(1)},\dots,\boldsymbol{A}^{(p)}$ 的第一行并组合为一套试验设计，即可得到第一组单因素轮换试验设计。同理，提取这些矩阵的第二行，得到第二组单因素轮换试验，以此类推。例如，取 $m=4$、$p=2$。图 6.6 展示了一套 12 次试验的两组实现，其中 $\boldsymbol{A}$、$\boldsymbol{A}^{(1)}$ 和 $\boldsymbol{A}^{(2)}$ 分别用黑色圆点、红色三角形与绿色加号表示，箭头标注出单因素轮换试验的结构。
+
+> **图 6.6**：两种基于蒙特卡洛的索博尔设计实现。通过箭头展示单因素逐次变换（OFAT）结构
+
+![Alt Text](figures/6.6.png){width=67%}
+
+尽管索博尔设计可以看作是单因素一次（OFAT）试验的集合，但它与莫里斯筛选设计存在若干区别：（1）莫里斯方法支持任意类型的单因素一次试验设计（严格型或标准型），而索博尔设计必须为标准型；（2）莫里斯设计始终由 $m$ 组单因素一次试验构成，而索博尔设计仅当对所有 $i$ 和 $j$ 均满足$\boldsymbol{A}_j\neq\boldsymbol{A}^{(i)}_j$时，才退化为 $m$ 组单因素一次试验，该条件在蒙特卡洛样本中恒成立（但拟随机样本不满足）；（3）莫里斯设计包含 $mp$ 个随机值，而索博尔设计需要两个大小为 $m\times p$ 的随机矩阵，因此拥有 $2mp$ 个随机值；（4）从构造形式来看，莫里斯设计的步长 $\Delta$ 始终为常数，而索博尔设计的步长 $\Delta$ 是变化的。
+
+从图 6.6 可以明显看出，右侧面板的索博尔设计优于左侧面板展示的设计。因此，我们可以尝试采用一些优化技术改进索博尔设计。本文将介绍肖等人（2023）提出的方法。
+
+由式 (6.7) 与 (6.10) 可见，$V_{\text{tot},i}$ 与 $\mu^*_i$ 均为用于近似若干期望的样本均值。索博尔（2001）采用蒙特卡洛样本计算该均值。因此，矩阵 $\boldsymbol A$ 与 $\boldsymbol A^{(i)}$ 的第 $i$ 列应当是取自区间 $[0,1]$ 的两组独立均匀样本。能够最小化与均匀分布偏差的规模为 $m$ 的最优均匀样本为 $\{0.5/m,1.5/m,\dots,(m-0.5)/m\}$（方和王，1993）。据此，我们可将 $\boldsymbol A$ 与 $\boldsymbol A^{(i)}$ 的第 $i$ 列取为该 $m$ 个数值的两组随机置换。该处理使 $\boldsymbol A$、$\boldsymbol A^{(i)}$（$i=1,\dots,k$）成为拉丁超立方设计（麦凯等人，1979）。
+
+由于拉丁超立方设计存在众多可选方案，我们可以尝试选取能够提升重要因子识别能力的方案。一种可行思路是选取拉丁超立方设计，使总索博尔指数或 $\mu^*_i$ 最大化，因为二者数值越大，越有助于识别重要因子。但该方式依赖于底层响应曲面。由于开展实验前我们并不知晓响应曲面，因此实验设计应当做到无论响应曲面形式如何，都可以取得良好效果。为此，在评估某一设计的有效性时，我们可以假定该响应曲面是某一随机过程的一个实现。
+
+假定 $h(\boldsymbol{x})$ 为布朗运动（张与阿普利，2014），满足
+
+$$
+\mathrm{E}\{h(\boldsymbol{u})-h(\boldsymbol{v})\}=0,\quad\mathrm{var}\{h(\boldsymbol{u})-h(\boldsymbol{v})\}=\tau^{2}\|\boldsymbol{u}-\boldsymbol{v}\|_{w}
+\tag{6.12}
+$$
+
+其中 $\|\boldsymbol{u}-\boldsymbol{v}\|_{w}=\sum_{i=1}^{p}w_{i}(u_{i}-v_{i})^{2}$，且 $\sum_{i=1}^{p}w_{i}=1$，对 $i=1,\dots,p$ 有 $w_{i}\ge0$。布朗运动是 2.1.4 节所讨论高斯过程的一类特例，但其协方差函数是非平稳的。此处，$w_{i}$ 可看作第 $i$ 个因子的重要性度量。假设按照式 (6.11) 的试验方案开展试验，则由式 (6.7) 可得：
+
+$$
+\begin{align*}
+\mathrm{E}(\widehat{V}_{i}^{\mathrm{tot}})&=\frac{1}{2m}\sum_{j=1}^{m}\mathrm{E}\{h(\boldsymbol{A}_{j})-h(\boldsymbol{A}_{j}^{(i)})\}^{2}\\
+&=\frac{1}{2m}\sum_{j=1}^{m}\mathrm{var}\{h(\boldsymbol{A}_{j})-h(\boldsymbol{A}_{j}^{(i)})\}\\
+&=\frac{\tau^{2}}{2m}\sum_{j=1}^{m}\|\boldsymbol{A}_{j}-\boldsymbol{A}_{j}^{(i)}\|_{w}\\
+&=\frac{\tau^{2}\sqrt{w_{i}}}{2m}\sum_{j=1}^{m}|\boldsymbol{A}_{ji}-\boldsymbol{A}_{ji}^{(i)}|
+\tag{6.13}
+\end{align*}
+$$
+
+上式最后一步推导基于如下事实：矩阵 $\boldsymbol{A}$ 与 $\boldsymbol{A}^{(i)}$ 的第 $j$ 行仅在因子 $i$ 处存在差异，这是单因素逐次（OFAT）设计独有的性质。由于 $\widehat{T}_{i}$ 与 $\widehat{V}_{i}^{\mathrm{tot}}$ 成正比，我们可以通过最大化 $\sum_{j=1}^{m}|\boldsymbol{A}_{ji}-\boldsymbol{A}_{ji}^{(i)}|$ 实现索博尔总效应指数最大化，该求和项代表矩阵 $\boldsymbol{A}$ 与 $\boldsymbol{A}^{(i)}$ 第 $i$ 列之间的 $L_1$ 距离。定义最大单因素逐次（MOFAT）设计为试验方案 $\boldsymbol{D}$：对全部 $i=1,\dots,p$，最大化
+
+$$
+\sum_{j=1}^{m}|\boldsymbol{A}_{ji}-\boldsymbol{A}_{ji}^{(i)}|
+$$
+
+其中 $\boldsymbol{A}$、$\boldsymbol{A}^{(i)}$（$i=1,\dots,p$）均为拉丁超立方设计（LHD）。由该定义可以得到最大单因素逐次设计的如下最优性结论。
+
+> **定理 6.1**：若响应曲面是布朗运动场的一个实现，其均值与方差函数由式 (6.12) 给出，则最大单因素逐次设计可使 $\widehat{V}_i^{\text{tot}}$（$i=1,\dots,p$）的期望值达到最大。
+
+寻找最大单因素逐次设计需要对 $2mp$ 个变量（即矩阵 $\boldsymbol A$ 和 $\boldsymbol B$ 的元素）进行优化，当 $m$ 和 $p$ 较大时，该优化的计算成本会很高。该优化可按如下方式简化。定义如下变换：
+
+$$
+\psi_m(x)=x-\left\lfloor\frac{m}{2}\right\rfloor+mI\left(x<\frac{m+1}{2}\right)
+\tag{6.14}
+$$
+
+其中 $\lfloor x\rfloor$ 表示不超过 $x$ 的最大整数，指示函数 $I\left(x<\frac{1+m}{2}\right)$ 在 $x<\frac{1+m}{2}$ 时取 1，否则取 0。现在，给定一个拉丁超立方设计 $\boldsymbol A$，利用 $B_{ij}=\psi_m(A_{ij})$ 构造矩阵 $\boldsymbol B$，其中 $\boldsymbol A$ 与 $\boldsymbol B$ 的 $m$ 个水平编码为 $\{1,2,\dots,m\}$。肖等人（2023）证明，通过这两个矩阵 $\boldsymbol A$ 与 $\boldsymbol B=\psi(\boldsymbol A)$ 构造得到式 (6.11) 中的设计 $\boldsymbol D$ 是一个最大单因素逐次设计。因此，唯一的计算开销来自构造设计 $\boldsymbol A$，对此我们可以使用最大最小距离拉丁超立方设计或最大投影拉丁超立方设计。
+
+图 6.7 的左侧面板展示了一个 $m=4$、$p=2$ 的最大单因素逐次设计示例，该示例可通过 R 软件包 MOFAT 生成（肖和约瑟夫，2022）。可以看出，相较于图 6.4 中的莫里斯设计以及图 6.6 中的索博尔设计，最大单因素逐次设计能够以更优的方式对实验区域进行探索。
+
+> **图 6.7**：最大单因素逐次设计（左侧）以及加入投影后的最大单因素逐次设计（右侧）。单因素逐次设计结构用箭头标出
+
+![Alt Text](figures/6.7.png){width=67%}
+
+最大单因素逐次设计中每个因子仅包含 $m$ 个水平：$\{0.5/m,1.5/m,\dots,(m-0.5)/m\}$。除因子筛选外，若还需要开展响应曲面建模，可按如下方式调整集合 $\boldsymbol{A}$ 与 $\boldsymbol{B}$ 中的取值，优化最大单因素逐次设计的投影性质：对于 $i=1,\dots,m$：
+
+$$
+x_i\leftarrow
+\begin{cases}
+x_i-\frac{0.25}{m},&x_i<0.5\\
+x_i+\frac{0.25}{m},&x_i\ge0.5\\
+x_i,&\text{其他}
+\end{cases}
+\tag{6.15}
+$$
+
+$$
+x_i\leftarrow
+\begin{cases}
+x_i+\frac{0.25}{m},&x_i<0.5\\
+x_i-\frac{0.25}{m},&x_i\ge0.5\\
+x_i,&\text{其他}
+\end{cases}
+\tag{6.16}
+$$
+
+若集合 $\boldsymbol{A}$ 采用式 (6.15)，则集合 $\boldsymbol{B}$ 应当采用式 (6.16)，反之亦然。该选取可依据最大最小 $L_1$ 距离准则完成。调整后的最大单因素逐次设计如图 6.7 右侧子图所示。可以看到，此时两个因子均拥有 8 个水平，而原始设计仅为 4 个水平。
+
+再次考察钻孔函数。我们取 $m=4$，因此最大单因素逐次设计需要 $4\times(8+1)=36$ 次运算。图 6.8 展示了 100 次重复实验得到的 $\mu^*$ 箱线图。可以看到，最大单因素逐次设计明确识别出变量 $\{x_1,x_4,x_6,x_7,x_8\}$ 为重要变量，$\{x_2,x_3,x_5\}$ 为非重要变量。最大单因素逐次设计几乎是确定性的，但最大单因素逐次软件包中使用的极大极小拉丁超立方设计存在非唯一性，由此带来了一定随机性。该结果与图 6.5 中莫里斯筛选设计的结果保持一致。不过，最大单因素逐次的结果波动要小得多，能够更为明确地区分重要变量与非重要变量。
+
+> **图 6.8**：将最大单因素逐次设计应用于钻孔函数的实验结果。图中展示了经过 100 次重复实验得到的 $\mu^*$ 的箱线图
+
+![Alt Text](figures/6.8.png){width=33%}
+
+# 7 序贯设计
+
+前面几章探讨了在对输入‑输出关系一无所知时可采用的试验设计方法。我们构建了空间填充设计与筛选设计，这类设计能够在广泛的函数类型下取得良好效果，但对于某一特定函数而言，它们未必是最优的。在部分场景下，我们可以按序开展试验，并随着试验推进逐步掌握底层函数的相关信息。这使得我们能够针对所研究的函数定制后续试验方案，这也是本章的主题。序贯框架还有助于明确试验目标，进而设计契合该目标（例如函数优化）的试验。在机器学习相关文献中，序贯设计也被称作主动学习。
+
+## 7.1 仿真
+
+在本节中，我们将探讨如何精准逼近（或仿真）底层输入输出函数这一目标。为解决该问题，我们在第 3 章中尝试寻找最优试验设计，以最小化积分预测方差，或是在高斯过程模型下最大化试验设计的熵。但我们很快发现，这类试验设计并不具备实用性，原因有两点：（1）该类设计依赖未知的相关参数；（2）优化过程计算开销巨大。在第 4‑6 章中，我们尝试解决上述两个问题：寻找适用于广泛函数类的空间填充设计，同时规避计算 $\boldsymbol{R}^{-1}$ 或 $|\boldsymbol{R}|$，简化设计准则，以此加快优化运算。
+
+序贯设计是克服基于模型的最优设计所存在问题的另一种方法。我们将逐个（或以小批量形式）开展实验并观测数据。由此按序生成设计与数据：$(\boldsymbol{x}_1,y_1),\dots,(\boldsymbol{x}_n,y_n)$。由于数据是依次观测得到的，我们可以估计相关参数，并利用估计得到的参数确定下一次实验，以此解决第一个问题。同时，我们仅需要求解下一次实验的实验条件 $x_{n+1}$，对应的优化问题规模会小很多。此外，由于已知 $\boldsymbol{R}^{-1}_{n}$ 和 $|\boldsymbol{R}_n|$，$\boldsymbol{R}^{-1}_{n+1}$ 与 $|\boldsymbol{R}_{n+1}|$ 的计算过程可以得到简化，这就解决了第二个问题。
+
+与空间填充设计相比，序贯设计具备一定优势。在空间填充设计中，我们首先需要选定设计规模 $n$。勒普基等人（2009）提出取 $n=10p$，其中 $p$ 为输入因子的数量。然而，$n$ 的最优取值取决于底层函数的复杂程度。若函数为线性，仅需 $n=p+1$ 次试验即可对该函数进行近似。但如果函数非光滑或波动剧烈，即便取 $n=100p$，也可能不足以实现对函数的精确近似。序贯设计则不存在该问题，因为试验是逐个开展的，当近似效果达到预期时即可停止试验，例如交叉验证绝对误差降至设定容差水平以下时。
+
+序贯设计的另一项优势在于，它能够在我们真正需要数据的位置更合理地布置试验点。例如，在针对 10 个因子 $x_1,\dots,x_{10}$ 开展若干次试验后，我们可能发现仅有 $x_1$ 和 $x_4$ 对输出结果存在重要影响。此时，后续试验便可以仅聚焦于由 $(x_1,x_4)$ 构成的二维子空间。与之相对，对于最大投影设计这类空间填充设计，我们会尝试布置试验点，使其能够在试验区域全部可能的子空间上均获得良好的投影效果。该类策略需要做出权衡，因此，为了保障其余子空间的空间填充效果，$(x_1,x_4)$ 子空间内的空间填充性能就会被牺牲，这会造成资源浪费。
+
+尽管序贯设计看似比空间填充设计更优，但并非总能开展序贯试验。马克等人（2018）报道了一项采用大涡模拟代码对火箭喷射器进行设计优化的试验。他们采用最大投影设计完成了 30 次试验。每一轮模拟代码运行大约需要一周时间，但模拟可以并行执行。因此，他们在不到六周的时间内就完成了全部试验。倘若采用序贯设计开展该试验，整体试验周期将长达七八个月以上！由此可见，序贯设计并不能完全取代空间填充设计。实际上，两类试验是相辅相成的。最常用的策略是先采用空间填充设计，再开展序贯试验。以空间填充设计作为初始设计，还能够避免因响应曲面估计效果不佳而造成序贯设计中途被迫终止。
+
+### 7.1.1 基于预测的序贯设计
+
+假设我们已按照试验设计 $D_n=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$ 依次完成 $n$ 次试验，其中 $\boldsymbol{x}_i\in\mathcal{X}=[0,1]^p$，并观测得到数据 $\boldsymbol{y}_n=(y_1,\dots,y_n)'$。我们的目标是最优选择下一次试验的试验点，即 $\boldsymbol{x}_{n+1}$。记 $y=h(\boldsymbol{x})$ 为计算机模型。对底层函数假设高斯过程先验：$h(\boldsymbol{x})\sim\mathrm{GP}(\mu,\tau^2R(\cdot))$。若我们在下一次试验中观测到 $y_{n+1}$，则后验分布为：
+
+$$
+h(\boldsymbol{x})|D_{n+1},\boldsymbol{y}_{n+1},\boldsymbol{\theta}\sim\mathcal{N}\left(\widehat{y}_{n+1}(\boldsymbol{x};\boldsymbol{\theta}),\,s^2_{n+1}(\boldsymbol{x};\boldsymbol{\theta})\right)
+$$
+
+其中
+
+$$
+\begin{align*}
+\widehat{y}_{n+1}(\boldsymbol{x};\boldsymbol{\theta})&=\mu+\boldsymbol{r}_{n+1}(\boldsymbol{x})'\boldsymbol{R}_{n+1}^{-1}(\boldsymbol{y}_{n+1}-\mu\boldsymbol{1}_{n+1})\\
+s^2_{n+1}(\boldsymbol{x};\boldsymbol{\theta})&=\tau^2\left\{1-\boldsymbol{r}_{n+1}(\boldsymbol{x})'\boldsymbol{R}_{n+1}^{-1}\boldsymbol{r}_{n+1}(\boldsymbol{x})\right\}
+\end{align*}
+$$
+
+式中 $\boldsymbol{r}_{n+1}(\boldsymbol{x})=\{R(\boldsymbol{x}-\boldsymbol{x}_i)\}_{i=1}^{n+1}$，$\boldsymbol{R}_{n+1}=\{R(\boldsymbol{x}_i-\boldsymbol{x}_j)\}_{i,j=1}^{n+1}$，$\boldsymbol{\theta}$ 为相关参数。
+
+选择 $\boldsymbol{x}_{n+1}$ 的一种合理方法是，对所有 $\boldsymbol{x}\in\mathcal{X}=[0,1]^p$ 最小化 $s^2_{n+1}(\boldsymbol{x})$。基于正态性假设，$s^2_{n+1}(\boldsymbol{x})$ 与 $y_{n+1}$ 相互独立。这为我们的序贯策略带来极大简化，因为只有完成实验之后我们才能获知 $y_{n+1}$。在第 3 章中，我们讨论过两种情形：在集合 $\mathcal{X}$ 上最小化平均方差（积分均方误差，IMSE）或是最小化最大方差（极大极小均方误差，MMSE）。我们首先考虑积分均方误差（IMSE）的情形。此时序贯设计策略为
+
+$$
+\boldsymbol{x}_{n+1}\leftarrow\argmin_{\boldsymbol{x}_{n+1}}\int s^2_{n+1}(\boldsymbol{x})\mathrm{d}\boldsymbol{x}
+\tag{7.1}
+$$
+
+其中
+
+$$
+s^2_{n+1}(\boldsymbol{x})=\mathrm{E}\{s^2(\boldsymbol{x}_{n+1};\boldsymbol{\theta})\mid D_{n+1},\boldsymbol{y}_{n+1}\}+\mathrm{var}\{\widehat y_{n+1}(\boldsymbol{x};\boldsymbol{\theta})\mid D_{n+1},\boldsymbol{y}_{n+1}\}
+$$
+
+求解参数 $\boldsymbol{\theta}$ 的后验分布计算成本很高。一种常用处理方式是忽略这类不确定性，将 $\boldsymbol{\theta}$ 固定为完成 $n$ 次实验后的估计值。由此得到如下近似：
+
+$$
+s^2_{n+1}(\boldsymbol{x})\approx s^2(\boldsymbol{x}_{n+1};\widehat{\boldsymbol{\theta}}_n)
+$$
+
+式 (7.1) 中目标函数的计算成本可能较高，原因有两点：（1）需要对 $\boldsymbol{R}_{n+1}$ 求逆；（2）该积分可能是高维积分。我们可以按如下方式解决第一个问题。由式 (2.19) 可知，给定数据集，$h(\boldsymbol{x})$ 与 $y_{n+1}$ 的联合分布为二元正态分布，其方差为
+
+$$
+\begin{align*}
+&\mathrm{var}\left(\left.\begin{bmatrix}h(\boldsymbol{x})\\y_{n+1}\end{bmatrix}\middle|D_n\right., \boldsymbol{y}_n\right)\\
+&=\tau^2\begin{bmatrix}
+1-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})&R(\boldsymbol{x}-\boldsymbol{x}_{n+1})-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})\\
+R(\boldsymbol{x}-\boldsymbol{x}_{n+1})-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})&1-\boldsymbol{r}_n(\boldsymbol{x}_{n+1})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})
+\end{bmatrix}
+\end{align*}
+$$
+
+结合引理 2.2，可以得到
+
+$$
+s_{n+1}^2(\boldsymbol{x})=s_n^2(\boldsymbol{x})-\tau^2\frac{\left\{R(\boldsymbol{x}-\boldsymbol{x}_{n+1})-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})\right\}^2}{1-\boldsymbol{r}_n(\boldsymbol{x}_{n+1})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})}
+\tag{7.2}
+$$
+
+该式便于计算。据此，式 (7.1) 可简化为（格拉梅西和李，2009）
+
+$$
+\begin{align*}
+\boldsymbol{x}_{n+1}&\leftarrow\argmin_{\boldsymbol{x}_{n+1}}\left(\int s_n^2(\boldsymbol{x})\mathrm{d}\boldsymbol{x}-\tau^2\int\frac{\left\{R(\boldsymbol{x}-\boldsymbol{x}_{n+1})-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})\right\}^2}{1-\boldsymbol{r}_n(\boldsymbol{x}_{n+1})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})}\mathrm{d}\boldsymbol{x}\right)\\
+&\equiv\argmax_{\boldsymbol{x}_{n+1}}\frac{\int\{R(\boldsymbol{x}-\boldsymbol{x}_{n+1})-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})\}^2\mathrm{d}\boldsymbol{x}}{1-\boldsymbol{r}_n(\boldsymbol{x}_{n+1})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})}
+\tag{7.3}
+\end{align*}
+$$
+
+徐等人（2000）将该策略称为主动学习‑科恩算法（ALC），因为它与神经网络中使用的同类策略存在关联（科恩，1996）。对于高斯等部分相关函数，分子中的高维积分可以写出显式表达式；但一般情形下，可采用蒙特卡洛、拟蒙特卡洛或者 5.1.2 节所述的均匀设计做近似计算。关于该方法的高效实现细节可参考比努瓦等人（2019）。需要重点说明：序贯设计点依赖于已观测数据 $\boldsymbol{y}_n$，这种依赖关系是通过估计得到的相关参数 $\widehat{\boldsymbol{\theta}}_n$ 建立的。这正是此类序贯设计和第 4 章中式 (4.20)、式 (4.27) 等序贯构造设计的核心区别。
+
+考虑式 (4.28) 给出的布兰宁函数，但额外引入两个冗余变量 $x_3$ 与 $x_4$。此时试验区域为四维空间，然而仅有 $x_1$ 和 $x_2$ 会对输出产生影响。假设采用 20 次试验的最大投影设计作为初始设计，借助 R 软件包 rkriging（黄和约瑟夫，2024）对数据拟合带有高斯相关函数的高斯过程模型。随后依据式 (7.3) 选取下一个设计点，其中分子部分的积分采用 $100p$ 的索博尔候选点集做近似计算。式 (7.3) 的最大化求解通过从上述同一组候选点中挑选最优点实现近似处理。持续执行该流程，我们一共新增 10 个点，且每一步都更新高斯过程模型。图 7.2 的左子图与中子图分别展示有效子空间 $(x_1,x_2)$ 和无效子空间 $(x_3,x_4)$ 上的样本点。可以观察到，样本点在有效维度上的空间填充性优于无效维度。该图右侧子图给出基于 4000 个点计算得到的均方根预测误差（RMSE），结果表明随着向设计中不断增加样本点，模型预测效果得到提升。
+
+> **图 7.2**：采用积分均方误差准则（主动学习‑科恩法）对含有两个非活动变量的布兰宁函数进行序贯设计
+
+![Alt Text](figures/7.2.png){width=100%}
+
+我们也可以考虑加入下一个设计点，以最小化最大预测方差（MMSE）：
+
+$$
+\begin{align*}
+\boldsymbol{x}_{n+1}&\leftarrow\argmin_{\boldsymbol{x}_{n+1}}\max_{\boldsymbol{x}\in\mathcal{X}}s^2_{n+1}(\boldsymbol{x})
+\tag{7.4}\\
+&=\argmin_{\boldsymbol{x}_{n+1}}\max_{\boldsymbol{x}\in\mathcal{X}}\left\{1-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x})-\frac{\{R(\boldsymbol{x}-\boldsymbol{x}_{n+1})-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})\}^2}{1-\boldsymbol{r}_n(\boldsymbol{x}_{n+1})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x}_{n+1})}\right\}
+\end{align*}
+$$
+采用该策略得到的设计点与均方根误差（RMSE）如图 7.3 所示。与采用积分均方误差（IMSE）准则的序贯设计相比，MMSE 准则会将设计点向边界处推移。
+
+> **图 7.3**：采用最小均方误差准则对含有两个无效变量的布兰宁函数进行序贯设计
+
+![Alt Text](figures/7.3.png){width=100%}
+
+### 7.1.2 基于熵的序贯设计
+
+现在我们来考虑 3.2 节讨论的最大熵设计。在高斯过程模型下，寻找 $n$ 个点的设计准则是最大化 $|\boldsymbol{R}_n|$。因此，寻找下一个设计点的序贯设计策略为：
+
+$$
+\boldsymbol{x}_{n+1}\leftarrow\argmax_{\boldsymbol{x_{n+1}}}|\boldsymbol{R}_{n+1}|
+\tag{7.5}
+$$
+
+利用分块矩阵行列式的结论（引理 2.1），可得：
+
+$$
+|\boldsymbol{R}_{n+1}|=\begin{vmatrix}
+\boldsymbol{R}_n&\boldsymbol{r}_n(\boldsymbol{x_{n+1}})\\
+\boldsymbol{r}_n(\boldsymbol{x_{n+1}})'&1
+\end{vmatrix}=|\boldsymbol{R}_n|\{1-\boldsymbol{r}_n(\boldsymbol{x_{n+1}})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x_{n+1}})\}
+$$
+
+于是式 (7.5) 转化为：
+
+$$
+\boldsymbol{x}_{n+1}\leftarrow\argmax_{\boldsymbol{x_{n+1}}}\{1-\boldsymbol{r}_n(\boldsymbol{x_{n+1}})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x_{n+1}})\}
+\tag{7.6}
+$$
+
+也就是说，下一个样本点选取在预测不确定性最大的位置。该策略最初由麦凯（1992）针对主动学习提出，因此被称为麦凯主动学习算法（ALM）（徐等人，2000）。该思路与求解 D‑最优设计所使用的算法也存在紧密联系（费奥多罗夫，1972）。
+
+再次回顾上一节讨论过的带有两个冗余变量的布兰宁函数。采用式 (7.6) 得到的设计点与均方根误差如图 7.4 所示。可以观察到设计点向边界靠拢。该现象符合预期，因为如 4.3 节所述，采用高斯相关函数的最大熵设计会生成最大最小距离设计，而这类设计的特点就是将样本点推向边界。宋与约瑟夫（2025）近期研究表明，在式 (7.15) 中使用乘积逆多二次（MIM）核函数能够缓解该问题，该核函数可获得更优的低维投影效果。研究同时发现，相较于最大投影这类空间填充设计，将最大单因素逐次设计作为初始设计可得到更好的结果。这一现象可能源于最大单因素逐次设计能够对长度尺度参数实现精准估计。
+
+> **图 7.4**：基于熵准则的序贯设计（麦克凯主动学习），针对带有两个非活跃变量的布兰宁函数
+
+![Alt Text](figures/7.4.png){width=100%}
+
+相较于基于预测的序贯设计，麦凯主动学习算法的一大优势是计算速度。在 2.1 吉赫兹的台式机上，采用主动学习‑科恩算法（使用 400 个拟蒙特卡洛点近似积分）生成 10 个序贯设计点耗时 44.12 秒，基于最小均方误差（MMSE）的设计耗时 57.28 秒，而麦凯主动学习算法仅耗时 0.27 秒。但上述所有方法都倾向于将样本点在试验区域内均匀分布，该现象源于高斯过程模型（普通克里金）的常数方差假设。若采用异方差高斯过程模型，例如复合高斯过程（巴和约瑟夫，2012）或深度高斯过程（绍尔等人，2023），则可以得到更优的序贯设计，能够在响应面变化剧烈、具有研究价值的区域布置更多样本点。王和约瑟夫（2025a）的研究中近期提出了一种基于式 (2.52) 有理克里金的异方差改进方案。
+
+## 7.2 优化
+
+假设我们的目标是对计算成本高昂的黑箱函数 $h(\boldsymbol{x})$（$\boldsymbol{x}\in\mathcal{X}$）进行优化。不失一般性，我们将该优化视作极小化问题，且令 $\mathcal{X}=[0,1]^p$。因此，优化目标为：
+
+$$
+\min_{\boldsymbol{x}\in[0,1]^p}h(\boldsymbol{x})
+\tag{7.7}
+$$
+
+这是一个带边界约束的非线性优化问题。在优化领域的相关文献中，存在大量求解该问题的算法，大致可分为局部优化算法与全局优化算法两类。牛顿法、内尔德‑米德单纯形法等局部优化算法从可行域内的某一点出发，最终收敛到距离初始点较近的局部最优解。与之不同，模拟退火算法、遗传算法这类全局优化算法在特定条件下能够收敛至全局最优解。局部与全局算法都需要对 $h(\boldsymbol{x})$ 进行大量求值运算，并且全局类算法通常比局部优化算法需要更多次求值。因此，当 $h(\boldsymbol{x})$ 是计算代价高昂的计算机模型时，这类算法无法直接用于求解式 (7.7)。
+
+我们需要一种全局优化方法，能够以尽可能少的 $h(\boldsymbol{x})$ 求值次数求解式 (7.7)。其中一种思路是：在 $[0,1]^p$ 内选取小规模试验设计 $\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$，对 $i=1,\dots,n$ 计算 $y_i=h(\boldsymbol{x}_i)$，随后采用易于求值的代理模型 $\widehat h_n(\boldsymbol{x})$（例如高斯过程（GP）模型的后验均值）对其进行近似。接着我们可以通过最小化该代理模型得到下一个设计点，即 $\boldsymbol{x}_{n+1}=\argmin_{\boldsymbol{x}}\widehat h_n(\boldsymbol{x})$。该流程可以循环执行，每一步完成后更新代理模型，直至收敛。但新增的样本点很容易聚集在初始试验设计得到的最优解附近，使得代理模型的近似效果几乎得不到提升。因此，若初始代理模型的近似效果较差，该方法大概率会失效。
+
+高斯过程模型的一个优良特性是，我们可利用其方差估计 $s^2(\boldsymbol{x})$，对序贯设计每一步的近似误差进行概率化量化。因此，如果我们能够提出一种可以兼顾优化与代理模型近似这两个目标的方法，就能够引导该方法收敛至全局最优解。这类方法是真实存在的，由于高斯过程采用贝叶斯框架，因此被称作贝叶斯优化方法。将随机过程应用于全局优化的思路可追溯至库什纳（1964）。关于贝叶斯优化的更多详细内容，可以参阅弗雷泽（2018）的综述论文，或是加内特（2023）所著的书籍。
+
+贝叶斯优化相关的文献数量庞大。本文将重点介绍最常用的一种贝叶斯优化方法——期望改进法。该方法由琼斯等人于 1998 年首次提出，其理论基础源于莫库斯 1978 年的早期研究。更多详细内容可参阅琼斯 2001 年发表的综述论文。
+
+假设我们按照试验设计 $D_n=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$ 依次完成了 $n$ 次试验，观测得到数据 $\boldsymbol{y}_n=(y_1,\dots,y_n)'$。对潜在函数给定高斯过程先验：$h(\boldsymbol{x})\sim\mathrm{GP}(\mu,\tau^2R(\cdot))$。则后验分布为：
+
+$$
+h(\boldsymbol{x})|D_n,\boldsymbol{y}_n\sim\mathcal{N}(\widehat{y}_n(\boldsymbol{x}),s_n^2(\boldsymbol{x}))
+\tag{7.8}
+$$
+
+其中，与前文一致：
+
+$$
+\begin{align*}
+\widehat{y}_n(\boldsymbol{x})&=\mu+\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}(\boldsymbol{y}_n-\mu\boldsymbol{1}_n)\\
+s_n^2(\boldsymbol{x})&=\tau^2\{1-\boldsymbol{r}_n(\boldsymbol{x})'\boldsymbol{R}_n^{-1}\boldsymbol{r}_n(\boldsymbol{x})\}
+\end{align*}
+$$
+
+式中 $\boldsymbol{r}_n(\boldsymbol{x})=\{R(\boldsymbol{x}-\boldsymbol{x}_i)\}_{i=1}^n$，$\boldsymbol{R}_n=\{R(\boldsymbol{x}_i-\boldsymbol{x}_j)\}_{i,j=1}^n$。令 $h_{\mathrm{min}}^{(n)}=\min \boldsymbol{y}_n$，定义改进函数：
+
+$$
+I(\boldsymbol{x})=\max\{h_{\mathrm{min}}^{(n)}-h(\boldsymbol{x}),0\}
+$$
+
+因此，若选取的 $x$ 满足 $h(\boldsymbol{x})<h_{\mathrm{min}}^{(n)}$，则获得改进；否则无改进。故而我们应当选取使改进最大化的 $\boldsymbol{x}$。但由于无法获知全部 $\boldsymbol{x}$ 对应的 $h(\boldsymbol{x})$，无法直接实现该目标。不过我们可以借助式 (7.8) 对其进行带不确定性的预测，由此得到 $I(\boldsymbol{x})$ 的分布。鉴于 $I(\boldsymbol{x})$ 的计算存在不确定性，选取下一个试验点的合理思路是最大化 $I(\boldsymbol{x})$ 的期望，即：
+
+$$
+\boldsymbol{x}_{n+1}=\argmax_{\boldsymbol{x}}\mathrm{E}\{I(\boldsymbol{x})\big|D_n,\boldsymbol{y}_n\}
+$$
+
+琼斯等人（1998）给出了期望改进（EI）的显式表达式，该表达式能够加快优化速度，其推导过程如下：
+
+$$
+\begin{align*}
+\mathrm{EI}&=\mathrm{E}\{I(\boldsymbol{x})|D_n,\boldsymbol{y}_n\}=\int_{-\infty}^{\infty}\max\{h_{\mathrm{min}}^{(n)}-y,0\}\phi(y;\widehat{h}_n(\boldsymbol{x}),s^2_n(\boldsymbol{x}))\mathrm{d}y\\
+&=\int_{-\infty}^{h_{\mathrm{min}}^{(n)}}\{h_{\mathrm{min}}^{(n)}-y\}\phi(y;\widehat{h}_n(\boldsymbol{x}),s^2_n(\boldsymbol{x}))\mathrm{d}y\\
+&=\int_{-\infty}^{(h_{\mathrm{min}}^{(n)}-\widehat{h}_n(\boldsymbol{x}))/s_n(\boldsymbol{x})}\{h_{\mathrm{min}}^{(n)}-\widehat{h}_n(\boldsymbol{x})-s_n(\boldsymbol{x})z\}\phi(z)\mathrm{d}z\\
+&=(h_{\mathrm{min}}^{(n)}-\widehat{h}_n(\boldsymbol{x}))\Phi\left(\frac{h_{\mathrm{min}}^{(n)}-\widehat{h}_n(\boldsymbol{x})}{s_n(\boldsymbol{x})}\right)+s_n(\boldsymbol{x})\phi\left(\frac{h_{\mathrm{min}}^{(n)}-\widehat{h}_n(\boldsymbol{x})}{s_n(\boldsymbol{x})}\right)
+\end{align*}
+$$
+
+式中 $\phi(\cdot)$ 与 $\Phi(\cdot)$ 分别代表标准正态概率密度函数与标准正态分布函数。由此，期望改进算法可以写为
+
+$$
+\boldsymbol{x}_{n+1}=\argmax_{\boldsymbol{x}}\{s_n(\boldsymbol{x})[u_n(\boldsymbol{x})\Phi(u_n(\boldsymbol{x}))+\phi(u_n(\boldsymbol{x}))]\}
+\tag{7.9}
+$$
+
+其中 $u_n(\boldsymbol{x})=\{h_{\mathrm{min}}^{(n)}-\widehat{h}_n(\boldsymbol{x})\}/s_n(\boldsymbol{x})$。对其求导可得
+
+$$
+\frac{\partial\mathrm{EI}}{\partial\widehat{h}_n(\boldsymbol{x})}=-\Phi(u_n(\boldsymbol{x}))<0,\quad\frac{\partial\mathrm{EI}}{\partial s_n(\boldsymbol{x})}=\phi(u_n(\boldsymbol{x}))>0
+$$
+
+该结果表明期望改进随 $\widehat{h}_n(\boldsymbol{x})$ 单调递减，随 $s_n(\boldsymbol{x})$ 单调递增。因此，可以通过选取使 $\widehat{h}_n(\boldsymbol{x})$ 最小或者使 $s_n(\boldsymbol{x})$ 最大的点实现期望改进最大化；正如 7.1.2 节所述，前者服务于优化（利用），后者服务于代理模型近似（探索）。实际上，期望改进很好地平衡了这两个目标，有助于序贯设计收敛到全局最优解（布尔，2011）。
+
+举个例子，考虑对式 (2.1) 中的一维函数做极小化处理。取 $\{(i-.5)/n\}_{i=1}^{n}$ 作为初始试验设计，设置 $n=8$ 个样本点。图 7.5 左图展示了试验点、真实函数，以及利用 rkriging（黄与约瑟夫，2024）拟合得到的高斯过程（GP）模型。该图同时给出期望改进（EI），其坐标轴位于绘图区域右侧。期望改进在 $x=0.25$ 处取得最大值，该点将作为新增的第 9 个试验点 $x_9$。但遗憾的是，该点恰恰是原函数的极大值点！出现这类错误的原因在于代理近似模型的拟合效果可能较差。加入该点后得到的高斯过程模型如图 7.5 的中间子图所示。此时期望改进算法可正确定位全局最优点，其位置约为 $x=0.16$。同一张图的右侧子图展示了再迭代一步的结果，算法识别出了次优极小点。此外，也可以在每一步同时添加两个或更多样本点，该方法称为批量序贯设计。该策略在可使用并行计算的场景下尤为实用。关于将单点期望改进算法拓展至批量序贯设计的若干有效启发式策略，可参阅金斯布尔热等人（2010）的研究。
+
+> **图 7.5**：对式 (2.1) 中的一维函数执行期望改进最小化算法的两次迭代
+
+![Alt Text](figures/7.5.png){width=100%}
+
+需要指出 EI 算法存在一项数值实现问题。在某次迭代过程中，新增采样点可能会与已有采样点距离极近，这会导致相关矩阵 $\boldsymbol{R}_n$ 出现病态。如前文 2.2.3 节所述，规避该问题的一种简易方法是向矩阵 $\boldsymbol{R}_n$ 的对角元添加一个较小的块金值 $\lambda>0$，也就是使用 $\boldsymbol{R}_n+\lambda\boldsymbol{I}_n$ 替代 $\boldsymbol{R}_n$。但该处理会使得设计点处的方差 $s_n^2(\boldsymbol{x})$ 不为零，进而造成新增设计点与已有设计点过于接近。避免该问题的一种手段是在式 (7.9) 的优化过程中采用候选点集，候选点需分布分散且远离已有设计点（格拉马西等人，2022）。另一种处理方式是按照兰詹等人（2011）的研究，采用稳定性更高的方式计算 $\boldsymbol{R}_n^{-1}$。令
+
+$$
+\boldsymbol{A}=(\boldsymbol{R}+\lambda I)^{-1}
+$$
+
+该矩阵可以实现高精度求解。而我们的目标是求解 $\boldsymbol{B}=\boldsymbol{R}^{-1}$。注意到
+
+$$
+\begin{align*}
+\boldsymbol{B}&=(\boldsymbol{R}+\lambda\boldsymbol{I}-\lambda\boldsymbol{I})^{-1}\\
+&=\boldsymbol{A}(I-\lambda\boldsymbol{A})^{-1}\\
+&=\boldsymbol{A}(I+\lambda\boldsymbol{A}+\lambda^2\boldsymbol{A}^2+\cdots)\\
+&=\boldsymbol{A}\bigl(I+\lambda\boldsymbol{A}\{I+\lambda\boldsymbol{A}+\cdots\}\bigr)\\
+&=\boldsymbol{A}\bigl(I+\lambda\boldsymbol{A}\{I-\lambda\boldsymbol{A}\}^{-1}\bigr)\\
+&=\boldsymbol{A}(I+\lambda\boldsymbol{B})
+\end{align*}
+$$
+
+由此可以得到 $\boldsymbol{R}^{-1}$ 的迭代求解公式：
+
+$$
+\boldsymbol{B}_{k+1}=\boldsymbol{A}(I+\lambda\boldsymbol{B}_k),k=1,2,\dots
+$$
+
+取初值 $\boldsymbol{B}_1=\boldsymbol{A}$。当 $\lambda$ 取值较小时，仅需少数几次迭代，$\boldsymbol{B}_k$ 便可收敛至 $\boldsymbol{R}^{-1}$，R 语言程序包 rkriging 已实现该算法（黄和约瑟夫，2024）。
+
+## 7.3 逆向设计
+
+在许多工程问题中，目标是得到能够使产品具备特定性能的设计方案。请注意，在本节中，“设计”一词会交替使用：在工程术语中指产品设计，在统计术语中指试验设计，二者的区别可通过上下文加以区分。假定采用 $q$ 个性能指标（输出）$\boldsymbol y=(y_1,\dots,y_q)'$ 评价产品性能，$\boldsymbol x=(x_1,\dots,x_p)'$ 为 $p$ 个设计变量（输入）。设第 $i$ 个输出与输入变量满足关系 $y_i=h_i(\boldsymbol x)$，其中 $\boldsymbol x\in \mathcal X=[0,1]^p$，$i=1,\dots,q$。目标是找到输入设计 $\boldsymbol x^*$，使其得到给定输出 $\boldsymbol y^*$。令 $w_i$ 表示分配给第 $i$ 个输出的权重，用于衡量该输出的重要程度。于是，可通过求解如下优化问题得到逆设计：
+
+$$
+\boldsymbol x^*=\argmin_{\boldsymbol x}\|\boldsymbol y^*-\boldsymbol h(\boldsymbol x)\|_{\boldsymbol{w}}
+\tag{7.10}
+$$
+
+式中，$\boldsymbol h(\boldsymbol x)=(h_1(\boldsymbol x),\dots,h_q(\boldsymbol x))'$，$\|\boldsymbol u-\boldsymbol v\|_{\boldsymbol{w}}=\sqrt{\sum_{i=1}^{q}w_i(u_i-v_i)^2}$，$\sum_{i=1}^{q}w_i=1$，且对 $i=1,\dots,q$ 有 $w_i\ge 0$。
+
+如果 $h_i(\boldsymbol{w})$ 中有一个或多个函数的计算代价很高，那么式 (7.10) 中的优化计算成本将会高到难以承受。在这种情况下，我们可以采用上一节介绍的贝叶斯优化方法。接下来假设我们希望求解逆设计，以得到若干组不同的目标性能 $\boldsymbol{y}^*_1,\dots,\boldsymbol{y}^*_N$。当 $N$ 很大时，执行 $N$ 次贝叶斯优化会十分繁琐。此外，该方法的效率也较低，因为各次优化过程所采用的序贯设计可能存在重叠，进而造成计算资源的浪费。一种效率更高的思路是求解下述问题的 $N$ 个局部最优解：
+
+$$
+\min_{\boldsymbol{x}}\max_{i=1:N}\|\boldsymbol{y}^*_i-\boldsymbol{h}(\boldsymbol{x})\|_{\boldsymbol{w}}
+$$
+
+然而，求解多个最优解本身并非易事。
+
+如果用户能够在连续空间 $\mathcal{Y}$ 中指定任意目标，上述问题会变得更加棘手。事实上，这种情况在工程设计中十分常见。举一个具体例子，参考克里希纳等人（2022）研究的声学超表面设计问题，该研究旨在对反射与透射声波的振幅和相位实现独立调控。实验可借助 COMSOL 的全波仿真完成，仿真在给定若干边界条件下求解亥姆霍兹波动方程。在水下通信、全息成像这类应用场景中，用户可能需要反射声波与透射声波具备各不相同的振幅、相位参数，此时就需要快速给出能够实现上述目标的超表面设计方案。克里希纳等人（2022）尝试通过求解下述问题得到 $N$ 组设计方案：针对集合 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_N\}$，最小化
+
+$$
+\max_{\boldsymbol{y}\in\mathcal{Y}}\min_{i}\|\boldsymbol{y}-\boldsymbol{h}(\boldsymbol{x}_i)\|_{\boldsymbol{w}}
+\tag{7.11}
+$$
+
+该式等价于在输出空间 $\mathcal{Y}$ 中求解极小极大设计 $\{\boldsymbol{y}_1,\dots,\boldsymbol{y}_N\}$，其中 $\boldsymbol{y}_i=\boldsymbol{h}(\boldsymbol{x}_i)$。但该问题求解难度很高，原因在于空间 $\mathcal{Y}$ 是未知的，且 $\boldsymbol{y}$ 只能通过计算成本高昂的函数 $\boldsymbol{h}(\boldsymbol{x})$ 获取观测值。一旦得到输出空间内的极小极大设计，对于任意给定目标 $\boldsymbol{y}^*$，就可以求得 $i^*=\argmin_i\|\boldsymbol{y}^*-\boldsymbol{y}_i\|_{\boldsymbol{w}}$，并将对应的设计 $\boldsymbol{x}_{i^*}$ 作为问题解。简单来说，$\{(\boldsymbol{x}_1,\boldsymbol{y}_1),\dots,(\boldsymbol{x}_N,\boldsymbol{y}_N)\}$ 可以看作一张查找表。
+
+克里希纳等人（2022）提出了一种序列扰动算法用于求解逆设计问题。该方法的思路是从一个初始设计出发，通过全波仿真得到输出结果。下一步确定输出空间中的最大间隙，该间隙设置为略大于已观测输出的凸包。确定最大间隙后，对输入空间内对应的点施加扰动，期望经过扰动后的点能够产生输出以填补该间隙。重复该流程，直至输出空间的最大间隙小于设定容差。王等人（2024）针对该算法提出了改进方案。贝廷格等人（2008）提出了一种基于高斯过程模型的逆设计方法。与之不同，序列扰动算法无需进行任何模型拟合，因此运算速度很快，适合生成大规模设计方案。克里希纳等人（2022）为达到声学输出的目标精度，需要开展 24000 次全波仿真，但该数值仅为 $7\times7$ 网格下 $563\times10^{12}$ 种声学超表面可行设计总量的极小一部分。这充分体现了序列设计方法的优势。
+
+举例说明，参考王等人（2024）给出的一个简单算例，取 $p=q=2$：
+
+$$
+y_1=\frac{1}{\sqrt{x_1^2+x_2^2+0.01}},\quad y_2=\tan^{-1}\left(\frac{x_2}{x_1}\right)
+$$
+
+我们在输入空间中采用包含 10 个样本点的最大投影拉丁超立方设计（LHD）。输出空间对应的样本点以蓝色实心圆展示于图 7.6 的右侧子图。算法识别出最大间隙，并对输入空间中对应的样本点施加扰动。关于最大间隙的识别方法以及扰动的执行方式，详见王等人（2024）的文献。该算法已在 R 语言程序包 OSFD 中实现（王与约瑟夫，2024）。上述过程迭代执行 40 步，迭代生成的样本点在同一张图中以红色叉号标出。可以看到，相较于初始设计覆盖的区域，输出空间内的样本点覆盖范围得到了显著扩张。为实现该效果，新增的输入样本点大多集中分布在输入空间的左下角。如果不借助序贯设计算法，很难发现这一规律。
+
+> **图 7.6**：针对该逆设计问题，在输入空间内以 10 个点的最大投影拉丁超立方设计（蓝色实心圆）为初始样本，通过序列扰动算法新增了 40 个设计点（红色叉号）
+
+![Alt Text](figures/7.6.png){width=67%}
+
+我们可以看到，尽管图 7.6 中的输出点能够填满整个空间，但输入点高度聚集。如果我们的目标是同时构建正向模型与逆向模型，那么输入空间和输出空间都应当具备空间填充特性。可以通过在输入、输出空间的空间填充性能上做出一定权衡来实现该目标。卢与安德森‑库克（2021）以及巴顿和莫里斯（2025）阐述了如何基于两阶段模型方法实现这一效果。王和约瑟夫（2025b）改进了巴顿与莫里斯（2025）的方法，提出了一种完全序贯、不依赖模型的输入‑输出空间填充设计。
+
+有趣的是，为逆向设计开发的序列扰动算法还有其他应用。以第一章中介绍的克里希纳等人（2024）的晶体结构预测案例为例。输入空间为单一晶体结构原子构型的笛卡尔坐标，输出为采用密度泛函理论（DFT）计算得到的势能。但由于势能在原子平移、旋转以及置换操作下保持不变，笛卡尔坐标体系并不适用于模型构建。因此，需要借助指纹表征技术，将笛卡尔坐标转换为一组特征。由于势能的高斯过程模型是基于这些特征拟合得到的，特征空间内的样本点需要具备空间填充特性。相较于密度泛函理论计算，指纹表征的运算速度更快，但仍存在不可忽略的计算开销，这导致在特征空间中生成具备空间填充特性的样本点十分困难。对此，我们可以使用序列扰动算法，将特征空间视作输出空间，笛卡尔坐标空间视作输入空间。
+
+# 8 部分因子试验设计
+
+物理实验与计算机实验在诸多方面存在差异。首先，物理实验成本高昂。例如，建造火箭并研究其性能的成本，远高于在计算机上开展模拟实验。但许多物理系统过于复杂，无法在计算机中建立贴合现实的模型，因此物理实验必不可少。其次，物理实验的输出结果需要借助仪器进行测量，而仪器无法实现任意精度。因此，物理实验获取的数据会受到测量噪声的干扰，计算机实验的输出则与之不同，能够以较高精度完成计算。此外，物理系统中存在大量已知或未知的变量，这些变量在实验过程中无法得到控制。它们会在实验期间发生变化，造成输出结果出现波动，这在我们看来同样表现为输出噪声。因此，实验人员必须采用重复试验、随机化、区组化等方法专门处理这类噪声，而这些手段对于计算机实验并不适用。第三，开展物理实验难度大且耗费时间。举例来说，若要调整熔炉内的温度，可能需要等待数小时；而在计算机实验中，我们只需输入新的温度数值，参数就会立刻完成变更。受以上种种因素影响，物理实验的运行次数通常较少。线性模型能够很好地基于这类数量少且带有噪声的数据估计响应面。因此，绝大多数关于物理实验的文献都围绕线性回归模型展开。不过，正如 1.3 节所指出的，线性回归模型难以刻画模型的不确定性，故而在构建最优实验设计方面存在一定局限。本章将简要回顾基于线性模型的实验设计，并探讨高斯过程模型能够如何辅助物理实验的设计与分析工作。
+
+## 8.1 两级设计
+
+已有大量优秀的物理实验相关教材采用线性回归模型，例如博克斯等人（1978）、米（2009）、莫里斯（2010）、劳森（2014）、迪恩等人（2017）、蒙哥马利（2017）、吴与滨田（2021）等，此处仅列举部分。因此，本文仅梳理部分基础概念，借此建立与计算机实验设计之间的联系，并提出一种适用于物理实验的高斯过程回归方法。想要了解物理实验的更多细节，读者可参阅上述著作。若需要该主题更深层次的理论阐述，可参考蒙哥马利和吴（2007）以及程（2016）。
+
+大多数物理实验设计中，每个因子会设置两个或三个水平。这是因为如前文所述，实验的运行规模通常较小，且数据存在噪声。因此，具备线性或二次效应的模型或许可以很好地拟合响应曲面。为使该近似效果良好，我们可将因子的取值范围设置得不宜过大。物理实验选用两水平或三水平的另一个原因是：实验中更改因子水平并不容易，且参数设置过程可能会产生误差。本节我们将重点介绍两水平设计。
+
+假设我们有 $p$ 个因子 $x_1,\dots,x_p$，每个因子取两个水平，采用 $n$ 次试验的设计 $D$ 开展实验。全因子设计需要 $n=2^p$ 次试验，当 $p$ 较大时，在绝大多数实际场景中该试验成本难以承受。因此，我们重点关注满足 $n\ll2^p$ 的设计，即仅使用全因子设计的一部分试验，这类设计称为部分因子设计。
+
+由于每个变量仅有两个水平，我们可以考虑拟合仅包含主效应的线性回归模型：
+
+$$
+y=\beta_0+\beta_1x_1+\cdots+\beta_px_p+\epsilon
+\tag{8.1}
+$$
+
+其中 $\epsilon\stackrel{\text{iid}}{\sim}\mathcal{N}(0,\sigma^2)$。考虑一次无重复实验，令 $\boldsymbol{y}=(y_1,\dots,y_n)'$ 为观测数据。于是，如同式 (2.32)，我们可以得到参数估计：
+
+$$
+\widehat{\boldsymbol{\beta}} = (\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{y}
+$$
+
+式中 $\boldsymbol{X}=[\boldsymbol1,D]$ 为模型矩阵。我们应当如何选取设计矩阵 $D$，才能让该估计量具备良好的性能？
+
+在 2.2.1 节中，我们介绍了选择最优设计的若干准则。假设我们采用 D‑最优设计：
+
+$$
+\max_{D}|\boldsymbol{X}'\boldsymbol{X}|
+$$
+
+一般情况下，我们可以使用 2.2.1 节介绍的费多罗夫交换算法（费多罗夫，1972）这类优化算法求解最优设计。但对于部分样本量 $n$，可以采用更为简便的方式构造最优设计。下面给出一条实用结论（拉奥，1973，第 236 页）。
+
+> **定理 8.1**：当矩阵 $\boldsymbol{X}$ 的列向量相互正交时，$|\boldsymbol{X}'\boldsymbol{X}|$ 取得最大值。
+
+为证明这一点，将模型矩阵作如下分块：$\boldsymbol{X}=[\boldsymbol{x}_i\boldsymbol{X}_{(i)}]$。然后，利用引理 2.1：
+
+$$
+\begin{align*}
+|\boldsymbol{X}'\boldsymbol{X}|&=
+\begin{vmatrix}
+\boldsymbol{x}'_i\boldsymbol{x}_i&\boldsymbol{x}'_i\boldsymbol{X}_{(i)}\\
+\boldsymbol{X}'_{(i)}\boldsymbol{x}_i&\boldsymbol{X}'_{(i)}\boldsymbol{X}_{(i)}
+\end{vmatrix}\\
+&=|\boldsymbol{X}'_{(i)}\boldsymbol{X}_{(i)}|\{\boldsymbol{x}'_i\boldsymbol{x}_i-\boldsymbol{x}'_i\boldsymbol{X}_{(i)}(\boldsymbol{X}'_{(i)}\boldsymbol{X}_{(i)})^{-1}\boldsymbol{X}'_{(i)}\boldsymbol{x}_i\}\\
+&\le|\boldsymbol{X}'_{(i)}\boldsymbol{X}_{(i)}|\boldsymbol{x}'_i\boldsymbol{x}_i
+\end{align*}
+$$
+
+其中最后一步的不等式由 $\boldsymbol{x}'_i\boldsymbol{X}_{(i)}(\boldsymbol{X}'_{(i)}\boldsymbol{X}_{(i)})^{-1}\boldsymbol{X}'_{(i)}\boldsymbol{x}_i\ge0$ 这一事实得到。因此，当
+
+$$
+\boldsymbol{x}'_i\boldsymbol{X}_{(i)}(\boldsymbol{X}'_{(i)}\boldsymbol{X}_{(i)})^{-1}\boldsymbol{X}'_{(i)}\boldsymbol{x}_i=0
+$$
+
+时取到该上界。由于 $\boldsymbol{X}'_{(i)}\boldsymbol{X}_{(i)}$ 为正定矩阵，该等式成立的条件是 $\boldsymbol{x}'_i\boldsymbol{X}_{(i)}=0$，这意味着对所有满 $i\neq j$ 的下标，均有 $\boldsymbol{x}'_i\boldsymbol{x}_j=0$。
+
+不失一般性，我们可以将两个水平取为 $‑1$ 和 $1$。此时，为使每一列都与截距列 $1$ 正交，设计矩阵的每一列中 $‑1$ 与 $1$ 的数量必须相等。此外，若要让设计矩阵的两列相互正交，则数对
+
+$$
+\{(-1,-1),(-1,1),(1,-1),(1,1)\}
+$$
+
+的出现次数必须相同。
+
+举一个包含四个因子 $x_1$、$x_2$、$x_3$ 和 $x_4$ 的例子。假设实验者仅能完成 8 次试验。此时我们需要全因子设计的 1/2 部分实施，该设计记为 $2^{4-1}$ 设计。要构造该设计，可先建立 $x_1$、$x_2$、$x_3$ 的全因子设计，再将 $x_4$ 的列赋值为这三个因子列的乘积：$\{x_1x_2,x_1x_3,x_2x_3,x_1x_2x_3\}$。这种构造方式得到的是正则设计；关于非正则设计的构造方法可参见吴与滨田（2021，第 8 章）。令 $\boldsymbol{d}_i$ 表示设计矩阵 $\boldsymbol{D}$ 的第 $i$ 列，$\boldsymbol{d}_i\boldsymbol{d}_j$ 表示第 $i$ 列与第 $j$ 列的逐元素乘积。令 $\boldsymbol{d}_4=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3$ 得到的设计如表 8.1 所示。不难验证模型矩阵 $\boldsymbol{X}=[\boldsymbol{1}D]$ 是正交矩阵，因此该设计对于式 (8.1) 中模型的参数估计具有 D 最优性。若采用赋值 $\boldsymbol{d}_4=\boldsymbol{d}_1\boldsymbol{d}_2$，将得到另一个 $2^{4-1}$ 设计，在 D 最优性准则下，该设计与前一个设计效果相当。
+
+> **表 8.1**：$2^{4-1}$ 试验设计与数据
+
+|运行次数|$x_1$|$x_2$|$x_3$|$x_4$|$y$|
+|:--:|--:|--:|--:|--:|:--:|
+|1|-1|-1|-1|-1|504|
+|2|-1|-1|1|1|984|
+|3|-1|1|-1|1|928|
+|4|-1|1|1|-1|808|
+|5|1|-1|-1|1|992|
+|6|1|-1|1|-1|784|
+|7|1|1|-1|-1|464|
+|8|1|1|1|1|976|
+
+倘若式 (8.1) 中的模型设定有误该如何处理？一种可行方案是采用如下完整模型：
+
+$$
+\begin{align*}
+y&=\alpha_0+\alpha_1x_1+\cdots+\alpha_px_p\\
+&+\alpha_{12}x_1x_2+\cdots+\alpha_{p-1,p}x_{p-1}x_p\\
+&+\alpha_{123}x_1x_2x_3+\cdots+\alpha_{p-2,p-1,p}x_{p-2}x_{p-1}x_p\\
+&+\cdots\\
+&+\alpha_{12\cdots p}x_1x_2\cdots x_p+\delta
+\tag{8.2}
+\end{align*}
+$$
+
+其中 $\delta$ 独立同分布，服从正态分布 $\mathcal{N}(0,\tau^2)$。尽管该模型新增了大量项，但模型依旧可能存在设定错误，原因是该模型并未纳入二次、三次效应这类非线性项。不过，由于我们限定采用二水平试验设计，这类非线性项无法纳入考量。
+
+遗憾的是，完整模型包含 $2p$ 个系数，远大于部分因子设计的试验次数。因此，无法利用该数据对该模型进行估计。处理该问题的方法有很多。我们可以使用惩罚回归方法，例如套索回归（蒂布希拉尼，1996），也可以对系数设置信息先验，采用贝叶斯回归（奇普曼等人，1997）。在探讨这些更为复杂的方法之前，我们将介绍一些传统分析方法，以此获取对构建最优试验设计至关重要的理解。
+
+在 $2^{p−k}$ 正规部分因子试验设计中，可以拟合包含 $p−k$ 个因子的完整模型。以表 8.1 中的 $2^{4−1}$ 设计为例。我们可以对任意三个因子，例如 $\{x_1,x_2,x_3\}$ 拟合完整模型：
+
+$$
+y=\beta_0+\beta_1x_1+\beta_2x_2+\beta_3x_3+\beta_{12}x_1x_2+\beta_{13}x_1x_3+\beta_{23}x_2x_3+\beta_{123}x_1x_2x_3+\epsilon
+\tag{8.3}
+$$
+
+由该模型可得
+
+$$
+\widehat{\boldsymbol{\beta}}=(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{y}=(805,-1,-11,83,-73,-7,15,165)'
+$$
+
+图 8.1 为系数绝对值的半正态图。可以看出系数 $\widehat{\beta}_{123}$、$\widehat{\beta}_3$ 与 $\widehat{\beta}_{12}$ 显著，该结果可通过伦思法予以验证（伦思，1989）。
+
+> **图 8.1**：不包含 $x_4$ 的式 (8.3) 中模型绝对系数的半正态图
+
+![Alt Text](figures/8.1.png){width=33%}
+
+然而，我们想要拟合的模型为：
+
+$$
+\boldsymbol{y}=\boldsymbol{F}\boldsymbol{\alpha}+\boldsymbol{\delta}
+$$
+
+其中 $\boldsymbol{F}$ 是对应四个因子 $\{x_1,x_2,x_3,x_4\}$ 全模型的模型矩阵。在等式两边左乘 $(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'$，可得：
+
+$$
+\widehat{\boldsymbol{\beta}}=(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'y=(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{F}\boldsymbol{\alpha}+\widetilde{\boldsymbol{\delta}}
+$$
+
+式中 $\widetilde{\boldsymbol{\delta}}=(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{\delta}$。对其化简，得到显著系数满足的方程组：
+
+$$
+\begin{align*}
+\widehat{\beta}_{123}&=\alpha_4+\alpha_{123}+\widetilde{\delta}_{123}=165\\
+\widehat{\beta}_{3}&=\alpha_3+\alpha_{124}+\widetilde{\delta}_{3}=83\\
+\widehat{\beta}_{12}&=\alpha_{12}+\alpha_{34}+\widetilde{\delta}_{12}=-73
+\end{align*}
+$$
+
+如何通过以上三个方程求解六个系数？由于 $\widetilde{\delta}$ 是零均值误差项，可以将其忽略。但我们无法将 $\alpha_4$ 与 $\alpha_{123}$、$\alpha_3$ 与 $\alpha_{124}$、$\alpha_{12}$ 与 $\alpha_{34}$ 分离开。这些系数不可识别，在试验设计术语中称为混杂。我们可以借助效应层级等经验准则解除这类混杂。效应层级准则（吴与滨田，2021，第 168 页）指出：（1）低阶效应比高阶效应更有可能显著；（2）同阶效应显著的可能性相同。依据该准则可得：
+
+$$
+\begin{align*}
+\widehat{\alpha}_4&=165\\
+\widehat{\alpha}_3&=83\\
+\widehat{\alpha}_{12}+\widehat{\alpha}_{34}&=-73
+\end{align*}
+$$
+
+遗憾的是，效应层级准则无法处理最后一组混杂，因为 $\alpha_{12}$ 与 $\alpha_{34}$ 阶次相同。此时可以采用另一项准则——效应遗传准则（滨田与吴，1992）。效应遗传准则认为：若某交互效应显著，则至少它的一个父主效应应当显著。由于 $x_1$、$x_2$ 的主效应不显著，$x_3$、$x_4$ 的主效应显著，观测到的 $‑73$ 效应很可能来源于 $x_3$ 与 $x_4$ 的二因子交互作用。由此得到 $\widehat{\alpha}_{34}=-73$。最终模型为：
+
+$$
+\widehat{y}=805+165x_4+83x_3-73x_3x_4
+$$
+
+该模型看上去合理，但分析过程中完全舍弃了 $\alpha_{12}$、$\alpha_{123}$ 和 $\alpha_{124}$，仍存在疑点。下一节将重新讨论该问题，采用另一种更可靠的方式处理混杂问题。
+
+倘若重要效应之间不存在别名（混杂）关系，上述分析就是准确的。因此，我们应当合理设计试验，规避或尽可能降低重要效应之间的别名关系。对于标准的 $2^{p−k}$ 二水平部分析因设计，无需计算别名矩阵 $(\boldsymbol{X}'\boldsymbol{X})^{−1}\boldsymbol{X}'\boldsymbol{F}$，就可以简便理解其别名结构。我们再次考察表 8.1 中的 $2^{4−1}$ 设计，该设计由生成元 $\boldsymbol{d}_4=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3$ 构造得到。由于 $\boldsymbol{d}_4\boldsymbol{d}_4=\boldsymbol{1}$，等式两边同时乘以 $\boldsymbol{d}_4$，可以得到该设计的定义关系：$\boldsymbol{1}=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_4$。该定义关系表明，矩阵 $\boldsymbol{F}$ 中对应 $\alpha_0$ 与 $\alpha_{1234}$ 的两列完全相同，因此这两个系数互为别名。$2^{4−1}$ 设计其余 7 组别名可按如下方式得到：
+
+$$
+\begin{align*}
+\boldsymbol{d}_1&=\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_4\\
+\boldsymbol{d}_2&=\boldsymbol{d}_1\boldsymbol{d}_3\boldsymbol{d}_4\\
+\boldsymbol{d}_3&=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_4\\
+\boldsymbol{d}_4&=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\\
+\boldsymbol{d}_1\boldsymbol{d}_2&=\boldsymbol{d}_3\boldsymbol{d}_4\\
+\boldsymbol{d}_1\boldsymbol{d}_3&=\boldsymbol{d}_2\boldsymbol{d}_4\\
+\boldsymbol{d}_2\boldsymbol{d}_3&=\boldsymbol{d}_1\boldsymbol{d}_4
+\end{align*}
+$$
+
+由上述式子可以推得，$\alpha_1$ 与 $\alpha_{234}$ 互为别名，$\alpha_2$ 与 $\alpha_{134}$ 互为别名，以此类推。接下来考虑另一个由生成元 $\boldsymbol{d}_4=\boldsymbol{d}_1\boldsymbol{d}_2$ 构造的 $2^{4−1}$ 设计，其定义关系为 $\boldsymbol{1}=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_4$。我们可以沿用前述方法求出其余 7 组别名，并将其与上一个设计的别名结构对比，以此评判两种设计的优劣。由于全部别名均由定义关系导出，只需对比 $\boldsymbol{1}=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_4$ 与 $\boldsymbol{1}=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_4$ 即可。可以看到，第一个设计的定义字长度为 4，第二个设计的定义字长度为 3。因此，第一个设计的主效应与三因子交互作用互为别名；而第二个设计的主效应会和二因子交互作用互为别名。根据效应层级原理，二因子交互作用相比三因子交互作用更容易具备实际显著性。故而第一个设计的别名混杂程度弱于第二个设计，这说明我们应当优先选用第一个设计。
+
+再举一例，考虑一个六因子的 $2^{6‑2}$ 设计，它是完全析因 $2^6$ 设计的 1/4 部分。要构造该设计，可先对前四个因子构建一个 16 次试验的完全析因设计，再将最后两个因子分配为由前四个因子相乘得到的列。假设生成元取 $\boldsymbol{d}_5=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_4$ 与 $\boldsymbol{d}_6=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3$，则定义关系为 $\boldsymbol{1}=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_4\boldsymbol{d}_5=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_6$。由于 $\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_4\boldsymbol{d}_5$ 和 $\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_6$ 均等于 $\boldsymbol{1}$，二者的乘积也等于 $\boldsymbol{1}$。因此，将两式相乘，可得到定义对比子群：
+
+$$
+\boldsymbol{1}=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_4\boldsymbol{d}_5=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_6=\boldsymbol{d}_4\boldsymbol{d}_5\boldsymbol{d}_6
+$$
+
+我们可以由该定义对比子群推导出其余 15 个别名关系。定义对比子群中长度较短的字属于“危险字”，因为它们会造成低阶效应之间发生别名混淆。因此，将设计的分辨度定义为定义对比子群中字的最小长度。由此可知，上述设计的分辨度为 3。显然，我们希望选用分辨度尽可能高的设计，这是博克斯与亨特（1961）提出的准则。再考虑另一个 $2^{6‑2}$ 设计，其生成元为 $\boldsymbol{d}_5=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3$、$\boldsymbol{d}_6=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_4$，对应的定义对比子群为：
+
+$$
+\boldsymbol{1}=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_5=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_4\boldsymbol{d}_6=\boldsymbol{d}_3\boldsymbol{d}_4\boldsymbol{d}_5\boldsymbol{d}_6
+$$
+
+该设计的分辨度为 4，因此性能优于前一个设计。
+
+对于规模更大的设计，会存在许多分辨率相同的设计方案。因此，我们需要对最大分辨率准则做进一步改进，以此选出最优设计。为此，定义设计 $D$ 的字长模式为：
+
+$$
+W(D)=(A_1(D),A_2(D),A_3(D),\dots,A_p(D))
+\tag{8.4}
+$$
+
+其中 $A_i(D)$ 为长度等于 $i$ 的字的数量。考察两个 $2^{7‑2}$ 设计：
+
+$$
+\begin{align*}
+D_1&:\boldsymbol{d}_6=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_4,&\boldsymbol{d}_7=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3\boldsymbol{d}_5\\
+D_2&:\boldsymbol{d}_6=\boldsymbol{d}_1\boldsymbol{d}_2\boldsymbol{d}_3,&\boldsymbol{d}_7=\boldsymbol{d}_1\boldsymbol{d}_4\boldsymbol{d}_5\tag{8.5}
+\end{align*}
+$$
+
+二者的字长模式分别为 $W(D_1)=(0,0,0,1,2,0,0)$ 与 $W(D_2)=(0,0,0,2,0,1,0)$。由此可见，两个设计的分辨率均为 4。但可以发现，第一个设计仅有 1 个长度为 4 的字，而第二个设计有 2 个长度为 4 的字。直观来看，字的数量越少，与低阶效应发生混淆的数量就越少，因此第一个设计表现更优。弗里斯与亨特（1980）将这种情况描述为：第一个设计的偏差小于第二个设计。如果不存在其他设计的偏差比某一给定设计更小，则称该设计具有最小偏差。换言之，可以通过依次最小化 $A_1,A_2,A_3,\dots,A_p$，得到最小偏差设计。
+
+在 $2^{p−k}$ 设计中，除去定义对比子群外，共有 $n-1=2^{p−k}-1$ 个别名组。对这些别名组做如下排序：前 $p$ 个别名组包含主效应，其余组别包含二因子交互作用或更高阶交互作用。记 $m_i(D)$ 为第 $i$ 个别名组内的二因子交互作用个数，$i=1,\dots,n-1$。程等人（1999）针对分辨度为 3 及以上的设计（即满足 $A_1(D)=A_2(D)=0$ 的设计）证明了如下结论：
+
+$$
+\begin{align*}
+A_3(D)&=\frac13\left\{\binom{p}{2}-\sum_{i=p+1}^{n-1}m_i(D)\right\}\\
+A_4(D)&=\frac16\left\{\sum_{i=1}^{n-1}m_i^2(D)-\binom{p}{2}\right\}
+\end{align*}
+$$
+
+由于最小偏差设计会依次最小化 $A_3(D)$ 与 $A_4(D)$，该设计会最大化不和主效应发生别名混淆的二因子交互作用数量；在此前提下，进一步最小化各个二因子交互作用别名组规模的平方和。换言之，最小偏差设计能够减少二因子交互作用对主效应的干扰，并且尽量将二因子交互作用均匀分配至各个别名组。因此，当我们无法预知哪些二因子交互作用会显著时，最小偏差设计具备稳健性，是实际应用中的优良选择。
+
+可以通过组合搜索求得最小偏差设计，但该方法计算成本较高（徐，2002）。小规模的最小偏差设计已收录于吴与滨田（2021，第5章）的表格中，也可通过 R 语言软件包 FrF2 快速获取（格伦平，2023）。
+
+## 8.2 贝叶斯式启发设计
+
+表 8.2 展示了铸造疲劳实验的试验设计与数据（滨田和吴，1992）。该设计属于非正则设计，由 12 次运行的正交表（也称为普拉克特‑伯曼设计，见吴与滨田，2021，第 8 章）的前 7 列构造得到。设 $\boldsymbol{X}$ 为式 (8.1) 中主效应模型对应的模型矩阵，$\boldsymbol{F}$ 为式 (8.2) 中全模型对应的模型矩阵。于是 $\boldsymbol{X}$ 是 12×8 矩阵，$\boldsymbol{F}$ 是 12×128 矩阵。本例中的别名矩阵 $(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{F}$ 结构十分复杂，存在大量非零元素。因此，沿用正则设计所用的分析方法，无法处理二因子及更高阶交互效应，需要一套完全不同的策略来估计这些效应。滨田与吴（1992）提出一种前向变量选择策略，该策略融入了效应层级原则与效应遗传原则。可分别在袁等人（2007）、崔等人（2010）以及辛格和施图夫肯（2024）的文献中查阅基于最小角回归（LARS）、套索（lasso）以及高斯‑丹齐格选择器算法对该策略的拓展研究。关于各类变量选择策略的对比可参考凯恩与曼达尔（2020）。
+
+> **表 8.2**：铸造疲劳实验的设计矩阵与数据
+
+|运行次数|$x_1$|$x_2$|$x_3$|$x_4$|$x_5$|$x_6$|$x_7$|$y$|
+|:--:|--:|--:|--:|--:|--:|--:|--:|:--:|
+|1|1|1|-1|1|1|1|-1|6.058|
+|2|1|-1|1|1|1|-1|-1|4.733|
+|3|-1|1|1|1|-1|-1|-1|4.625|
+|4|1|1|1|-1|-1|-1|1|5.899|
+|5|1|1|-1|-1|-1|1|-1|7.000|
+|6|1|-1|-1|-1|1|-1|1|5.752|
+|7|-1|-1|-1|1|-1|1|1|5.682|
+|8|-1|-1|1|-1|1|1|-1|6.607|
+|9|-1|1|-1|1|1|-1|1|5.818|
+|10|1|-1|1|1|-1|1|1|5.917|
+|11|-1|1|1|-1|1|1|1|5.863|
+|12|-1|-1|-1|-1|-1|-1|-1|4.809|
+
+估计完整模型的另一种方法是采用贝叶斯框架，因为效应层级与遗传原则可视为开展数据分析前就已掌握的先验信息。设完整模型 (8.2) 中 $\boldsymbol{\alpha}=(\alpha_0,\alpha_1,\dots,\alpha_{12\cdots p})$ 的先验分布为 $\boldsymbol{\alpha}\sim\mathcal{N}(\boldsymbol{\mu},\boldsymbol{\Sigma})$，其中 $\boldsymbol{\mu}$ 是长度为 $2^p$ 的向量，$\boldsymbol{\Sigma}$ 为 $2^p\times2^p$ 矩阵。可以精心选取 $\boldsymbol{\mu}$ 与 $\boldsymbol{\Sigma}$ 的元素，以体现效应层级和遗传先验。但该操作几乎无法实现，因为需要设定的参数数量过多。看待该问题的另一种思路是：对 $\boldsymbol{\beta}$ 设置先验，会为底层输入‑输出函数 $h(\boldsymbol{x})\sim\mathcal{N}(\boldsymbol{f}(\boldsymbol{x})'\boldsymbol{\mu},\boldsymbol{f}(\boldsymbol{x})'\boldsymbol{\Sigma} \boldsymbol{f}(\boldsymbol{x}))$ 生成先验，式中 $\boldsymbol{f}(\boldsymbol{x})=(1,x_1,\dots,x_1x_2\cdots x_p)$。不过我们掌握一种效果好得多的函数先验设定方式，即本书第一、二部分大量使用的高斯过程（GP）先验。于是我们可以先对函数设定高斯过程先验，再反向推导出 $\boldsymbol{\beta}$ 的先验分布。这种方式要简便得多，因为高斯过程先验仅需指定均值参数 $\boldsymbol{\mu}$、方差参数 $\tau^2$ 以及少量相关参数 $\boldsymbol{\theta}$。
+
+设
+
+$$
+h(\boldsymbol{x})\sim\mathrm{GP}(\mu,\tau^2R(\cdot))
+$$
+
+其中 $R(\cdot)$ 为相关函数。假定式 (8.2) 中的完整模型为真实模型：
+
+$$
+h(\boldsymbol{x})=\mu+\boldsymbol{f}(\boldsymbol{x})'\boldsymbol{\alpha}
+\tag{8.6}
+$$
+
+式中 $\boldsymbol{f}(\boldsymbol{x})=(1,x_1,\dots,x_1x_2\cdots x_p)'$。注意此处我们将 $\mu$ 与 $\alpha_0$ 分离开，此举仅为得到 $\boldsymbol{\alpha}$ 的简化表达式。令 $\boldsymbol{h}=(h_1,\dots,h_{2^p})'$ 表示在 $2^p$ 个全因子设计点处的函数取值。于是 $\boldsymbol{h}=\mu\boldsymbol{1}+\boldsymbol{F}\boldsymbol{\boldsymbol{\alpha}}$。因此，
+
+$$
+\boldsymbol{\boldsymbol{\alpha}}=\boldsymbol{F}^{-1}(\boldsymbol{h}-\mu\boldsymbol{1})
+$$
+
+由于 $\boldsymbol{h}\sim\mathcal{N}(\mu\boldsymbol{1},\tau^2\boldsymbol{R})$，可得（约瑟夫，2006a）：
+
+$$
+\boldsymbol{\boldsymbol{\alpha}}\sim\mathcal{N}\left(\boldsymbol{0},\tau^2\boldsymbol{F}^{-1}\boldsymbol{R}(\boldsymbol{F}^{-1})'\right)
+\tag{8.7}
+$$
+
+其中 $\boldsymbol{0}$ 是长度为 $2^p$ 的零向量，$\boldsymbol{R}$ 的定义见式 (2.13)。该分布可作为 $\boldsymbol{\boldsymbol{\alpha}}$ 的先验分布。
+
+假定乘积相关函数：
+
+$$
+R(\boldsymbol{u}-\boldsymbol{v})=\prod_{i=1}^{p}\boldsymbol{R}_i(u_i-v_i)
+\tag{8.8}
+$$
+
+于是式 (8.7) 可做如下简化。由于 $2^p$ 全因子设计可通过对 $p$ 个因子的设计做克罗内克积得到：
+
+$$
+\boldsymbol{F}=\boldsymbol{F}_1\otimes \boldsymbol{F}_2\otimes\cdots\otimes \boldsymbol{F}_p=\bigotimes_{i=1}^{p}\boldsymbol{F}_i
+$$
+
+其中 $\otimes$ 表示克罗内克积，且
+
+$$
+\boldsymbol{F}_i=\begin{bmatrix}1&-1\\1&1\end{bmatrix}
+$$
+
+设
+
+$$
+\boldsymbol{R}_i=\begin{bmatrix}1&R_i(2)\\R_i(2)&1\end{bmatrix},\quad i=1,\dots,p
+$$
+
+在乘积相关结构下
+
+$$
+\boldsymbol{R}=\boldsymbol{R}_1\otimes \boldsymbol{R}_2\otimes\cdots\otimes \boldsymbol{R}_p=\bigotimes_{i=1}^{p}\boldsymbol{R}_i
+$$
+
+利用克罗内克积的性质（见引理 9.1），可得
+
+$$
+\begin{align*}
+\tau^2\boldsymbol{F}^{-1}R(\boldsymbol{F}^{-1})'&=\tau^2\left(\bigotimes_{i=1}^{p}\boldsymbol{F}_i\right)^{-1}\left(\bigotimes_{i=1}^{p}\boldsymbol{R}_i\right)\left(\left(\bigotimes_{i=1}^{p}\boldsymbol{F}_i\right)^{-1}\right)'\\
+&=\tau^2\bigotimes_{i=1}^{p}\boldsymbol{F}_i^{-1}\boldsymbol{R}_i(\boldsymbol{F}_i^{-1})'\\
+&=\tau^2\bigotimes_{i=1}^{p}\frac12\begin{bmatrix}1+R_i(2)&0\\0&1-R_i(2)\end{bmatrix}\\
+&=\xi^2\bigotimes_{i=1}^{p}\begin{bmatrix}1&0\\0&\gamma_i\end{bmatrix},
+\end{align*}
+$$
+
+式中
+
+$$
+\xi^2=\frac{\tau^2}{2^p}\prod_{i=1}^{p}\{1+R_i(2)\},\quad\gamma_i=\frac{1-R_i(2)}{1+R_i(2)}
+$$
+
+由此得到如下结论（约瑟夫，2006a）。
+
+> **定理 8.2**：对于两水平试验设计，由乘积相关结构下的高斯过程导出的式 (8.6) 中 $\boldsymbol{\alpha}$ 的先验分布如下：$$\begin{align*}\alpha_0&\sim\mathcal{N}(0,\xi^2)\\\alpha_i&\sim\mathcal{N}(0,\xi^2\gamma_i)\quad\forall i\\\alpha_{ij}&\sim\mathcal{N}(0,\xi^2\gamma_i\gamma_j)\quad\forall i,j\\&\vdots\\\alpha_{12\dots p}&\sim\mathcal{N}(0,\xi^2\gamma_1\gamma_2\cdots\gamma_p)\\\end{align*}$$ 且上述所有变量相互独立。
+
+由于对所有 $i$ 均有 $\gamma_i \in(0,1)$，因此主效应的方差会小于 $\alpha_0$ 的方差。同理，双因子交互效应的方差会小于主效应的方差，以此类推。因此，该先验服从效应层级原则。此外，若 $\gamma_i$ 或 $\gamma_j$ 中任意一个取值很小，则 $\mathrm{var}\{\alpha_{ij}\}=\xi^2\gamma_i\gamma_j$ 同样会很小。这意味着双因子交互效应只有在其对应的任一主效应显著时才会显著。因此，该先验同时服从效应遗传原则。换言之，效应层级原则与效应遗传原则内嵌于具备乘积相关结构的高斯过程（GP）之中。
+
+因此，我们得到贝叶斯线性模型：
+
+$$
+\begin{align*}
+\boldsymbol{y}|\boldsymbol{\alpha}&\sim\mathcal{N}(\mu\boldsymbol{1}+\boldsymbol{X}\boldsymbol{\alpha},\sigma^2\boldsymbol{I})\\
+\boldsymbol{\alpha}&\sim\mathcal{N}(\boldsymbol{0},\xi^2\boldsymbol{\Gamma})
+\end{align*}
+$$
+
+其中 $\boldsymbol{X}$ 是基于 $n$ 次部分因子试验设计 $D$ 构造得到的 $n\times2p$ 阶模型矩阵；$\boldsymbol{\Gamma}$ 为对角矩阵，其对角元按定理 8.2 给出：对应 $\alpha_0$ 的对角元为 1，第 $i$ 个主效应对应的对角元为 $\boldsymbol{\gamma}_i$，以此类推。$\boldsymbol{\alpha}$ 的后验分布为：
+
+$$
+\begin{align*}
+\boldsymbol{\alpha}|\boldsymbol{y}&\sim\mathcal{N}(\{\boldsymbol{X}'\boldsymbol{X}+\lambda\boldsymbol{\Gamma}^{-1}\}^{-1}\boldsymbol{X}'\{\boldsymbol{y}-\mu\boldsymbol{1}\},\sigma^2\{\boldsymbol{X}'\boldsymbol{X}+\lambda\boldsymbol{\Gamma}^{-1}\}^{-1})\\
+&=\mathcal{N}(\boldsymbol{\Gamma}\boldsymbol{X}'\{\boldsymbol{X}\boldsymbol{\Gamma}\boldsymbol{X}'+\lambda\boldsymbol{I}\}^{-1}\{\boldsymbol{y}-\mu\boldsymbol{1}\},\xi^2\boldsymbol{\Gamma}-\xi^2\boldsymbol{\Gamma}\boldsymbol{X}'\{\boldsymbol{X}\boldsymbol{\Gamma}\boldsymbol{X}'+\lambda\boldsymbol{I}\}^{-1}\boldsymbol{X}\boldsymbol{\Gamma})
+\tag{8.9}
+\end{align*}
+$$
+
+式中 $\lambda=\sigma^2/\xi^2$。此处给出的后验分布的两种等价形式由伍德伯里矩阵恒等式推导而来（彼得森、佩德森，2006，第 18 页）：
+
+> **引理 8.1**：对于可进行乘法运算的矩阵 $\boldsymbol{A}$、$\boldsymbol{B}$、$\boldsymbol{U}$ 和 $\boldsymbol{V}$，$$(\boldsymbol{A}+\boldsymbol{U}\boldsymbol{B}\boldsymbol{V})^{-1}=\boldsymbol{A}^{-1}-\boldsymbol{A}^{-1}\boldsymbol{U}(\boldsymbol{B}^{-1}+\boldsymbol{V}\boldsymbol{A}^{-1}\boldsymbol{U})^{-1}\boldsymbol{V}\boldsymbol{A}^{-1}$$
+
+再次考虑表 8.1 给出的 $2^{4‑1}$ 设计与对应数据。为简化计算，令 $\sigma^2=0$。利用 rkriging（黄与约瑟夫，2024），采用高斯相关函数 $R(\boldsymbol{u}-\boldsymbol{v})=\exp\left\{-0.5\sum_{i=1}^{p}(u_i-v_i)^2/\theta_i^2\right\}$ 对该数据拟合高斯过程（GP），得到 $\mu=805$，$\tau^2=408413$，以及 $\boldsymbol{\theta}=(100,26.8,2.2,4.1)'$。据此求得 $\gamma=(.01,.04,.43,.24)'$。将式 (8.9) 中 $\boldsymbol{\alpha}$ 除去截距项的后验均值绘制为半正态图，见图 8.2。可以看出 $\alpha_4$、$\alpha_3$ 与 $\alpha_{34}$ 显著，该结果与 8.1 节的分析结论一致。
+
+> **图 8.2**：式 (8.9) 中系数绝对后验均值的半正态图
+
+![Alt Text](figures/8.2.png){width=33%}
+
+我们可以看到，在贝叶斯分析中混叠问题得到了自动解决。为理解该现象，考察 $\alpha_4$ 与 $\alpha_{123}$ 之间的混叠关系：
+
+$$
+\alpha_4+\alpha_{123}=165
+$$
+
+此处忽略误差项 $\widetilde{\delta}_{123}$，因为假定 $\sigma^2$ 为 0。$\alpha_4$ 的先验方差与 $\gamma_4=0.24$ 成正比，$\alpha_{123}$ 的先验方差与 $\gamma_1\gamma_2\gamma_3=0.00016$ 成正比。后验均值按照二者的先验方差将 165 拆分为两项：
+
+$$
+\alpha_4=\frac{0.24}{0.24+0.00016}\times165,\quad\alpha_{123}=\frac{0.00016}{0.24+0.00016}\times165
+$$
+
+因此，$\alpha_4$ 分得 165 中的绝大部分数值，使其在贝叶斯分析中成为显著效应。其余 15 组混叠项也会出现同样的情况。
+
+更一般地，考虑一个 $2^{p−k}$ 设计。设 $(\hat{\beta}_0,\dots,\hat{\beta}_{n-1})'$ 为包含 $p-k$ 个因子的全模型的估计系数，其中 $n=2^{p−k}$。令 $J_0(D)$ 表示定义对比子群中各效应的指标集合，$J_j(D)(j=1,\dots,n-1)$ 表示其余别名关系的指标集合。对于 $2^{p−k}$ 设计的正部分（所有设计生成元符号均为正），约瑟夫（2006a）证明：对任意 $I\in J_j(D)$，有
+
+$$
+\alpha_I\sim\mathcal{N}\left(\frac{\prod_{i\in I}\gamma_i}{\sum_{I\in J_j(D)}\prod_{i\in I}\gamma_i+\lambda/n}\hat{\beta}_j,\xi^2\prod_{i\in I}\gamma_i-\frac{\xi^2\left(\prod_{i\in I}\gamma_i\right)^2}{\sum_{I\in J_j(D)}\prod_{i\in I}\gamma_i+\lambda/n}\right)
+\tag{8.10}
+$$
+
+式中 $\gamma_0=1$。由后验均值可以看出，被估计的别名效应会按照先验方差的比例，分解为该别名关系内的各个效应。若后验方差较小，则我们的估计结果较为精确。因此，我们应当把实验设计得使后验方差尽可能小。由于 $2^{p−k}$ 设计的全部别名关系均由定义对比子群导出，我们只需重点考察 $\alpha_0$ 的后验方差：
+
+$$
+\mathrm{var}\{\alpha_0|\boldsymbol{y}\}=\xi^2-\frac{\xi^2}{\sum_{I\in J_0(D)}\prod_{i\in I}\gamma_i+\lambda/n}
+$$
+
+考虑 $\gamma_1=\cdots=\gamma_p=\gamma$ 的情形，该情形对应高斯过程具有各向同性相关函数。此时
+
+$$
+\sum_{i\in J_0(D)}\prod_{i\in I}\gamma_i=1+\sum_{i=1}^{p}\gamma^i A_i(D)
+$$
+
+其中 $(A_1(D),A_2(D),\dots,A_p(D))$ 为设计 $D$ 的字长模式。于是，最小化 $\mathrm{var}\{\alpha_0|\boldsymbol{y}\}$ 等价于最小化 $\sum_{i=1}^{p}\gamma^i A_i(D)$，该式是字长模式的加权平均，低阶效应被赋予更高权重。这与最小偏差设计联系紧密，最小偏差设计的构造方式是依次最小化 $A_1(D),A_2(D),\dots,A_p(D)$。事实上，当 $\gamma$ 取值较小时，可以证明最小偏差设计能够最小化 $\sum_{i=1}^{p}\gamma^i A_i(D)$。因此
+
+$$
+D^*(\gamma)=\argmin_{D}\sum_{i=1}^{p}\gamma^i A_i(D)
+$$
+
+可以视作最小偏差设计的贝叶斯版本。该方法的一个缺陷是必须给定 $\gamma$ 的取值才能得到设计。康与约瑟夫（2009）基于多项真实实验的分析，建议在没有其他先验信息时取 $\gamma=1/3$。
+
+我们回到对 $2^{4-1}$ 设计的分析。此前我们忽略了各效应之间的相关性，因此半正态图分析可能会出现偏差。约瑟夫（2006a）尝试采用向前变量选择策略解决该问题。于与约瑟夫（2025a）近期提出，在遗传约束（袁等人，2009）下，利用非负压缩估计（布雷曼，1995）筛选重要效应。非负压缩估计需要系数的初始估计值，该初始值可选取贝叶斯后验均值。R 语言程序包 HiGarrote（于和约瑟夫，2025b）实现了该方法，得到模型：
+
+$$
+\widehat{y}=805+150.1x_4+53.2x_3−39.1x_3x_4
+$$
+
+该模型与 8.1 节中先前识别出的模型十分接近，但系数向 0 收缩，这是非负压缩估计的固有特性。
+
+现在考察表 8.2 中的铸件疲劳实验。传统主效应分析仅判定 $x_6$ 为重要变量，决定系数 $R^2=0.45$；而 HiGarrote 方法判定 $\{x_6,x_6x_7\}$ 为高度显著变量，$\{x_4,x_7,x_4x_7\}$ 为潜在显著变量，对应的 $R^2=0.96$。尽管贝叶斯分析相比传统分析表现更优，但该方法存在一个注意事项：只有当相关参数的估计效果良好时，方法才能取得理想结果。这并非易事，因为在数据量较小时，式 (2.46) 中的似然函数可能存在多峰。HiGarrote 程序包采用多初始点结合基于梯度的优化算法求解式 (2.46) 的全局最优解，实践表明该方案效果良好。
+
+## 8.3 两级以上的设计
+
+包含两个以上水平的实验十分常见，三水平实验尤其普遍。这是因为开展实验通常是为了改进现有系统，该系统中因子 $x$ 当前的运行取值为 $m$。工程师可能无法确定应当调低还是调高该因子。因此，工程师会希望在实验中选取两个水平：$m−\Delta$ 与 $m+\Delta$。但实验中同样必须纳入取值 $m$，以此获得对照基准，用于和现有工况进行比对，由此便得到三水平集合 $\{m−\Delta,m,m+\Delta\}$。本章中，我们将这三个水平记作 $\{1,2,3\}$ 或是 $\{0,0.5,1\}$。
+
+一个包含三个水平的因子可以使用两个虚拟变量来表示：$d_1$ 和 $d_2$。可通过多种编码体系设定它们的取值，例如处理编码、赫尔默特编码以及正交多项式编码，具体如下所示（法拉维，2015，第 219 页）。
+
+|$x$|$d_1$|$d_2$|
+|:--:|---:|---:|
+|1|0|0|
+|2|1|0|
+|3|0|1|
+
+|$x$|$d_1$|$d_2$|
+|:--:|---:|---:|
+|1|-1|-1|
+|2|1|-1|
+|3|0|2|
+
+|$x$|$d_1$|$d_2$|
+|:--:|---:|---:|
+|1|-1|1|
+|2|0|-2|
+|3|1|1|
+
+同样，一个具有四个水平的因子可以使用三个虚拟变量来表示。四水平因子的三种编码方案（处理编码、赫尔默特编码以及正交多项式编码）如下所示。
+
+|$x$|$d_1$|$d_2$|$d_3$|
+|:--:|---:|---:|---:|
+|1|0|0|0|
+|2|1|0|0|
+|3|0|1|0|
+|4|0|0|1|
+
+|$x$|$d_1$|$d_2$|$d_3$|
+|:--:|---:|---:|---:|
+|1|-1|-1|-1|
+|2|1|-1|-1|
+|3|0|-1|-1|
+|4|0|2|3|
+
+|$x$|$d_1$|$d_2$|$d_3$|
+|:--:|---:|---:|---:|
+|1|-3|1|-1|
+|2|-1|-1|3|
+|3|1|-1|-3|
+|4|3|1|1|
+
+徐与吴（2001）推广了最小偏差准则，用于各因子水平数不等的部分因子试验设计的最优选取。该研究基于唐与邓（1999）的前期工作，后者针对二水平非正则设计求解最小偏差设计。假定因子 $x_i$ 具有 $L_i$ 个水平，其中 $L_i=2,3,\dots$。第 $i$ 个因子可采用 $L_i-1$ 个虚拟变量表示。此时将全部方差分析模型写成式 (8.2) 的形式，用虚拟变量替代 $x_i$，并剔除同一因子内部虚拟变量之间的交互项。于是，对于给定的 $n$ 次试验设计 $D$，可得：
+
+$$
+\begin{align*}
+\boldsymbol{y}&=\boldsymbol{X}\boldsymbol{\alpha}+\boldsymbol{\delta}\\
+&=\boldsymbol{1}\alpha_0+\boldsymbol{X}^{(1)}\boldsymbol{\alpha}_1+\dots+\boldsymbol{X}^{(p)}\boldsymbol{\alpha}_p+\boldsymbol{\delta}
+\end{align*}
+$$
+
+式中，$\boldsymbol{X}$ 为 $n\times\prod_{i=1}^{p}L_i$ 的全模型矩阵；$\boldsymbol{X}^{(1)}$ 是 $\boldsymbol{X}$ 中包含主效应列的子矩阵；$\boldsymbol{X}^{(i)}$，$i=2,\dots,p$ 则对应 $i$ 因子交互作用的子矩阵。
+
+假设我们采用正交编码方案来获取虚拟变量，例如赫尔默特编码或正交多项式编码。对虚拟变量进行缩放处理，使得 $\boldsymbol{X}^{(1)}$ 的各列长度为 $n$。定义
+
+$$
+A_j(D)=\frac{1}{n^2}\lVert\boldsymbol{1}'\boldsymbol{X}^{(j)}\rVert^2,\quad j=1,\dots,p
+$$
+
+向量 $(A_1(D),\dots,A_p(D))$ 称为设计 $D$ 的广义字长模式。徐与吴（2001）提出的广义最小偏差准则，即依次最小化 $A_1(D),\dots,A_p(D)$。该准则对于两水平正规设计退化为原始最小偏差准则，对于两水平非正规设计则退化为唐与邓（1999）的最小 $G_2$‑偏差准则。
+
+传统上，水平数大于二的试验采用正交表进行设计（拉奥，1947），田口玄一（1987）推动了正交表在工业试验中的广泛应用。关于正交表的详细内容可参阅赫达亚特等人（1999）的著作。
+
+> **定义 8.1**：强度为 $t$ 的正交表 $\mathrm{OA}(n,L_1^{m_1},\dots,L_r^{m_r},t)$ 是一个 $n\times(m_1+\dots+m_r)$ 矩阵，其中 $m_i$ 列具有 $L_i$ 个水平，使得对于任意 $t$ 列，所有可能的水平组合在矩阵中出现的次数均相等。
+
+表 8.1 中的二水平正规设计与表 8.2 中的非正规设计均为正交表的特例。徐与吴（2001）证明了如下结论。
+
+> **定理 8.3**：设计 $D$ 是强度为 $t$ 的正交阵列，当且仅当 $A_1(D)=\cdots=A_t(D)=0$。
+
+假设一名工程师想要对 4 个三水平因子开展试验，可开展的试验预算为 18 次。表 8.3 与表 8.4 分别给出试验次数为 9 和 18 的两张正交表 $\mathrm{OA}(9,3^4)$ 与 $\mathrm{OA}(18,2^13^7)$（按照惯例，强度为 2 的正交表会省略关于 t 的记号）。这两张正交表由 R 语言 DoE.base 程序包中的 oa.design 函数生成（格伦普英，2025）。由于该工程师最多可做 18 次试验，有两种可选方案：一是使用 $\mathrm{OA}(9,3^4)$ 并设置两次重复试验；二是将 4 个因子分配到 $\mathrm{OA}(18,2^13^7)$ 的第 2‑8 列中任意 4 列。想要精准估计各因子效应，哪一种方案更优？要解答该问题，我们可以计算这两组设计的广义字长模式。借助 DoE.base 包中的 GWLP 函数，第一种方案得到广义字长模式 $W(D_1)=(0,0,8,0)$；若在 18 次试验的正交表里把 4 个因子分配至第 2‑5 列，第二种方案得到 $W(D_2)=(0,0,3.5,0)$。显然，第二种设计效果要好得多。但该 18 次试验正交表含有 7 个三水平列，因此我们可以构造多种四因子设计。若将因子分配到第 3‑6 列，得到的广义字长模式为 $W(D_3)=(0,0,2,1.5)$，该设计实际上就是广义最小偏差设计（徐与吴，2001）。
+
+> **表 8.3**：$\mathrm{OA}(9,3^4)$
+
+|运行次数|1|2|3|4|
+|:--:|--:|--:|--:|--:|
+|1|1|1|1|1|
+|2|1|2|3|2|
+|3|1|3|2|3|
+|4|2|1|3|3|
+|5|2|2|2|1|
+|6|2|3|1|2|
+|7|3|1|2|2|
+|8|3|2|1|3|
+|9|3|3|3|1|
+
+> **表 8.4**：$\mathrm{OA}(18,2^13^7)$
+
+|运行次数|1|2|3|4|5|6|7|8|
+|:--:|--:|--:|--:|--:|--:|--:|--:|--:|
+|1|1|1|1|1|1|1|1|1|
+|2|1|1|2|2|2|2|2|2|
+|3|1|1|3|3|3|3|3|3|
+|4|1|2|1|1|2|2|3|3|
+|5|1|2|2|2|3|3|1|1|
+|6|1|2|3|3|1|1|2|2|
+|7|1|3|1|2|1|3|2|3|
+|8|1|3|2|3|2|1|3|1|
+|9|1|3|3|1|3|2|1|2|
+|10|2|1|1|3|3|2|2|1|
+|11|2|1|2|1|1|3|3|2|
+|12|2|1|3|2|2|1|1|3|
+|13|2|2|1|2|3|1|3|2|
+|14|2|2|2|3|1|2|1|3|
+|15|2|2|3|1|2|3|2|1|
+|16|2|3|1|3|2|3|1|2|
+|17|2|3|2|1|3|1|2|3|
+|18|2|3|3|2|1|2|3|1|
+
+正如 4.5.2 节所述，因子可以是定性因子或定量因子。该区别对二水平设计没有影响，但会作用于水平数大于二的设计。这是因为对于定性因子，水平的顺序无关紧要；而对于定量因子，设计的几何结构会随水平排序方式的不同而发生改变（程与叶，2004）。以 18 次试验的广义最小偏差设计 $D_3$ 为例，假设全部四个因子均为连续因子，通过对三个水平重新排序，可以由 $D_3$ 衍生出若干种设计。由于调换行与列不会改变设计本身，我们仅需对后三列做水平置换，由此可得到 $(3!)^3$ 种设计。但其中一半设计在几何意义上等价，因为水平顺序 $(1,2,3)$ 与 $(3,2,1)$ 会生成几何同构的设计。因此，我们实际只需生成 $(3!/2)^3$ 种设计。为研究这些设计的空间填充性质，我们可以按照式 (4.42) 计算离散因子的最大投影准则：
+
+$$
+\mathrm{MP}(D)=\left(\frac{1}{\binom{n}{2}}\sum_{i=1}^{n-1}\sum_{j=i+1}^{n}\frac{1}{\prod_{k=1}^{p}\left\{\left(\frac{x_{ik}-x_{jk}}{1/L_k}\right)^2+1\right\}}\right)^{1/p}
+$$
+
+该准则可借助 R 软件包 SFDesign 中的 maxpro.crit 函数进行计算（王与约瑟夫，2025c）。在全部 27 个准则值中，仅有 4 个互不相同，在图 8.3 左子图中以实心竖线标出。由此可见，水平置换会影响设计的空间填充效果。作为对比，图中同时以虚线和点线分别标出 $\mathrm{MP}(D_2)$ 与 $\mathrm{MP}(D_1)$，二者的数值远高于广义最小偏差设计的最大投影指标。我们还从 $3^4$ 全因子设计中抽取 18 行，生成一百万组 18 次试验的设计，其最大投影指标的分布密度绘制于同一幅图中。可以看到，4 组互不相同的广义最小偏差设计表现优于这一百万组随机生成的设计。针对这些设计，以全因子设计为参照计算式 (5.10) 定义的能量距离，结果展示在图 8.3 的右子图中，所得结论保持一致。
+
+> **图 8.3**：该密度图展示了 100 万组随机生成的 18 次试验设计对应的最大投影准则（左侧）与能量距离准则（右侧）。正交阵列 D1、D2、D3 的准则值分别以点竖线、虚竖线和实竖线表示。图中同时展示了对 D3 水平重排序后得到的各类不同准则数值
+
+![Alt Text](figures/8.3.png){width=67%}
+
+有趣的是，设计 $D_1$（即 $\mathrm{OA}(9,3^4)$，每个试验点重复运行两次）的表现要差于大多数随机生成的 18 次试验设计。这表明在部分因子试验中重复试验并无益处，这多少有些反直觉，因为重复试验被视作试验的一项基本原则（吴与滨田，2021，第 1.3 节）。造成该现象的原因可能是我们假设噪声方差 $\sigma^2$ 已知，且我们的重点是精准估计均值模型。然而 $\sigma^2$ 仅为单个参数，仅通过对单个试验点重复就可以完成估计。如果我们还需要像稳健参数设计试验那样，将方差建模为输入变量的函数，那么每个试验点都进行重复才会发挥作用（吴与滨田，2021，第11章）。比努瓦等人（2019）针对异方差高斯过程模型拟合场景，研究了重复试验的应用。
+
+周与徐（2014）在广义字长模式与空间填充测度之间建立了如下理论联系。
+
+> **定理 8.4**：假设 $$\phi(D)=\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\prod_{k=1}^{p}f(x_{ik},x_{jk})$$ 为空间填充测度，其中函数 $f(\cdot,\cdot)$ 满足：对任意 $x\neq y\in[0,1]$，有 $$f(x,y)\ge 0,\quad f(x,x)+f(y,y)>f(x,y)+f(y,x)$$ 那么对于具有 $L$ 个水平的 $n$ 次运行 $p$ 因子设计，在全部水平置换下计算得到的 $\phi(D)$ 的平均值 $$\overline{\phi}(D)=\left[\frac{c_1(c_2+L-1)}{L^2(L-1)}\right]^p\sum_{i=0}^{p}\left(\frac{c_2-1}{c_2+L-1}\right)^iA_i(D)$$ 式中 $c_1=\sum_{k=0}^{L-1}\sum_{l\neq k}f(k,l)$，$c_2=(L-1)\sum_{k=0}^{L-1}f(k,k)/c_1$，且 $A_0(D)=1$。
+
+该结果表明，依次最小化 $A_1(D)$、$A_2(D)$……能够生成具备优良空间填充度量的设计。因此，为获取性能良好的空间填充部分因子设计，周与徐（2014）提出了如下两步法：（1）构造广义最小偏差设计；（2）对该设计的水平进行重排序，提升其空间填充特性。广义最小偏差设计可通过 R 语言程序包 DoE.base（格罗姆平，2025）得到。
+
+传统上，响应面设计（迈尔斯等人，2016）常用于连续因子，例如中心复合设计（CCD）（博克斯与威尔逊，1951）。针对四因子的小型中心复合设计可按如下方式构建：首先采用 3 分辨度的部分因子设计（不含四字母交互项）作为立方点；再为每个因子添加两个轴点，之后向设计中补充若干中心点。对于实验区域 $[-1,1]^p$，因子 $x_i$ 的两个轴点可表示为 $(0,\dots,\pm\alpha,\dots,0)$，其中 $\pm\alpha$ 位于第 $i$ 个位置。通常取 $\alpha=n_c^{1/4}$，$n_c$ 为立方点的数量。但该取值仅适用于球形实验区域。对于立方体区域下的中心复合设计，可令 $\alpha=1$，这类设计称为面心中心复合设计。中心点是长度为 $p$ 的全零向量。以由生成元 $x_4=x_1x_2$ 的 $2^{4-1}$ 设计搭配两个中心点所构造的面心中心复合设计为例，该中心复合设计共包含 $8+8+2=18$ 次试验。计算得到其最大投影准则值为 0.47，能量距离为 2.73，二者均高于图 8.3 中的 $D_2$ 与 $D_3$。由此可见，中心复合设计的空间填充性质劣于空间填充正交阵列。莫里斯（2000）提出一类三水平设计：该类设计在小型二水平部分因子设计基础上，依次生成最大最小距离设计点进行扩充。这类设计的空间填充指标通常优于中心复合设计，但并不具备采用周与徐（2014）两步法得到的空间填充正交阵列所拥有的模型稳健性。
+
+在实验设计中兼顾定量与定性因素的另一种方法，是采用上一节介绍的贝叶斯方法。约瑟夫与德拉尼（2007）针对水平数大于二的因子，借助式 (8.7) 推导得到模型参数的先验分布。余和约瑟夫（2025a）的研究给出了结合该类先验分布与非负绞罚法的实验分析。约瑟夫等人（2009）阐述了如何利用这些先验分布，构造适用于二水平与四水平因子、基于贝叶斯思想的最小偏差设计。康和约瑟夫（2009）运用上述先验分布，为稳健参数设计实验完成单数组的最优选取。
+
+## 8.4 混合设计
+
+许多产品是通过混合或调配多种组分或原料制成的，例如洗发水或涂料。关于混料试验的设计与分析的详细内容可参见康奈尔（1990）、劳森（2014）以及迈尔斯等人（2016）的著作。尽管文献中报道的绝大多数混料试验属于物理试验（皮佩尔，2006），但我们很快会发现，第二部分介绍的设计方法对这类试验十分适用。
+
+设混合物中含有 $p$ 个组分，$x_i\in[0,1]$ 表示第 $i$ 个组分的占比。于是必有
+
+$$
+\sum_{i=1}^{p}x_i=1
+\tag{8.11}
+$$
+
+因此，我们需要在如下区域内设计试验：
+
+$$
+\mathcal{S}=\left\{\boldsymbol{x}\in[0,1]^p:\sum_{i=1}^{p}x_i=1\right\}
+$$
+
+虽然我们已在 4.5.1 节与 4.6.2 节讨论过约束区域下构造空间填充设计的相关方法，但这些方法仅对不等式约束有效。式 (8.11) 中的等式约束使得集合 $\mathcal{S}$ 成为 $p$ 维空间内的 $(p-1)$ 维流形，给候选样本的生成带来了困难。
+
+$p$ 分量单形格子设计（谢费，1958）记为 $\mathrm{SLD}(p,m)$，该设计通过对每个因子取 $m+1$个等间隔数值：
+
+$$
+\left\{0,\frac{1}{m},\frac{2}{m},\dots,1\right\}
+$$
+
+构建而成。利用这些水平可以构造全因子设计，共包含 $(m+1)^p$ 个试验点。但其中大量试验点会落在可行域 $S$ 之外。因此，仅保留落在可行域 $S$ 内的点，由此得到单形格子设计。举例：考虑三组分混合物的单形格子设计，取 3 个等间隔水平，即 $p=3$、$m=2$。构造 $\mathrm{SLD}(3,2)$ 时，先构建 $3^3$ 全因子设计，剔除所有可行域 $S$ 以外的点，得到 6 个试验点：
+
+$$
+\mathrm{SLD}(3,2)：\{(1,0,0),(0,1,0),(0,0,1),(0.5,0.5,0),(0.5,0,0.5),(0,0.5,0.5)\}
+$$
+
+该组点在图 8.4 左图的单形坐标系（三元相图）中给出。一般情况下，$\mathrm{SLD}(p,m)$ 的试验点数量为 $\binom{p+m-1}{m}$。该设计可借助 R 语言 mixexp 程序包生成（劳森与威尔登，2024）。
+
+> **图 8.4**：（左）两级单形格子设计；（右）两级单形重心设计
+
+![Alt Text](figures/8.4.png){width=67%}
+
+谢费（1963）还提出了另一种称为单形‑重心设计的方案。由 $p$ 个组分构成的单形‑重心设计记为 $\mathrm{SCD}(p)$，包含 $p$ 个纯组分、$\binom{p}{2}$ 个二元混合物、$\binom{p}{3}$ 个三元混合物等，以及整体重心点 $(1/p,\dots,1/p)$。因此，设计点总数为 $2^p-1$。三组分的单形‑重心设计共有 7 个点：
+
+$$
+\mathrm{SCD}(3):\left\{(1,0,0),(0,1,0),(0,0,1),(0.5,0.5,0),(0.5,0,0.5),(0,0.5,0.5),\left(\frac13,\frac13,\frac13\right)\right\}
+$$
+
+如图 8.4 右侧子图所示。该设计也可通过 mixexp 程序包生成。
+
+当 $p$ 取值较大时，单纯格点设计（SLD）与单纯形中心设计（SCD）的试验次数会变得十分庞大，难以实现。此外，单纯格点设计和单纯形中心设计的样本点大多集中在边界处，无法在单纯形 $S$ 内部实现均匀分布。为此，王与方（1990）提出在单纯形上使用均匀设计。借助逆概率变换方法，他们证明：若 $\boldsymbol{u}\in U(0,1)^{p-1}$，则通过下述变换（参见方与王（1993，第 5 章））
+
+$$
+\begin{align*}
+x_1&=1-u_1^{1/(p-1)}\\
+x_i&=\left(\prod_{j=1}^{i-1}u_j^{1/(p-j)}\right)\left\{1-u_i^{1/(p-i)}\right\},\quad i=2,\dots,p-1\\
+x_p&=\prod_{j=1}^{p-1}u_j^{1/(p-j)}
+\tag{8.12}
+\end{align*}
+$$
+
+得到的 $\boldsymbol{x}$ 服从单纯形上的均匀分布。据此，我们可以先采用 5.1 节介绍的方法生成 $[0,1]^p$ 空间内的均匀设计，再通过式 (8.12) 的变换，得到单纯形 $S$ 上的均匀设计。
+
+然而，正如博尔科夫斯基与皮佩尔（2009）所指出的，当各组分存在额外约束条件时，该变换方法效果可能不佳。可参见表 8.6 中 16 组分玻璃混合物实验里的八项约束条件。在更为复杂的实验（例如混合之混合实验，康等人，2011）中，约束条件会变得愈发复杂。因此，需要一种更为灵活的方法来构造均匀设计。宁等人（2011）提出，利用式（8.12）在约束区域内生成候选点，再采用基于聚类的方法得到最终设计。但聚类步骤会改变数据分布，所得设计点未必满足均匀性。我们可以采用 5.2.2 节介绍的支撑点来获取性能良好的均匀设计。
+
+我们将通过一个简单示例来讲解该方法。首先，考虑一个无任何约束的三分量混料设计问题，我们需要生成 11 个点。首先使用 R 语言包 spacefillr（摩根‑沃尔，2025）生成 10000 个索博尔点，再利用式 (8.12) 将其转换为集合 $S$ 上的均匀点。接着，借助 R 语言包 support（马克，2018）计算支撑点，结果如图 8.5 左图所示。接下来引入约束条件：
+
+$$
+0.3\le x_1+x_2\le0.7
+$$
+
+我们可以剔除约束区域以外的点，得到约 4010 个可行候选点。由这些候选点得到的支撑点如图 8.5 右图所示，该设计效果表现良好。
+
+> **图 8.5**：单纯形中无任何附加约束（左侧）与存在约束（右侧）条件下的 11 个支撑点
+
+![Alt Text](figures/8.5.png){width=67%}
+
+# 9 模型校准
+
+在第二部分，我们探讨了计算机模型相关实验，并且在上一章了解了物理系统的实验。本章将介绍，当我们同时拥有可描述物理系统的计算机模型时，应当如何设计与分析物理实验。即便我们已有计算机模型，出于多方面原因，依旧需要开展物理实验。第一，计算机模型可能包含未知参数，只有确定这些参数才能开展预测。为保证预测具备实际意义，我们需要选定参数取值，让计算机模型输出的预测结果与真实观测数据相契合，而这一点只能通过开展物理实验来验证。第二，计算机模型是描述该系统的数学模型的数值实现形式，它可能过于简化，无法还原复杂的物理系统。因此，可能需要依据物理实验所得数据修正计算机模型的预测结果，使预测更加贴合真实情况。
+
+## 9.1 非线性最优设计
+
+考虑第 1 章提及的用于化学分离的杂化膜制备问题。采用气相渗透（VPI）工艺将金属颗粒渗入聚合物膜内。聚合物膜中截留的金属颗粒含量由下述偏微分方程组控制（任等人，2021）：
+
+$$
+\begin{cases}
+\frac{\partial C_{\text{free}}}{\partial t}=D\frac{\partial^2 C_{\text{free}}}{\partial s^2}-kC_{\text{free}}C_{\text{polymer}}\\
+\frac{\partial C_{\text{product}}}{\partial t}=kC_{\text{free}}C_{\text{polymer}}\\
+D=D_0\exp\left(-K'C_{\text{product}}\right)\\
+\frac{\partial C_{\text{polymer}}}{\partial t}=-kC_{\text{free}}C_{\text{polymer}}
+\end{cases}\tag{9.1}
+$$
+
+对应的边界条件与初始条件为：
+
+$$
+\begin{cases}
+C_{\text{free}}=0,&0<x<l,t=0\\
+C_{\text{product}}=0,&0<x<l,t=0\\
+C_{\text{polymer}}=C_{\text{polymer}}^{0},&0<x<l,t=0\\
+\frac{\partial C_{\text{free}}}{\partial s}=0,&x=0,t>0\\
+C_{\text{free}}=C_s,&x=l,0<t<\tau\\
+C_{\text{free}}=0,&x=l,t>\tau
+\end{cases}\tag{9.2}
+$$
+
+式中：$C_{\text{free}}$（单位：$\mathrm{mol/cm^3}$）为可自由扩散的气相前驱体浓度；$C_{\text{polymer}}$（单位：$\mathrm{mol/cm^3}$）为可参与反应的聚合物官能团浓度；$C_{\text{product}}$（单位：$\mathrm{mol/cm^3}$）为可自由扩散气相前驱体与聚合物官能团发生反应生成的固定产物浓度；$\tau$ 为脱附开始时刻。第一个微分方程描述可自由扩散气相前驱体向聚合物内部扩散，同时因发生反应被消耗的过程；第二个方程描述固定产物的生成过程；第三个方程表征扩散系数随固定产物生成呈指数衰减的规律；最后一个方程描述聚合物反应官能团的消耗过程。控制方程与边界条件中包含 5 个未知参数：$\eta=\{D_0,C_s,C_{\text{polymer}}^{0},K',k\}$，这些参数会直接影响传质过程。其中 $D_0$（单位：$\mathrm{cm^2/s}$）为可自由扩散气相前驱体的初始扩散系数；$C_s$（单位：$\mathrm{mol/cm^3}$）为可自由扩散气相前驱体的表面浓度；$C_{\text{polymer}}^{0}$（单位：$\mathrm{mol/cm^3}$）为可参与反应的聚合物官能团初始浓度；$K'$（单位：$\mathrm{cm^3/mol}$）为阻滞因子，用于表征固定产物 $C_{\text{product}}$ 对气相自由扩散的阻碍作用；$k$（单位：$\mathrm{cm^3/(mol\cdot s)}$）为对应反应速率常数。实验可调控的输入变量共有三个：聚合物膜厚度 $l$、温度以及蒸气压。体系中可测得总吸附量 $y=C_{\text{free}}+C_{\text{product}}$。
+
+一般地，设
+
+$$
+y=h(\boldsymbol{x};\boldsymbol{\eta})
+\tag{9.3}
+$$
+
+为计算机模型，其中 $\boldsymbol{x}\in\mathcal{X}\subset\mathbb{R}^p$ 为输入变量，$\boldsymbol{\eta}\in\mathbb{R}^q$ 是模型中的未知参数。这些未知参数被称为校准参数，因为可通过选取其取值校准计算机模型，使之与真实数据相匹配。在气象参透流程中，$\boldsymbol{x}$ 包含薄膜厚度 $l$ 与时间 $t$，且 $\boldsymbol{\eta}=\{D_0,C_s,C^0_\text{polymer},K',k\}$。假设不存在实验偏差，可将物理实验的数据建模为
+
+$$
+y=\mu(\boldsymbol{x})+\epsilon,\quad\epsilon\stackrel{\text{iid}}{\sim}N(0,\sigma^2)
+\tag{9.4}
+$$
+
+式中 $\mu(\boldsymbol{x})$ 为真实响应面，$\epsilon$ 为测量输出中的随机误差。需要注意，与计算机模型不同，该关系式不含任何校准参数，因为在真实物理系统中这些参数取某一真实值，记为 $\boldsymbol{\eta}^*$。无实验偏差这一假设有时并不成立，输出测量仪器存在偏差或是实验装置出现问题，均会引发该情况。邓等人（2009）给出了利用简支梁模型估算纳米带弹性模量的实例。在其实验中，纳米带初始弯曲、纳米带端部偶发粘滑现象、仪器磨损损耗以及纳米带横向偏移滑动，造成了严重的实验偏差。这类问题具有场景特异性，需要格外留意以识别并消除此类问题。若实验偏差来源未知，可对实验做随机化处理；若偏差来源已知，则可采用区组设计，以此有效削弱实验偏差带来的影响（吴与滨田，2021，第 1 章）。统计建模同样有助于识别实验偏差（张与约瑟夫，2014），部分情形下，对实验偏差的识别还能够带来新的研究发现（约瑟夫等人，2024）。
+
+如果不存在模型偏差，我们可以令
+
+$$
+\mu(\boldsymbol{x})=h(\boldsymbol{x};\boldsymbol{\eta}^*)
+\tag{9.5}
+$$
+
+这种无模型偏差的假设通常并不成立，因为要完整刻画复杂过程的全部物理机理十分困难。不过，现阶段我们先假设不存在偏差，以此推导建模方法，并在下一节重新讨论该情形。因此，联立式 (9.4) 与式 (9.5) 可得
+
+$$
+y=h(\boldsymbol{x};\boldsymbol{\eta}^*)+\epsilon,\epsilon\overset{\text{iid}}{\sim}N(0,\sigma^{2})
+\tag{9.6}
+$$
+
+
+假设我们采用试验设计 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\} $开展物理实验，得到数据 $\boldsymbol{y}=(y_1,\dots,y_n)'$。此时可通过最小二乘法估计校准参数：
+
+$$
+\widehat{\boldsymbol{\eta}}=\argmin_{\boldsymbol{\eta}}\sum_{i=1}^{n}\{y_i-h(\boldsymbol{x}_i;\boldsymbol{\eta})\}^2
+\tag{9.7}
+$$
+
+这一形式看似等同于对数据拟合非线性回归模型，该问题在统计学领域已有充分研究（贝茨和沃茨，1988）。但二者存在一个关键区别：计算机模型 $h(\boldsymbol{x};\boldsymbol{\eta})$ 的计算成本很高，因此式 (9.7) 中的优化求解难以实现。
+
+
+不过，我们首先假设该计算机模型易于计算，以便可以引用非线性回归与最优设计理论的相关结果（费多罗夫、列奥诺夫，2013）。之后我们再将所得结果推广到计算成本高昂的计算机模型情形。
+
+### 9.1.1 分析模型
+
+首先考虑计算机模型为简单解析模型的情形。以帕尔与约瑟夫（1998）所描述的二氧化硫混合过程为例。在该过程中，二氧化硫在储罐内与软水持续混合，生成二氧化硫溶液，该溶液不断从储罐流出，用于漂白木浆。设 $x_1$ 为二氧化硫气体的流量，$x_2$ 为软水的流量。那么，$t$ 时刻溶液中的二氧化硫浓度由下式给出：
+
+$$
+h(\boldsymbol{x};\eta)=h_0+\left(\frac{\eta_2+\eta_3x_1}{\eta_2+\eta_3x_1+x_2}-h_0\right)\left(1-e^{-(\eta_2+\eta_3x_1+x_2)\frac{t}{\eta_1}}\right)
+\tag{9.8}
+$$
+
+式中，$h_0$ 为 $t=0$ 时刻的浓度，$\eta_1$ 为混合储罐内溶液的质量，$(\eta_2,\eta_3)$ 为二氧化硫气体流量计的仪器校准参数。
+
+非线性回归可按如下方式实现。设 $\boldsymbol{\eta}^0$ 为 $\widehat{\boldsymbol{\eta}}$ 的初始猜测值。采用一阶泰勒级数近似：
+
+$$
+h(\boldsymbol{x};\boldsymbol{\eta})\approx h(\boldsymbol{x};\boldsymbol{\eta}^0)+\nabla_{\eta} h(\boldsymbol{x};\boldsymbol{\eta}^0)'(\boldsymbol{\eta}-\boldsymbol{\eta}^0)
+$$
+
+其中 $\nabla_{\eta} h(\boldsymbol{x};\boldsymbol{\eta})=(\partial h/\partial\eta_1,\dots,\partial h/\partial\eta_q)'$。令
+
+$$
+\boldsymbol{h}(\boldsymbol{\eta})=\begin{bmatrix}h(\boldsymbol{x}_1;\boldsymbol{\eta})\\\vdots\\h(\boldsymbol{x}_n;\boldsymbol{\eta})\end{bmatrix}
+$$
+
+且
+
+$$
+\boldsymbol{S}(\boldsymbol{\eta})=\begin{bmatrix}
+\nabla_{\eta}h(\boldsymbol{x}_1;\boldsymbol{\eta})'\\\vdots\\\nabla_{\eta}h(\boldsymbol{x}_n;\boldsymbol{\eta})'
+\end{bmatrix}=\begin{bmatrix}
+\frac{\partial}{\partial\eta_1}h(\boldsymbol{x}_1;\boldsymbol{\eta})&\dots&\frac{\partial}{\partial\eta_q}h(\boldsymbol{x}_1;\boldsymbol{\eta})\\
+\vdots&\ddots&\vdots\\
+\frac{\partial}{\partial\eta_1}h(\boldsymbol{x}_n;\boldsymbol{\eta})&\dots&\frac{\partial}{\partial\eta_q}h(\boldsymbol{x}_n;\boldsymbol{\eta})
+\end{bmatrix}
+$$
+
+$\boldsymbol{S}(\boldsymbol{\eta})$ 称为灵敏度矩阵（史密斯，2024）。于是，式 (9.7) 中的误差平方和为
+
+$$
+\begin{align*}
+\mathrm{SSE}&=(\boldsymbol{y}-\boldsymbol{h}(\boldsymbol{\eta}))'(\boldsymbol{y}-\boldsymbol{h}(\boldsymbol{\eta}))\\
+&\approx(\boldsymbol{y}-\boldsymbol{h}(\boldsymbol{\eta}^0)-\boldsymbol{S}(\boldsymbol{\eta}^0)(\boldsymbol{\eta}-\boldsymbol{\eta}^0))'(\boldsymbol{y}-\boldsymbol{h}(\boldsymbol{\eta}^0)-\boldsymbol{S}(\boldsymbol{\eta}^0)(\boldsymbol{\eta}-\boldsymbol{\eta}^0))
+\end{align*}
+$$
+
+该式是关于 $\boldsymbol{\eta}$ 的二次函数。对其求导并令导数等于 0，可得
+
+$$
+\boldsymbol{S}(\boldsymbol{\eta}^0)'\boldsymbol{S}(\boldsymbol{\eta}^0)(\boldsymbol{\eta}-\boldsymbol{\eta}^0)=\boldsymbol{S}(\boldsymbol{\eta}^0)'(\boldsymbol{y}-\boldsymbol{h}(\boldsymbol{\eta}^0))
+$$
+
+若 $\boldsymbol{S}(\boldsymbol{\eta}^0)'\boldsymbol{S}(\boldsymbol{\eta}^0)$ 可逆，则得到唯一解
+
+$$
+\boldsymbol{\eta}^1=\boldsymbol{\eta}^0+(\boldsymbol{S}(\boldsymbol{\eta}^0)'\boldsymbol{S}(\boldsymbol{\eta}^0))^{-1}\boldsymbol{S}(\boldsymbol{\eta}^0)'(\boldsymbol{y}-h(\boldsymbol{x};\boldsymbol{\eta}^0))
+$$
+
+该解相比初始解 $\boldsymbol{\eta}^0$ 有所优化。可以持续迭代直至收敛，该方法即为高斯‑牛顿算法（贝茨和瓦茨，1988，第 40 页）。
+
+当 $\boldsymbol{\eta}$ 处于 $\boldsymbol{\eta}^*$ 的邻域内时，矩阵 $\boldsymbol{S}(\boldsymbol{\eta})'\boldsymbol{S}(\boldsymbol{\eta})$ 的可逆性假设需要进一步说明。在线性回归模型中，通过对设计矩阵的列施加若干条件，即可保证模型矩阵具备可逆性。非线性回归的情况则更为复杂：当参数不可识别时，可逆性假设便不再成立。线性回归模型不会出现该问题，因为线性模型的参数可识别性易于保证。但对于非线性回归模型，该性质难以检验，当模型属于黑箱模型时尤为如此（史密斯，2024，第 7 章）。
+
+要理解可识别性问题，考虑一个简单的非线性模型
+
+$$
+y=x_1^{\eta_1}x_2^{\eta_2\eta_3}
+$$
+
+显然，我们无法唯一估计 $\eta_2$ 和 $\eta_3$，因为二者在模型中以乘积形式出现。现假设试验设计中满足 $x_{i1}=x_{i2}=c$，其中 $i=1,\dots,n$。于是
+
+$$
+y_i=x_{i1}^{\eta_1}x_{i2}^{\eta_2\eta_3}=c^{\eta_1+\eta_2\eta_3},i=1,\dots,n
+$$
+
+在该情形下，通过数据我们仅能识别 $\eta_1+\eta_2\eta_3$。前一种可识别性问题源于模型自身的结构；而后一种问题，除了结构不可识别之外，还由不合理的试验设计所导致。
+
+若 $\mathrm{rank}\{\boldsymbol{S}(\boldsymbol{\eta})'\boldsymbol{S}(\boldsymbol{\eta})\}=\mathrm{rank}\{\boldsymbol{S}(\boldsymbol{\eta})\}=q$，则矩阵 $\boldsymbol{S}(\boldsymbol{\eta})'\boldsymbol{S}(\boldsymbol{\eta})$ 可逆。设 $\widetilde{\boldsymbol{\eta}}$ 为误差平方和（SSE）的一个极小值点。假设 $\mathrm{rank}(\boldsymbol{S}(\widetilde{\boldsymbol{\eta}}))=q$，其中 $\boldsymbol{S}(\widetilde{\boldsymbol{\eta}})=(\nabla_{\eta}h(\boldsymbol{x}_i;\widetilde{\eta}_j))_{n\times q}$，那么 $\widehat{\boldsymbol{\eta}}=\widetilde{\boldsymbol{\eta}}$ 是误差平方和（SSE）唯一的全局极小值点。若 $\mathrm{rank}(\boldsymbol{S}(\widetilde{\boldsymbol{\eta}}))<q$，则存在无穷多个极小值点。出现该情况的原因可能是结构不可识别性，或是实验设计存在问题。解析模型的结构可识别性可按如下方式判断。设 $\{\boldsymbol{x}^1,\dots,\boldsymbol{x}^N\}$ 为取自集合 $\mathcal{X}$ 的大规模均匀样本，且 $\boldsymbol{G}(\boldsymbol{\eta})=(\nabla_{\eta}h(\boldsymbol{x}^i;\eta_j))_{N\times q}$。采用大样本能够规避数据采集所用实验设计带来的混杂影响。如果
+
+$$
+\mathrm{rank}\{\boldsymbol{G}(\widetilde{\boldsymbol{\eta}})\}<q
+$$
+
+则说明存在结构不可识别性。我们可以将部分参数固定在标称值，或是通过重新参数化来解决结构不可识别问题。达达绍娃等人（2024）给出了利用 $\boldsymbol{G}(\widetilde{\boldsymbol{\eta}})$ 的奇异值分解实现该目的的若干算法。反之，若 $\mathrm{rank}\{\boldsymbol{G}(\widetilde{\boldsymbol{\eta}})\}=q$，则问题来源于实验设计。此种情形下，开展更多实验是解决不可识别问题的一种可行方案。
+
+考虑式 (9.8) 中的二氧化硫混合模型，该模型包含三个校准参数。通过采用无导数优化方法最小化误差平方和，我们得到 $\widetilde{\boldsymbol{\eta}}=(-1.53,0.91,759.04)'$。借助 R 语言 Matrix 程序包中的 rankMatrix 函数（贝茨等人，2025），可得 $\mathrm{rank}\{S(\widetilde{\boldsymbol{\eta}})\}=3$。由此可知，式 (9.8) 中的三个参数可识别，因此 $\hat{\boldsymbol{\eta}}=\widetilde{\boldsymbol{\eta}}$ 是误差平方和的唯一极小值点。
+
+既然我们已经知道如何求得误差平方和（SSE）的唯一极小值点 $\widehat{\boldsymbol{\eta}}$，接下来我们将着重对估计值的不确定性进行量化分析。首先，我们采用频率学派方法。在式 (9.6) 中误差 $\epsilon$ 满足独立且服从正态分布的假设下，可得到数据的似然函数：
+
+$$
+L=\frac{1}{(\sqrt{2\pi})^n\sigma^n}\exp\left\{-\frac{1}{2\sigma^2}\sum_{i=1}^{n}\{y_i-h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)\}^2\right\}
+$$
+
+对数似然函数为
+
+$$
+\log L=-\frac{n}{2}-\frac{n}{2}\log\sigma^2-\frac{1}{2\sigma^2}\sum_{i=1}^{n}\{y_i-h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)\}^2
+$$
+
+因此，
+
+$$
+\widehat{\boldsymbol{\eta}}=\argmax_{\boldsymbol{\eta}}\log L=\argmin_{\boldsymbol{\eta}}\sum_{i=1}^{n}\{y_i-h(\boldsymbol{x}_i;\boldsymbol{\eta})\}^2
+$$
+
+这说明 $\boldsymbol{\eta}$ 的极大似然估计（MLE）与式 (9.7) 中的最小二乘估计是等价的。将 $\log L$ 对 $\eta_j^*$ 求偏导：
+
+$$
+\frac{\partial\log L}{\partial\eta_j^*}=\frac{1}{2\sigma^2}\sum_{i=1}^{n}2\{y_i-h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)\}\frac{\partial h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)}{\partial\eta_j^*}
+$$
+
+再次求偏导可得二阶导数：
+
+$$
+\frac{\partial^2\log L}{\partial\eta_k^*\partial\eta_j^*}=\frac{1}{\sigma^2}\sum_{i=1}^{n}\left[\{y_i-h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)\}\frac{\partial^2 h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)}{\partial\eta_k^*\partial\eta_j^*}-\frac{\partial h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)}{\partial\eta_k^*}\frac{\partial h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)}{\partial\eta_j^*}\right]
+$$
+
+由于 $\mathrm{E}\{y_i\}=h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)$，于是
+
+$$
+\mathrm{E}\left\{\frac{\partial^2\log L}{\partial\eta_k^*\partial\eta_j^*}\right\}=-\frac{1}{\sigma^2}\sum_{i=1}^{n}\frac{\partial h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)}{\partial\eta_k^*}\frac{\partial h(\boldsymbol{x}_i;\boldsymbol{\eta}^*)}{\partial\eta_j^*}
+$$
+
+由此，费希尔信息矩阵（莱曼和卡塞拉，2006，第 125 页）表示为
+
+$$
+\mathcal{I}(\boldsymbol{\eta})=\frac{1}{\sigma^2}\boldsymbol{S}(\boldsymbol{\eta})'\boldsymbol{S}(\boldsymbol{\eta})
+\tag{9.9}
+$$
+
+已知对于极大似然估计量（莱曼和卡塞拉，2006，第 463 页），当 $n\to\infty$ 时，有
+
+$$
+\widehat{\boldsymbol{\eta}}\Rightarrow\mathcal{N}(\boldsymbol{\eta}^{*},\mathcal{I}(\boldsymbol{\eta}^{*})^{-1})
+$$
+
+即
+
+$$
+\widehat{\boldsymbol{\eta}}\stackrel{\mathrm{a}}{\sim}\mathcal{N}(\boldsymbol{\eta}^{*},\sigma^2\{\boldsymbol{s}(\boldsymbol{\eta}^{*})'\boldsymbol{s}(\boldsymbol{\eta}^{*})\}^{-1})
+$$
+
+对于线性回归模型，该结果退化为式 (2.33)，区别在于式 (2.33) 给出的是精确分布，而非近似分布。
+
+现在，我们可以采用某一种最优设计准则来构建试验设计 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$。D‑最优准则的目标是选取设计方案，使 $\boldsymbol{\eta}^*$ 的置信椭球体积最小。如式 (2.34) 所示，该设计可以表示为：
+
+$$
+D^*=\argmax_{D}|\boldsymbol{S}(\boldsymbol{\eta}^*)'\boldsymbol{S}(\boldsymbol{\eta}^*)|
+$$
+
+遗憾的是，只有已知真实参数 $\boldsymbol{\eta}^*$，才能求解该优化问题，但试验设计的初衷恰恰就是为了精确估计这一未知参数！对于线性回归模型，不存在该问题，因为其灵敏度矩阵与参数无关。而非线性回归模型不具备这一性质，这也是非线性最优设计的一大缺陷。规避该难题的一种思路是对未知参数进行预估，并基于预估值开展试验设计。设 $\boldsymbol{\eta}^0$ 为参数初始预估值，那么可以得到局部 D‑最优设计（切尔诺夫，1953）：
+
+$$
+D^*=\argmax_{D}|\boldsymbol{S}(\boldsymbol{\eta}^0)'\boldsymbol{S}(\boldsymbol{\eta}^0)|
+$$
+
+需要注意的是，只有当参数真实值与 $\boldsymbol{\eta}^0$ 接近时，该设计才会有较好效果。因此，在处理非线性回归模型时，序贯设计策略往往更为合适（博克斯和亨特，1965）。
+
+由于我们假设不存在模型偏差，因此无需在试验区域 $\mathcal{X}$ 内分散布置设计点。在 $\mathcal{X}$ 中极有可能仅存在 $m$ 个互不相同的最优点，且满足 $m<n$。因此，剩余的 $n-m$ 次试验可以分配给这 $m$ 个设计点中的部分点进行重复试验。在最优设计的相关文献中，这 $m$ 个独有的点被称为设计的支撑点，但为避免与第 5 章介绍的分布支撑点发生概念混淆，本文不使用该术语。设 $\boldsymbol{u}_1,\dots,\boldsymbol{u}_m$ 为这 $m$ 个互不相同的最优设计点，$n_1,\dots,n_m$ 为各点对应的重复试验次数，满足 $n_1+\dots+n_m=n$。于是该设计可以表示为 $D=\{(\boldsymbol{u}_i,n_i)\}_{i=1}^{m}$。此时 D‑最优优化问题变为：
+
+$$
+D^{*}=\argmax_{D}\left|\sum_{i=1}^{m}n_i\nabla_{\eta}h(\boldsymbol{u}_i;\boldsymbol{\eta}^0)\nabla_{\eta}h(\boldsymbol{u}_i;\boldsymbol{\eta}^0)'\right|
+\tag{9.10}
+$$
+
+约束条件为 $\sum_{i=1}^{m}n_i=n$。当 $m\ll n$ 时，该表达形式能够极大简化优化问题。但该问题属于混合整数规划问题，求解难度依旧较高。通过松弛 $n_i$ 的整数约束条件，可以将该问题转化为连续优化问题（基弗和沃尔福维茨，1959）：
+
+$$
+D^{*}=\argmax_{D}\left|\sum_{i=1}^{m}w_i\nabla_{\eta}h(\boldsymbol{u}_i;\boldsymbol{\eta}^0)\nabla_{\eta}h(\boldsymbol{u}_i;\boldsymbol{\eta}^0)'\right|
+\tag{9.11}
+$$
+
+其中 $D=\{(\boldsymbol{u}_i,w_i)\}_{i=1}^{m}$，$w_i\in[0,1]$，且 $\sum_{i=1}^{m}w_i=1$。该设计称为近似设计，原因在于实际试验中无法开展小数次试验。可以通过将 $nw_1,\dots,nw_m$ 取就近整数，把近似设计转化为精确设计（普克尔舍姆和里德，1992）。
+
+为找到最优设计，第一步是选取独立设计点的数量 $m$。显然 $m\ge q$，因为估计 $q$ 个参数至少需要 $q$ 个数据点。若集合 $\mathcal{X}$ 为凸集，根据卡拉西奥多里定理可得 $m\le q(q+1)/2$（西尔维，1980，第 16 页）。现有研究表明，独立设计点的最优数量接近下界 $q$（杨，2010；德特等人，2022）。
+
+考虑求解模型
+
+$$
+h(\boldsymbol{x};\boldsymbol{\eta})=\eta_0+e^{-\eta_1x_1}+e^{-\eta_2x_2}
+\tag{9.12}
+$$
+
+的 D‑最优设计这一简单算例。假设参数的初始猜测值为 $\boldsymbol{\eta}^0=(0,2,2)'$。取初始值 $m=q=3$。利用 R 软件包 ICAOD（马苏迪等人，2022）得到的最优设计及其权重见下方表格。D‑最优目标函数值为 $4.23\times10^{-5}$。
+
+|运行次数|$x_1$|$x_2$|$w$|
+|:--:|--:|--:|--:|
+|1|0.45|0.00|0.3333|
+|2|0.50|0.50|0.3333|
+|3|0.00|0.50|0.3333|
+
+现在，令 $m=4$，结果如下第一个表格。该设计的目标函数值为 $7.1\times10^{−5}$，性能得到提升。第二个表格展示 $m=5$ 时的结果，其目标函数值同样为 $7.1\times10^{−5}$。因此，将 $m$ 增大至 5 后，目标函数并未进一步优化。此外，可以看到第二个点的权重接近 0，实质上等价于 4 点设计。由此，$m=4$ 得到的设计可视为最优设计，该结论与德特等人（2022）的理论分析一致。假设实验预算允许开展 20 次试验，则每组试验的重复次数约为 5 次。一般而言，对 $nw_i$ 取整以得到精确设计时需要格外谨慎（普克尔舍姆和里德，1992）。由于精确设计可以看作近似设计的最优离散表达形式，我们也可以利用重要支撑点（5.2.4 节）来获取精确设计（克里希纳等人，2022）。
+
+|运行次数|$x_1$|$x_2$|$w$|
+|:--:|--:|--:|--:|
+|1|0.50|0.00|0.251|
+|2|0.50|0.50|0.246|
+|3|0.00|0.49|0.251|
+|4|0.00|0.00|0.252|
+
+|运行次数|$x_1$|$x_2$|$w$|
+|:--:|--:|--:|--:|
+|1|0.50|0.00|0.2550|
+|2|0.54|0.50|0.002|
+|3|0.00|0.49|0.2449|
+|4|0.00|0.00|0.2553|
+|5|0.50|0.51|0.2446|
+
+现在我们来考虑贝叶斯方法。贝叶斯模型为：
+
+$$
+\begin{align*}
+y_i|\boldsymbol{\eta}&\stackrel{\mathrm{ind}}{\sim}f(y_i|\boldsymbol{\eta})=\mathcal{N}(h(x_i;\boldsymbol{\eta}),\sigma^2),\quad i=1,\dots,n\\\boldsymbol{\eta}&\sim f(\boldsymbol{\eta})
+\end{align*}
+$$
+
+其中 $f(\boldsymbol{\eta})$ 为 $\boldsymbol{\eta}$ 的先验分布。先验分布刻画了观测数据之前参数的不确定性。获取数据后，更新后的不确定性由后验分布 $f(\boldsymbol{\eta}|\boldsymbol{y})$ 描述，式中 $\boldsymbol{y}=(y_1,\dots,y_n)'$。从先验分布到后验分布的香农信息增益定义为：
+
+$$
+\mathrm{IG}=\int f(\boldsymbol{\eta}|\boldsymbol{y})\log f(\boldsymbol{\eta}|\boldsymbol{y})\mathrm{d}\boldsymbol{\eta}-\int f(\boldsymbol{\eta})\log f(\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}
+$$
+
+该值等价于 $\boldsymbol{\eta}$ 的熵的减少量（见 3.2 节）。我们的目标是设计实验，使得信息增益最大化（林德利，1956）。但信息增益依赖于实验前未知的数据 $\boldsymbol{y}$。因此，我们对信息增益关于数据的边缘分布取期望，得到期望信息增益：
+
+$$
+\begin{align*}
+\mathrm{EIG}&=\left[\int f(\boldsymbol{\eta}|\boldsymbol{y})\log f(\boldsymbol{\eta}|\boldsymbol{y})\mathrm{d}\boldsymbol{\eta}\right]\int f(\boldsymbol{y})\mathrm{d}\boldsymbol{y}-\int f(\boldsymbol{\eta})\log f(\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}\\
+&=\iint f(\boldsymbol{\eta}|\boldsymbol{y})f(\boldsymbol{y})\log f(\boldsymbol{\eta}|\boldsymbol{y})\mathrm{d}\boldsymbol{\eta}\mathrm{d}\boldsymbol{y}-\iint f(\boldsymbol{y},\boldsymbol{\eta})\mathrm{d}\boldsymbol{y}\log f(\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}
+\end{align*}
+$$
+
+其可化简为：
+
+$$
+\begin{align*}
+\mathrm{EIG}&=\iint\log\frac{f(\boldsymbol{\eta}|\boldsymbol{y})}{f(\boldsymbol{\eta})}f(\boldsymbol{y},\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}\mathrm{d}\boldsymbol{y}\\
+&=\iint\log\frac{f(\boldsymbol{y}|\boldsymbol{\eta})}{f(\boldsymbol{y})}f(\boldsymbol{y},\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}\mathrm{d}\boldsymbol{y}
+\end{align*}
+$$
+
+贝叶斯最优实验设计可通过对设计集合 $D=\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$ 最大化期望信息增益求得。然而，由于存在高维积分，该目标函数求解难度极大。这类积分可采用蒙特卡洛（MC）方法近似。设 $(\boldsymbol{y}^i,\boldsymbol{\eta}^i)\stackrel{\mathrm{iid}}{\sim}f(\boldsymbol{y},\boldsymbol{\eta})=f(\boldsymbol{y}|\boldsymbol{\eta})f(\boldsymbol{\eta}),i=1,\dots,N$，则期望信息增益可近似为：
+
+$$
+\mathrm{EIG}\approx\frac{1}{N}\sum_{i=1}^{N}\log\frac{f(\boldsymbol{y}^i|\boldsymbol{\eta}^i)}{f(\boldsymbol{y}^i)}
+$$
+
+其中证据项可按下式估计：
+
+$$
+f(\boldsymbol{y}^i)\approx\frac{1}{N}\sum_{j=1}^{N}f(\boldsymbol{y}^i|\boldsymbol{\eta}^j),\quad i=1,\dots,N
+$$
+
+该双重循环使得计算复杂度达到 $\mathcal{O}(N^2)$，造成目标函数计算成本高昂，优化难度大。已有多篇文献提出算法以提升该计算的效率（胡安与马祖克，2013；奥弗斯托尔与伍兹，2017；雷恩福思等人，2024）。R 语言 acebayes 程序包中的 acenlm 函数可以求解最优设计（奥弗斯托尔等人，2024），该函数实现了近似坐标交换算法。但由于期望信息增益与噪声方差相关，我们还需要为 $\sigma^2$ 指定先验分布。
+
+本文将介绍一种利用后验分布正态近似来优化期望信息增益（EIG）的算法。与基于模拟的算法不同，该算法仅能给出近似结果，但实现难度更低，且无需对 $\sigma^2$ 给定先验设定。设 $\widehat{\boldsymbol{\eta}}=\argmax_{\boldsymbol{\eta}}f(\boldsymbol{y}|\boldsymbol{\eta})$ 为极大似然估计，$\widehat{\mathcal{I}}(\widehat{\boldsymbol{\eta}})=-\nabla^2_{\eta}\log f(\boldsymbol{y}|\widehat{\boldsymbol{\eta}})$ 为观测费希尔信息矩阵。此时可采用如下后验近似（伯杰，2013，第 224 页）：
+
+$$
+\boldsymbol{\eta}|\boldsymbol{y}\stackrel{\mathrm{a}}{\sim}\mathcal{N}(\widehat{\boldsymbol{\eta}},\widehat{\mathcal{I}}(\widehat{\boldsymbol{\eta}})^{-1})
+$$
+
+该近似可看作极大似然估计渐近分布的贝叶斯形式，与贝叶斯计算中广泛使用的拉普拉斯近似密切相关。在该近似下，可得：
+
+$$
+\begin{align*}
+\max_{D}\text{EIG}&=\max_{D}\left\{\int\left[\int f(\boldsymbol{\eta}|\boldsymbol{y})\log f(\boldsymbol{\eta}|\boldsymbol{y})\mathrm{d}\boldsymbol{\eta}\right]f(\boldsymbol{y})\mathrm{d}\boldsymbol{y}-\int f(\boldsymbol{\eta})\log f(\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}\right\}\\
+&\equiv\max_{D}\int\left[\int f(\boldsymbol{\eta}|\boldsymbol{y})\log f(\boldsymbol{\eta}|\boldsymbol{y})\mathrm{d}\boldsymbol{\eta}\right]f(\boldsymbol{y})\mathrm{d}\boldsymbol{y}\\
+&\approx\max_{D}\int-\log\left|\widehat{\mathcal{I}}(\widehat{\boldsymbol{\eta}})^{-1}\right|f(\boldsymbol{y})\mathrm{d}\boldsymbol{y}\quad\because(3.4)\\
+&=\max_{D}\int\log\left|\widehat{\mathcal{I}}(\widehat{\boldsymbol{\eta}})\right|f(\boldsymbol{y})\mathrm{d}\boldsymbol{y}\\
+&\approx\max_{D}\int\log\left|\mathcal{I}(\boldsymbol{\eta})\right|f(\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}
+\end{align*}
+$$
+
+上式最后一步采用了查洛纳与伦特茨（1989）提出的近似方法。因此，结合式 (9.9)，可以得到（伪）贝叶斯 D‑最优设计：
+
+$$
+\begin{align*}
+D^*&=\argmax_{D}\int\log\left|\boldsymbol{S}(\boldsymbol{\eta})'\boldsymbol{S}(\boldsymbol{\eta})\right|f(\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}\\
+&=\argmax_{\{(\boldsymbol{u}_i,w_i)\}_{i=1}^{m}}\int\log\left|\sum_{i=1}^{m}w_i\nabla_{\boldsymbol{\eta}}h(\boldsymbol{u}_i;\boldsymbol{\eta})\nabla_{\boldsymbol{\eta}}h(\boldsymbol{u}_i;\boldsymbol{\eta})'\right|f(\boldsymbol{\eta})\mathrm{d}\boldsymbol{\eta}
+\tag{9.13}
+\end{align*}
+$$
+
+其中，我们同样借助前文推导，将精确设计转化为近似设计。
+
+现考虑双因子指数模型，其中 $\eta_0\sim\mathcal{U}(-10,10)$，当 $i=1,2$ 时 $\eta_i\sim\mathcal{U}(1,3)$。对于给定的 $m$，贝叶斯 D‑最优设计可借助 R 软件包 ICAOD 中的 bayes 函数求得（马苏迪等人，2022）。在该具体算例中，得到的设计与 $\eta_0=(0,2,2)'$ 下的局部 D‑最优设计完全一致。这一结果合乎预期，原因是若 $f(\eta)$ 以 $\eta_0$ 为中心分布，则式 (9.11) 可以较好地近似式 (9.13)。
+
+### 9.1.2 计算开销大的模型
+
+当基于物理的模型 $h$ 计算成本较高时，例如式 (9.1) 中的反应‑扩散模型，式 (9.11) 或 (9.13) 中的优化过程会变得十分耗时且难以实现。因此，在求解最优设计之前，我们需要开展计算机实验，并采用代理模型对 $h$ 进行近似。
+
+与物理实验不同，在计算机实验中我们既可以修改输入变量，也可以修改校准参数。设 $\boldsymbol{z}=(\boldsymbol{x}',\boldsymbol{\eta}')'$，$D_1=\{\boldsymbol{z}_1,\dots,\boldsymbol{z}_N\}$ 为该计算机实验的试验设计。我们可以采用第 3‑7 章介绍的方法来构建该实验设计。令 $\boldsymbol{y}=(y_1,\dots,y_N)'$ 为实验输出。和前文一致，假设 $h(\boldsymbol{z})\sim\mathrm{GP}(\mu,\tau^2R(\cdot))$。则后验均值为：
+
+$$
+\begin{align*}
+\widehat{h}(\boldsymbol{x};\boldsymbol{\eta})&=\widehat{\mu}+\boldsymbol{r}(\boldsymbol{z})'\boldsymbol{R}^{-1}(\boldsymbol{y}-\widehat{\mu}\boldsymbol{1}_N)\\
+&=\widehat{\mu}+\sum_{i=1}^{N}c_iR(\boldsymbol{z}-\boldsymbol{z}_i)
+\end{align*}
+$$
+
+其中 $\boldsymbol{c}=\boldsymbol{R}^{-1}(\boldsymbol{Y}-\widehat{\mu}\boldsymbol{1}_N)$ 在乘积相关结构 $R(\cdot)=\prod_{l=1}^{p}R_l^x(\cdot)\prod_{l=1}^{q}R_l^{\eta}(\cdot)$ 下，对校准参数的偏导数可简便求得：
+
+$$
+\begin{align*}
+\frac{\partial}{\partial\eta_j}\widehat{h}(\boldsymbol{x};\boldsymbol{\eta})&=\sum_{i=1}^{N}c_i\frac{\partial}{\partial\eta_j}R(\boldsymbol{z}-\boldsymbol{z}_i),\\
+&=\sum_{i=1}^{N}c_iR(\boldsymbol{z}-\boldsymbol{z}_i)\frac{\partial}{\partial\eta_j}\log R_j^{\eta}(\eta_j-\eta_{ij}),\quad j=1,\dots,q
+\end{align*}
+$$
+
+该偏导数也可通过有限差分法与理查森外推法做数值计算，R 语言包 numDeriv 已经实现了上述算法（吉尔伯特和瓦拉丹，2019）。此时，利用式 (9.11) 或式 (9.13) 就可以高效生成最优试验设计。
+
+考虑式 (9.1) 中的反应‑扩散模型。为简化分析，我们探讨仅利用时间变量（即 $x=t$）对物理实验开展最优设计的方法。首先，需要开展计算机实验以近似该反应‑扩散模型。为此，黄等人（2021）针对五个校准参数 $\eta=(\log D_0,C_s,C_0^\text{polymer},K',\log k)'$ 采用 50 次试验的最大投影设计，其中 $D_0\in[10^{-12},10^{-9}]$，$C_s\in[4\times10^{-3},5\times10^{-3}]$，$C_0^\text{polymer}\in[5\times10^{3},6\times10^{-3}]$，$K'\in[500,2500]$，$k\in[10^{-3},10]$。对每组试验求解式 (9.1)，可得到质量吸收量关于时间的函数响应。输出结果如图 9.1 左图所示，其中 $\tau=62500$ 秒。每个函数输出对应 6601 个时间点，因此数据点总数为 $50\times6601=330050$。针对如此大规模的数据拟合高斯过程（GP）模型会带来较高的计算开销。本书第四部分将介绍数据压缩技术以及适用于大数据的近似高斯过程模型拟合方法。不过，由于输出具备函数型特性，此处可以采用一种效率更高的方法（洪等人，2015）。
+
+> **图 9.1**：（左）50 次最大投影运行的反应‑扩散模型输出结果。（右）$\boldsymbol{\eta}=\boldsymbol{\eta}^0$ 以及局部 D‑最优设计下的输出结果（蓝色圆圈）
+
+![Alt Text](figures/9.1.png){width=67%}
+
+令 $N=50$，$M=6601$，$\boldsymbol{Y}$ 为 $N\times M$ 的输出矩阵。拟合高斯过程（GP）模型的主要难题源于相关矩阵 $\boldsymbol{R}$ 的规模，该矩阵维度为 $NM\times NM$。借助克罗内克积，我们可将计算复杂度从 $\mathcal{O}(M^3N^3)$ 降至 $\mathcal{O}(M^3+N^3)$，计算开销得到大幅缩减。以下矩阵代数相关结论十分有用（彼得森和佩德森，2006，第 60 页），其中部分结论我们已在第 8 章中使用过。
+
+> **引理 9.1**：设 $\boldsymbol{A}$ 为 $N\times N$ 矩阵，$\boldsymbol{B}$ 为 $M\times M$ 矩阵，$\boldsymbol{Y}$ 为 $N\times M$ 矩阵。定义克罗内克积与向量化算子：$$\boldsymbol{A}\otimes\boldsymbol{B}=\begin{bmatrix}A_{11}\boldsymbol{B}&\cdots&A_{1N}\boldsymbol{B}\\\vdots&\ddots&\vdots\\A_{N1}\boldsymbol{B}&\cdots&A_{NN}\boldsymbol{B}\end{bmatrix},\quad\mathrm{vec}(\boldsymbol{Y})=\begin{pmatrix}\boldsymbol{Y}_1\\\vdots\\\boldsymbol{Y}_M\end{pmatrix}$$ 其中 $\boldsymbol{Y}_i$ 是 $\boldsymbol{Y}$ 的第 $i$ 列。则：（1）$(\boldsymbol{A}\otimes\boldsymbol{B})'=\boldsymbol{A}'\otimes\boldsymbol{B}'$。（2）$(\boldsymbol{A}\otimes\boldsymbol{B})^{-1}=\boldsymbol{A}^{-1}\otimes\boldsymbol{B}^{-1}$。（3）$|\boldsymbol{A}\otimes\boldsymbol{B}|=|\boldsymbol{A}|^M|\boldsymbol{B}|^N$。（4）$(\boldsymbol{B}'\otimes\boldsymbol{A})\mathrm{vec}(\boldsymbol{Y})=\mathrm{vec}(\boldsymbol{A}\boldsymbol{Y}\boldsymbol{B})$。
+
+令 $\boldsymbol{R}_\eta$ 为对应校准参数的 $N\times N$相关矩阵，$\boldsymbol{R}_t$ 为对应时间变量的 $M\times M$ 相关矩阵。于是，在乘积相关结构下，$\boldsymbol{R}=\boldsymbol{R}_t\otimes\boldsymbol{R}_\eta$，其中 $\boldsymbol{R}$ 是 $\mathrm{vec}(\boldsymbol{Y})$ 的相关矩阵。此时，如第 2 章所述，我们可以对高斯过程（GP）模型参数做如下估计：
+
+$$
+\begin{align*}
+\widehat{\mu}&=\frac{\boldsymbol{1}_{NM}'\boldsymbol{R}^{-1}\mathrm{vec}(\boldsymbol{Y})}{\boldsymbol{1}_{NM}'\boldsymbol{R}^{-1}\mathrm{vec}(\boldsymbol{1}_N\boldsymbol{1}_M')}\\
+&=\frac{\boldsymbol{1}_{NM}'(\boldsymbol{R}_t^{-1}\otimes\boldsymbol{R}_\eta^{-1})\mathrm{vec}(\boldsymbol{Y})}{\boldsymbol{1}_{NM}'(\boldsymbol{R}_t^{-1}\otimes\boldsymbol{R}_\eta^{-1})\mathrm{vec}(\boldsymbol{1}_N\boldsymbol{1}_M')}\\
+&=\frac{\boldsymbol{1}_{NM}'\mathrm{vec}(\boldsymbol{R}_\eta^{-1}\boldsymbol{Y}\boldsymbol{R}_t^{-1})}{\boldsymbol{1}_{NM}'\mathrm{vec}(\boldsymbol{R}_\eta^{-1}\boldsymbol{1}_N\boldsymbol{1}_M'\boldsymbol{R}_t^{-1})}
+\end{align*}
+$$
+
+$$
+\begin{align*}
+\widehat{\tau}^2&=\frac{1}{NM}(\mathrm{vec}(\boldsymbol{Y})-\widehat{\mu}\boldsymbol{1}_{NM})'(\boldsymbol{R}_t^{-1}\otimes\boldsymbol{R}_\eta^{-1})(\mathrm{vec}(\boldsymbol{Y})-\widehat{\mu}\boldsymbol{1}_{NM})\\
+&=\frac{1}{NM}(\mathrm{vec}(\boldsymbol{Y})-\widehat{\mu}\boldsymbol{1}_{NM})'\mathrm{vec}\{\boldsymbol{R}_\eta^{-1}(\boldsymbol{Y}-\widehat{\mu}\boldsymbol{1}_N\boldsymbol{1}_M')\boldsymbol{R}_t^{-1}\}
+\end{align*}
+$$
+
+相关参数 $\boldsymbol{\theta}=(\boldsymbol{\theta}_\eta',\theta_t')'$ 的估计为：
+
+$$
+\begin{align*}
+\widehat{\boldsymbol{\theta}}&=\argmin_{\boldsymbol{\theta}}\{NM\log\tau^2+\log|\boldsymbol{R}|\}\\
+&=\argmin_{\boldsymbol{\theta}}\{NM\log\tau^2+M\log|\boldsymbol{R}_\eta|+N\log|\boldsymbol{R}_t|\}
+\end{align*}
+$$
+
+预测器可化简为：
+
+$$
+\begin{align*}
+\widehat{h}(t;\boldsymbol{\eta})&=\widehat{\mu}+(\boldsymbol{r}_t(t)\otimes\boldsymbol{r}_\eta(\boldsymbol{\eta}))'(\boldsymbol{R}_t^{-1}\otimes\boldsymbol{R}_\eta^{-1})(\mathrm{vec}(\boldsymbol{Y})-\widehat{\mu}\boldsymbol{1}_{NM})\\
+&=\widehat{\mu}+(\boldsymbol{r}_t(t)'\otimes\boldsymbol{r}_\eta(\boldsymbol{\eta})')\mathrm{vec}\{\boldsymbol{R}_\eta^{-1}(\boldsymbol{Y}-\widehat{\mu}\boldsymbol{1}_N\boldsymbol{1}_M')\boldsymbol{R}_t^{-1}\}\\
+&=\widehat{\mu}+\boldsymbol{r}_\eta(\boldsymbol{\eta})'\boldsymbol{R}_\eta^{-1}(\boldsymbol{Y}-\widehat{\mu}\boldsymbol{1}_N\boldsymbol{1}_M')\boldsymbol{R}_t^{-1}\boldsymbol{r}_t(t)
+\tag{9.14}
+\end{align*}
+$$
+
+尽管计算量已经得到大幅缩减，但当 $M$ 取值较大时（本例中 $M=6601$），计算依旧开销巨大。若在等间隔时间点观测函数输出，则可借助指数相关函数进一步简化该计算（洪等人，2015）：
+
+$$
+R_t(t_i-t_j)=\exp\left(-\frac{|t_i-t_j|}{\theta_t}\right)
+$$
+
+设 $M$ 个时间点为 $\{0,1/(M-1),\dots,1\}$，并令 $\rho=\exp\{-1/((M-1)\theta_t)\}$，则：
+
+$$
+\boldsymbol{R}_t=\begin{bmatrix}
+1&\rho&\rho^2&\cdots&\rho^{M-1}\\
+\rho&1&\rho&\cdots&\rho^{M-2}\\
+\vdots&\vdots&\vdots&\ddots&\vdots\\
+\rho^{M-1}&\rho^{M-2}&\rho^{M-3}&\cdots&1
+\end{bmatrix}
+$$
+
+对于该矩阵，其逆矩阵与行列式可显式求出：
+
+$$
+\boldsymbol{R}_t^{-1}=\begin{bmatrix}
+1&-\rho&0&\cdots&0\\
+-\rho&1+\rho^2&-\rho&\cdots&0\\
+\vdots&\vdots&\vdots&\ddots&\vdots\\
+0&0&0&\cdots&1
+\end{bmatrix}
+$$
+
+且 $|\boldsymbol{R}_t|=(1-\rho^2)^M$。这一处理将计算复杂度从 $\mathcal{O}(N^3+M^3)$ 降至 $\mathcal{O}(N^3+MN^2)$。
+
+遗憾的是，这 6601 个时间点并非等间距分布，这是因为在区间 $[0,5000]$ 内采集了更多数值，以便准确捕捉响应的快速变化。为简化计算，我们从区间 $[0,120000]$ 中采样 1001个等间距点，并通过最近邻预测器得到每次运行对应的响应值。此时我们便可利用式 (9.14) 中 $\boldsymbol{R}_t^{-1}$的显式表达式，高效完成输出预测。
+
+由于需要估计五个校准参数，五点设计大概率为最优设计。设 $\boldsymbol{\eta}^0=(0.5,\dots,0.5)'$ 为初始猜测值，其中试验区域被缩放至 $[0,1]^5$。随后可借助 ICAOD 程序包（马苏迪等人，2022），由式 (9.11) 得到局部 D‑最优设计。设计点展示于图 9.1 的右侧面板，叠加在由 $\boldsymbol{\eta}=\boldsymbol{\eta}^0$ 生成的响应结果之上。对于该设计，当 $i=1,\dots,5$ 时，$w_i\approx0.2$。可以看出，这些设计点的位置符合直观逻辑，似乎能够捕捉函数输出的部分显著特征。但在该特定应用场景中，工程师可以测得全部时间域内的质量吸收量。在其他应用场景下，谨慎选取时间点十分关键。例如，在二氧化硫混合过程中，必须采集样品送至实验室，再通过滴定法测定浓度，该过程耗费大量人力与时间。因此，二氧化硫的浓度仅能在少数选定时间点进行观测。
+
+可通过
+
+$$
+\widehat{\boldsymbol{\eta}}=\argmin_{\boldsymbol{\eta}}\sum_{i=1}^{n}\{y_i-\widehat{h}(t_i;\boldsymbol{\eta})\}^2
+$$
+
+估计校准参数，其中 $\widehat{h}(t;\boldsymbol{\eta})$ 由式 (9.14) 给出，$\boldsymbol{y}=(y_1,\dots,y_n)'$ 为物理实验的输出结果。但由于 $\widehat{h}(t;\boldsymbol{\eta})$ 仅基于 50 次运算得到，该函数近似结果可能不够精确。黄等人（2021）采用贝叶斯优化，通过在试验设计中序贯增加运算次数求解 $\widehat{\boldsymbol{\eta}}$。与 7.2 节介绍的方法不同，他们对 $h(t;\eta)$ 建立高斯过程模型，而非对误差平方和建模。事实上，他们结合函数主成分分析，提出期望改进算法，用以高效最小化 $\int\{y(t)-h(t;\eta)\}^2\mathrm{d}t$。关于该方法的另一项实际应用可参见黄等人（2025）的研究。
+
+## 9.2 稳健设计
+
+为求得最优设计，我们必须对未知校准参数做出初始猜测。倘若猜测有误，得到的设计就可能达不到最优效果。我们还假设基于物理的模型为真实模型，但实际情况中几乎不会如此。因此，在假定该模型为真实模型的前提下得到的最优设计，其实际效果可能远非最优。本节将介绍如何得到兼顾参数与模型不确定性的鲁棒设计。
+
+### 9.2.1 参数不确定性
+
+考虑式 (9.12) 中的双因子指数模型。德特等人（2022）证明 D‑最优设计为
+
+$$
+D=\begin{bmatrix}
+0&0\\1/\eta_1&0\\
+0&1/\eta_2\\1/\eta_1&1/\eta_2
+\end{bmatrix}
+$$
+
+其中 $i=1,\dots,4$ 时权重 $w_i=1/4$。在上一节中，我们假定 $\boldsymbol{\eta}=(0,2,2)'$，生成了局部 D‑最优设计。显然，$\eta_0$ 的选取不会影响结果，但 $\eta_1$ 与 $\eta_2$ 的选取至关重要。
+
+假设我们的试验预算为 8 次运行。那么，初始猜测值 $\boldsymbol{\eta}^0=(0,2,2)'$ 对应的局部 D‑最优设计将包含 4 个试验点，每个点重复 2 次，如图 9.2 左侧子图所示。现假设采用以下分布描述我们对参数的不确定性：$\eta_1\sim\mathcal{U}(1,3)$，$\eta_2\sim\mathcal{N}(2,1/2^2)$。我们可以从上述不确定性分布中抽取 $N$ 个样本，并得到对应的局部 D‑最优设计。由于求解一般情形下的局部 D‑最优设计计算量较大，我们可以利用式 (5.11) 中的支撑点获取少量优质代表性样本，以此降低计算开销。这 $N$ 组局部 D‑最优设计点以黑色圆圈形式呈现在图 9.2 右侧子图中。可以观察到这些设计点差异很大，这表明由 $\boldsymbol{\eta}^0=(0,2,2)'$ 生成的局部 D‑最优设计效果可能很差。
+
+> **图 9.2**：（左）双因子指数模型的 8 次局部 D‑最优设计，每个试验点重复两次。（右）对参数不确定性具有鲁棒性的 8 次试验设计
+
+![Alt Text](figures/9.2.png){width=67%}
+
+我们应当如何寻找对参数误设定具备鲁棒性的最优设计？德罗尔与斯坦伯格（2006）提出了一种简易思路：通过 $k$ 均值算法对 $4N$ 个点做聚类，以此获取鲁棒设计。该场景下所有点权重均等，因此聚类方法能够生效。但一般而言，局部 D‑最优设计中的各个点权重可以互不相同。此外，聚类操作会扭曲原始分布，可能无法生成可以良好代表该分布的样本点。为此，克里希纳等人（2022）提出采用式 (5.17) 中的重要支持点（黄等人，2022）求解鲁棒设计，并按照 $w\leftarrow w/N$ 调整权重。由此得到的 8 个点如图 9.2 右侧子图所示，该组点可视为对参数不确定性具备鲁棒性。
+
+### 9.2.2 模型不确定性
+
+正如乔治·博克斯的名言所述：“所有模型都是错误的，但其中部分模型具备实用价值”，模型 $h(x; \eta^*)$ 极有可能并非真实模型 $\mu(x)$。出现该情况的原因是，为简化建模工作、使其在数学层面易于处理，研究过程中做出了若干假设。部分假设在实际场景中未必成立，因此即便校准参数选取到最优，最终得到的模型也可能与现实情况不符。以气相渗透工艺为例：在 8.7 托蒸气压、130 摄氏度条件下，厚度为 483 纳米的聚合物薄膜的实测吸质数据，已在图 9.3 中重新给出。图中同时绘制了采用黄等人（2021）提出的贝叶斯函数优化方法估计参数后，反应‑扩散模型得到的预测结果。尽管预测结果整体与实测数据相吻合，但仍能看到明显偏差，尤其在吸附过程的初始阶段。
+
+> **图 9.3**：物理实验测得的质量吸附量与经校准的反应‑扩散模型预测值
+
+![Alt Text](figures/9.3.png){width=33%}
+
+任等人（2021）指出了造成模型偏差的若干潜在原因。推导反应‑扩散模型所采用的一项关键假设是可以忽略聚合物的溶胀与弛豫效应。然而，原位光谱椭偏测试结果清晰表明，渗透过程中会出现厚度变化。但该效应难以开展数学建模，因此被予以忽略。另一项建模假设为吸附过程产生的热量可以忽略不计，而在实际场景中该假设同样未必成立。
+
+人们可以探究模型出现偏差的潜在原因，修正错误假设，并尝试构建更优的基于物理机理的模型。这是常规的工程处理思路，但该方法耗时可能过长。一种更简便的方案是针对观测得到的偏差拟合统计模型。肯尼迪与奥黑根（2001）提出采用高斯过程对偏差进行建模：
+
+$$
+\mu(\boldsymbol{x})=h(\boldsymbol{x};\boldsymbol{\eta}^*)+\delta(\boldsymbol{x}),\quad\delta(\boldsymbol{x})\sim\mathrm{GP}(0,\tau^2R(\cdot))
+$$
+
+据此，物理实验的数据可通过下式建模：
+
+$$
+y=h(\boldsymbol{x};\boldsymbol{\eta})+\delta(\boldsymbol{x})+\epsilon,\quad\delta(\boldsymbol{x})\sim\mathrm{GP}(0,\tau^2R(\cdot)),\quad\epsilon\stackrel{\text{iid}}{\sim}\mathcal{N}(0,\sigma^2)
+\tag{9.15}
+$$
+
+借助该模型，可从数据中同时估计校准参数与模型偏差。需要注意，该模型包含数据的两类不确定性来源：$\delta(\boldsymbol{x})$ 表征因物理机理缺失带来的不确定性，$\epsilon$ 表征未知随机效应。在不确定性量化相关文献（德尔·基乌尔吉安、迪特莱夫森，2009）中，前者称为认知不确定性，后者称为随机不确定性。认知不确定性可通过在模型中补充更多物理机理或者采集更多数据得以降低；而随机不确定性无法消除，除非能够定位随机现象的来源（约瑟夫等人，2024）。
+
+尽管肯尼迪‑奥哈根模型的预测效果较好，但拓与吴（2015，2016）指出，由于 $\boldsymbol{\eta}$ 与 $\delta(\boldsymbol{x})$ 之间存在不可识别性，校准参数的估计结果可能很差。普卢姆利（2017）提出采用正交高斯过程（普卢姆利与约瑟夫，2018）来解决该可识别性问题。顾与王（2018）、拓（2019）以及张与王（2025）也提出了处理模型校准中可识别性问题的其他方法。相关最新综述可参见宋与拓（2024）。一种更为简便的方法是采用两阶段流程进行模型拟合：首先利用最小二乘法估计校准参数，再对残差拟合高斯过程（约瑟夫与梅尔科特，2009；王等人，2017）。为清晰说明该方法，首先考虑解析模型的情形。此时 $\boldsymbol{\eta}$ 的最小二乘估计可按式 (9.7) 求得。残差表达式为：
+
+$$
+e_i=y_i-h(\boldsymbol{x}_i;\widehat{\boldsymbol{\eta}}),\quad i=1,\dots,n
+$$
+
+接下来按照 2.2.3 节所述，对数据集 $\{(\boldsymbol{x}_i,e_i)\}_{i=1}^n$ 拟合零均值高斯过程回归，可得：
+
+$$
+\begin{align*}
+\widehat{\tau}^2&=\frac{1}{n}\boldsymbol{e}'(\boldsymbol{R}+\lambda\boldsymbol{I})^{-1}\boldsymbol{e}\\
+(\widehat{\lambda},\widehat{\boldsymbol{\theta}})&=\argmin_{\lambda,\boldsymbol{\theta}}\{n\log\widehat{\tau}^2+\log|\boldsymbol{R}+\lambda\boldsymbol{I}|\}
+\end{align*}
+$$
+
+其中 $\lambda=\sigma^2/\tau^2$。那么，新位置 $\boldsymbol{x}$ 
+
+$$
+\mu(\boldsymbol{x})|\boldsymbol{y}\sim\mathcal{}{N}(\widehat{y}(\boldsymbol{x}),s^2(\boldsymbol{x}))
+$$
+
+式中
+
+$$
+\begin{align*}
+\widehat{y}(\boldsymbol{x})&=h(\boldsymbol{x};\widehat{\boldsymbol{\eta}})+\boldsymbol{r}(\boldsymbol{x})'(\boldsymbol{R}+\widehat{\lambda}\boldsymbol{I})^{-1}(\boldsymbol{y}-\boldsymbol{h}(\widehat{\boldsymbol{\eta}}))\\
+s^2(\boldsymbol{x})&=\widehat{\tau}^2\{1+\widehat{\lambda}-\boldsymbol{r}(\boldsymbol{x})'(R+\widehat{\lambda}\boldsymbol{I})^{-1}\boldsymbol{r}(\boldsymbol{x})\}
+\end{align*}
+$$
+
+该方法虽然简便，但忽略了 $\boldsymbol{\eta}$ 估计过程中存在的不确定性。不过相比于不可识别模型给出错误的 $\boldsymbol{\eta}$ 估计值，该问题的影响相对更小。
+
+如果 $h$ 是计算成本很高的模型，我们可以先得到替代模型 $\widehat{h}(\boldsymbol{x};\boldsymbol{\eta})$，再沿用前述两阶段流程开展计算。但该方法会忽略替代模型预测结果中存在的不确定性。肯尼迪与奥黑根（2001）阐述了如何针对 $h$ 采用高斯过程，将这类不确定性纳入最终预测当中。张与约瑟夫（2014）以及约瑟夫和严（2015）提出了一种处理上述不确定性的近似方法，该方法可以无缝嵌入到两阶段流程中。
+
+让我们回到试验设计问题。受两阶段方法的启发，克里希纳等人（2022）提出了一种用于求解抵御模型不确定性的稳健设计的简便思路。在上一节中，我们已经了解了如何求解用于估计校准参数的稳健设计，记该设计为 $D_\eta$。在第 4 章中，我们学习了用于拟合高斯过程（GP）模型的空间填充设计，这类设计对相关参数的错误设定具备稳健性。假设总试验次数预算为 $n$ 次，其中 $n_1$ 次已经用于 $D_\eta$ 设计。那么我们可以选取规模为 $n-n_1$ 次试验的空间填充设计，对 $D_\eta$ 设计进行扩充。下面我们将通过一个实例对该方法进行说明。
+
+再次考虑式 (9.12) 中的双因子指数模型。假设我们共有 8 次试验预算。图 9.4 展示了 4 次试验（蓝色实心圆点），这些试验采用重要性支持点得到，而该支持点由局部 D‑最优设计生成，生成过程的样本满足 $\eta_1\sim\mathcal{U}(1,3)$ 与 $\eta_2\sim\mathcal{N}(2,1/2^2)$。剩余 4 次试验可通过式 (4.27) 中的序贯最大投影方法获取，借助 MaxPro 程序包中的 MaxProAugment 函数即可轻松生成（巴与约瑟夫，2018），这部分试验在图 9.4 中以红色叉号表示。该设计对参数不确定性与模型不确定性均具备稳健性。
+
+> **图 9.4**：双因子指数模型的八组稳健设计。蓝色实心圆点为基于局部 D‑最优设计采用重要支撑点得到的试验点，该类试验点对参数不确定性具备稳健性。红色叉号为采用序列最大投影方法得到的试验点，可抵御模型不确定性带来的影响
+
+![Alt Text](figures/9.4.png){width=33%}
+
+序贯设计是模型校准中一种颇具吸引力的方案。详见威廉姆斯等人（2011）、兰詹等人（2011）、卡斯蒂略等人（2019）以及叙雷尔等人（2024）的研究。
+
+# 10 数据子采样
+
+到目前为止，我们一直在探讨数据的采集来源问题。本章将讨论另一类问题：数据已经完成采集，但数据量过大，难以存储与分析，因此我们需要从中选取数据子集。选取子集时，我们希望尽可能少地丢失大数据中包含的信息。这与实验设计问题十分相似，但二者存在两点主要区别。第一，实验设计问题中的实验空间通常是连续的，而数据子集选择问题里的空间是离散的，因为大数据将我们的选择限定在有限个样本当中。第二，开展实验设计时无法获取响应变量，而在数据子集选择问题中，我们已经拥有响应变量。
+
+## 10.1 基于支持点的子采样
+
+由于我们手头的数据是总体的一个样本，该数据的子集也可看作子样本。获取子样本的一种常用方法是对数据矩阵的部分行进行均匀随机选取。但正如我们此前在实验设计问题中所看到的，随机样本的效果时好时坏。我们需要采用更优的抽样方法，以获得更加稳定可靠的结果。针对线性回归模型拟合，王等人（2019）提出通过最大化 D‑最优准则来选取样本。然而，该子样本仅对所假设的线性模型最优。倘若我们需要拟合其他模型，例如随机森林或者高斯过程模型，那么选取得到的该子样本将不再具备最优性。机器学习领域关于核心集的相关研究文献日益增多（费尔德曼，2019），但这类研究同样大多聚焦于特定参数模型。鉴于统计建模属于迭代过程，选取子样本时不依赖特定模型就显得至关重要。
+
+实现该目标的一种可行方法是选取与原始数据集分布一致的子样本。此时，我们基于该子样本计算得到的所有特征，都将与原始数据集的特征大致相符。倘若能够实现分布的最优匹配，使用该子样本时的信息损失就会极小。因此，我们可以采用第 5 章介绍的相关技术，获取最优的代表性样本（陈等人，2012；马克和约瑟夫，2018c、b；商等人，2023）。
+
+设数据集为 $\mathcal{D}=\{\boldsymbol{Z}_i=(\boldsymbol{X}_i,\boldsymbol{Y}_i)\}_{i=1}^{N}$，包含 $p$ 个输入变量与 $q$ 个输出变量。我们的目标是得到子样本 $S=\{\boldsymbol{z}_i=(\boldsymbol{x}_i,\boldsymbol{y}_i)\}_{i=1}^{n}$，满足 $n<N$，使得该子样本的经验分布尽可能贴近数据集的经验分布。首先对所有变量做标准化处理，使其方差为 1，保证欧氏距离具备有效意义。随后可采用能量距离（塞凯伊等人，2004）度量两个经验分布之间的距离：
+
+$$
+\mathrm{E\mathcal{D}}(\mathcal{S},\mathcal{D})=\frac{2}{nN}\sum_{i=1}^{n}\sum_{j=1}^{N}\|\boldsymbol{z}_i-\boldsymbol{Z}_j\|-\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{z}_i-\boldsymbol{z}_j\|-\frac{1}{N^2}\sum_{i=1}^{N}\sum_{j=1}^{N}\|Z_i-Z_j\|
+$$
+
+据此，可通过如下方式得到基于支撑点的子样本（马克、约瑟夫，2018c）：
+
+$$
+\mathcal{S}^{*}=\underset{\boldsymbol{z}_1,\cdots,\boldsymbol{z}_n\in \mathcal{D}}{\argmin}\left\{\sum_{i=1}^{n}\sum_{j=1}^{N}\|\boldsymbol{z}_i-\boldsymbol{Z}_j\|-\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{z}_i-\boldsymbol{z}_j\|\right\}
+\tag{10.1}
+$$
+
+式 (5.13) 与式 (10.1) 的主要区别在于：前者执行连续优化，后者执行离散优化。因此，求解式 (5.13) 所使用的凸差规划方法无法直接套用。离散优化问题本身求解难度通常要大得多。获取子样本的核心初衷是降低处理大规模数据集的计算开销；倘若求解子样本的过程耗时过高，则该做法便失去意义。规避该问题的一种思路：先借助凸差规划，在数据集张成的连续空间内快速求解支撑点；再利用最近邻算法，从原始数据集中挑选距离上述支撑点最近的数据点。但简单的最近邻匹配方式会出现样本点重复选取的问题。为此，约瑟夫与瓦卡伊尔（2022）提出逐次单点最近邻算法，一旦某个数据点被选中，就将其从候选数据集内剔除。该算法已在 R 语言程序包 SPlit 的 subsample 函数中实现（瓦卡伊尔等人，2022），该函数借助 k‑d 树实现高效的最近邻匹配。
+
+举个例子，观察图 10.1 中的 1000 个点（黑色叉号）。通过凸差规划得到的 100 个支撑点如左图所示，可以看到这些点并未落在原始数据点上。右图展示了采用序列最近邻算法得到的点，该结果是原始数据的一个子样本。基于支撑点的子采样（第 187 页）中，最近邻分配可能会对数据分布造成轻微失真，但该失真可以忽略不计。
+
+> **图 10.1**：（左侧）通过连续优化得到的支撑点。（右侧）采用序列最近邻算法获取的子样本
+
+![Alt Text](figures/10.1.png){width=67%}
+
+现在来研究基于风速预测风力发电机输出功率的问题（丁，2019）。数据集 1 包含 39195 条以 10 分钟为时间间隔采集的数据，相关数据绘制于图 10.2。假设我们希望为该数据拟合高斯过程模型。但该数据量对于高斯过程模型而言过大。为此，我们采用基于支撑点的子采样方法抽取 1% 的数据，并借助 rkriging 工具包，使用高斯相关函数拟合高斯过程模型（普通克里金模型）（黄与约瑟夫，2024）。数据降维耗时约 2 秒，在 392 个数据点上完成模型拟合耗时不足 1 秒，因此整体拟合可在 3 秒以内完成。若使用原始数据集进行拟合需要耗费数天时间，可见该方法大幅节约了计算时间。预测结果如图10.2所示。遗憾的是，模型在低风速与高风速区间的预测效果并不理想，这也是平稳高斯过程模型的一个公认问题。平稳高斯过程的常数均值假设会造成“均值回归”现象，即在数据稀疏区域，预测结果会趋向先验均值（约瑟夫，2006b）。我们将在第 11 章再次探讨该问题，说明如何对高斯过程模型进行改进，从而提升大数据集下的预测效果。
+
+> **图 10.2**：该图展示了从规模为 39195 的风电数据集中抽取的 392 个子样本，以及利用该子样本拟合得到的高斯过程（GP）模型
+
+![Alt Text](figures/10.2.png){width=33%}
+
+基于支撑点采样的另一项应用是随机规划中的场景缩减（杜帕科娃等人，2003）。设 $\{\boldsymbol{\Psi}_i\}_{i=1}^N$ 为随机变量 $\boldsymbol{\Psi}$ 的场景集合。此时随机优化问题可简化为：
+
+$$
+\min_{\boldsymbol{x}}\mathrm{E}[h(\boldsymbol{x};\boldsymbol{\Psi})]\approx \min_{\boldsymbol{x}}\left\{\frac{1}{N}\sum_{i=1}^{N}h(\boldsymbol{x};\boldsymbol{\Psi}_i)\right\}\approx \min_{\boldsymbol{x}}\left\{\frac{1}{n}\sum_{i=1}^{n}h(\boldsymbol{x};\boldsymbol{\psi}_i)\right\}
+$$
+
+其中 $\{\boldsymbol{\psi}_i\}_{i=1}^n$ 是该场景集合的一个子样本。由于 $n\ll N$，采用场景子样本开展优化，相比使用全部场景集，计算速度会大幅提升。巴里等人（2022）将该方法用于电网优化，克纳普等人（2023）将其应用于等离子体辐射探测器的优化。
+
+## 10.2 数据划分
+
+假设我们有多个能够很好解释数据的模型。那么，我们应当将哪个模型投入实际部署？解答该问题的最优办法是部署全部模型，再从中挑选表现优异的模型，但在实际场景中该方案几乎无法实现。规避该问题的一种常用手段是把数据划分为两部分：训练集与测试集。随后仅使用训练数据拟合模型，借助测试数据选出最优模型。倘若模型部署到实际场景后数据分布保持不变（即不存在协变量偏移），我们获取的测试数据分布应当与完整数据集保持一致。从数据矩阵中随机抽取部分样本便是实现该要求的一种方式。举例来说，如果我们想要按照 80:20 的比例划分数据，可以随机抽取 20% 的样本构成测试集，剩余 80% 的样本作为训练集。然而，随机抽样会让测试结果产生过大波动，导致模型选择结果不可靠。
+
+显然，我们可以利用空间填充设计的思想来挑选优质测试集，使其均匀覆盖整个数据集。有意思的是，空间填充设计最早的应用之一，便是从给定数据集中选取测试集。斯尼（1977）对式 (4.20)（肯纳德与斯通，1969）中的序贯最大最小设计做出改进，以此求解最优测试集。正如前文所见，最大最小设计会将样本点推向边界，由此得到的测试集分布相比原始数据集会离散得多。斯尼的思路是，将式 (4.20) 里逐点贪心选取样本点的操作，在训练集与测试集之间交替执行。该算法名为 DUPLEX，能够生成质量好得多的测试集。但约瑟夫与瓦卡伊尔（2022）的研究表明，DUPLEX 算法生成测试集的分布依旧可能和原始数据集差异显著。为保留原始数据分布并获得分布良好的测试集，约瑟夫与瓦卡伊尔（2022）提出采用上一节介绍的基于支撑点的子采样算法，并将该算法命名为 SPlit。尽管该算法和数据子采样所用算法一致，但二者的设计出发点完全不同，且该算法同样适用于小规模数据集。
+
+举例来说，我们采用约瑟夫与瓦卡伊尔（2022）构建的包含 100 个样本点的合成数据集。该数据集含有两个输入变量（$x_1$ 和 $x_2$）以及一个具有三个类别的分类输出变量 $y$。图 10.3 绘制了该数据集，三类样本分别用红色三角形、绿色加号和蓝色叉号表示。假设我们需要按照 80:20 的比例对该数据集进行划分。R 语言 SPlit 包中的 SPlit 函数（瓦卡伊尔等人，2022）会采用 8.3 节介绍的赫尔默特编码自动处理分类变量，通过凸差规划计算支撑点，并利用序列最近邻算法筛选出子样本。由此得到的 20 个测试样本点展示在图 10.3 的右侧子图中，左侧子图则为随机划分得到的测试集。可以看出，相较于随机划分的测试集，支撑点划分得到的测试集分布更加均衡，也更能代表原始数据集。这有助于更精准地计算泛化误差，也能够让最优模型的选取过程具备更高的稳定性。
+
+> **图 10.3**：通过随机采样（左侧）和支撑点划分（右侧）选取的测试点（圆形）。三种响应类别分别以红色三角形、绿色加号和蓝色叉号表示
+
+![Alt Text](figures/10.3.png){width=67%}
+
+## 10.3 数据孪生
+
+从 $N$ 个数据点中选取 $n$ 个支持点的计算复杂度为 $\mathcal{O}(pn(n+N)m/P)$，其中 $m$ 为凸差规划所用的迭代次数，$P$ 为可用于并行计算的处理器核心数。构建 kd‑树的平均复杂度为 $\mathcal{O}(pN\log N)$。因此，基于支持点的子采样或拆分操作的平均复杂度为 $\mathcal{O}(pN\log N+pn(n+N)m/P)$。令 $\gamma=n/N$为拆分比率，该比率通常取值区间为 $(0,0.5]$（Joseph，2022）。由此整体复杂度可简化为
+
+$$
+\mathcal{O}\left(pN\log N+\frac{mp\gamma N^2}{P}\right)
+$$
+
+该复杂度随 $N$ 呈二次增长，因此支撑点划分算法无法应用于大规模数据集。瓦卡伊尔与约瑟夫（2022a）提出了一种算法来突破这一计算瓶颈，具体介绍如下。
+
+至此，我们讨论的是从规模为 $N$ 的大型数据集 $\mathcal{D}$ 中选出规模为 $n$ 的小子集 $\mathcal{S}$。$\mathcal{S}$ 的补集为数据集 $\overline{\mathcal{S}}$，其规模为 $N-n$。两组数据集经验分布之间的能量距离可按下式计算：
+
+$$
+\begin{align*}
+\mathrm{ED}(\mathcal{S},\overline{\mathcal{S}})&=\frac{2}{n(N-n)}\sum_{i=1}^{n}\sum_{j=1}^{N-n}\|\boldsymbol{z}_i-\boldsymbol{v}_j\|-\frac{1}{n^2}\sum_{i=1}^{n}\sum_{j=1}^{n}\|\boldsymbol{z}_i-\boldsymbol{z}_j\|\\
+&\quad-\frac{1}{(N-n)^2}\sum_{i=1}^{N-n}\sum_{j=1}^{N-n}\|\boldsymbol{v}_i-\boldsymbol{v}_j\|
+\end{align*}
+$$
+
+式中 $\mathcal{S}=\{\boldsymbol{z}_i\}_{i=1}^{n}$，$\overline{\mathcal{S}}=\{\boldsymbol{v}_i\}_{i=1}^{N-n}$。此时，我们不再追求最小化 $\mathrm{ED}(\mathcal{S},\mathcal{D})$，转而考虑最小化 $\mathrm{ED}(\mathcal{S},\overline{\mathcal{S}})$。该操作能够让集合 $\mathcal{S}$ 与集合 $\overline{\mathcal{S}}$ 在统计意义上保持相似，故此瓦卡伊尔和约瑟夫（2022a）将二者称作孪生集。值得注意的是，存在如下恒等式：
+
+$$
+\mathrm{ED}(\mathcal{S},\mathcal{D})=\left(\frac{N-n}{N}\right)^2\mathrm{ED}(\mathcal{S},\overline{\mathcal{S}})
+\tag{10.2}
+$$
+
+因此，最小化 $\mathrm{ED}(\mathcal{S},\overline{\mathcal{S}})$ 与最小化 $\mathrm{ED}(\mathcal{S},\mathcal{D})$ 会得到完全一致的结果。尽管如此，孪生集思路为该优化问题提供了全新视角，可基于该视角设计启发式算法求解该问题。
+
+首先，注意 $\mathrm{ED}(\mathcal{S},\overline{\mathcal{S}})$ 包含三项。因此，可以通过以下方式实现 $\mathrm{ED}(\mathcal{S},\overline{\mathcal{S}})$ 的最小化：（1）让 $\mathcal{S}$ 与 $\overline{\mathcal{S}}$ 相互靠近，（2）分散 $\mathcal{S}$，以及（3）分散 $\overline{\mathcal{S}}$。我们将通过一个简单示例说明如何实现这些相互冲突的目标。以图 10.4 中的 50 个数据点为例。假设我们要将该数据集划分为 40 个训练点和 10 个测试点。将标记为 “1” 的点作为第一个测试点。选取距离它最近的四个点，并将其划分至训练集，以此让 $\mathcal{S}$ 与 $\overline{\mathcal{S}}$ 相互靠近。接下来，在这四个点中找出距离 “1” 最远的点，再选取距离该最远点最近的点作为 “2”，即第二个测试点，以此实现 $\overline{\mathcal{S}}$ 的分散。可以持续执行该算法，直至得到 10 个测试集点，结果如图的右侧子图所示。全部计算均可借助 kd‑树完成，平均计算复杂度为 $\mathcal{O}(pNlogN)$，相较于支撑点划分算法，计算开销大幅降低。但从右侧子图可以看到，后续迭代过程中各点的凸包开始出现重叠，导致测试点的选取效果有所下降。即便如此，瓦卡伊尔与约瑟夫（2022a）的研究表明，当样本量 $N$ 较大时，孪生算法得到的测试集效果与支撑点划分算法相当，甚至更优。
+
+> **图 10.4**：用于从 50 个点中选取 10 个点的孪生算法的第一次、第二次以及第十次迭代
+
+![Alt Text](figures/10.4.png){width=100%}
+
+再次来看包含 39195 个数据点的风电数据集。孪生抽样算法可通过 R 语言软件包 twinning（瓦卡伊尔与约瑟夫，2022b）以及一个 Python 软件包实现。使用孪生抽样算法从 39195 个数据点中选取 392 个数据点仅需约 0.02 秒，速度是支撑点划分算法的 100 倍。
+
+由于孪生法运算速度极快，因此可以高效应用于其他数据科学场景，例如将数据集划分为多个子集，以实现交叉验证或者分治算法流程。关于利用孪生法加速计算成本高昂的基于交叉验证的估计流程的相关应用，可参见约瑟夫等人（2024）的研究。
+
+在调查抽样中，对于存在空间趋势的总体，人们希望选取在总体范围内分布均匀的样本。这种分布均匀的样本被称为空间平衡样本，在实验设计文献中等同于空间填充设计。调查抽样文献中有多种方法可以获取空间平衡样本，详细内容可参考蒂耶（2006）的著作。为与这些方法开展对比，我们采用模拟数据集：$\boldsymbol{X}_i\stackrel{\text{iid}}{\sim}\mathcal{N}_2(\boldsymbol{0},\boldsymbol{I})$，其中 $i=1,\dots,1000$。假设我们要从该数据集中抽取 $n=100$ 个样本点 $\{\boldsymbol{x}_i\}_{i=1}^{n}$，每个点的入样概率相等。本文考虑格拉夫斯特伦等人（2012）提出的局部枢轴法 1 与局部枢轴法 2，两种方法均在 R 语言程序包 BalancedSampling 中实现（格拉夫斯特伦和普伦蒂乌斯，2024）。我们将这两种方法与支撑点划分、孪生算法进行对比，采用两项评价指标：能量距离，以及空间平衡度量，其定义为：
+
+$$
+\mathrm{SB}=\frac{1}{n}\sum_{i=1}^{n}\left(n_i-\frac{N}{n}\right)^2
+$$
+
+式中，$n_i$ 为样本点 $x_i$ 对应的沃罗诺伊区域内的数据点数量，满足 $\sum_{i=1}^{n}n_i=N=1000$。如果样本实现完全空间平衡，则对所有 $i=1,\dots,n$ 均有 $n_i=N/n$，此时 $\mathrm{SB}=0$。实际应用中一般无法达到该理想状态，但 $\mathrm{SB}$ 取值越小，代表空间平衡效果越好。图 10.5 展示了各算法重复运行 30 次后，两项指标的箱线图。可以看出，相比于两种局部枢轴法，支撑点划分与孪生算法得到的样本空间平衡效果显著更优。客观来讲，局部枢轴法可以处理入样概率不等的数据点，而支撑点划分和孪生算法不具备该能力。如果在基于支撑点的子抽样中需要使用不等入样概率，可以借助式 (5.17) 中的重要性支撑点来实现。
+
+> **图 10.5**：支撑点划分法、孪生法与局部枢轴法用于空间均衡抽样。能量距离与空间均衡度量的数值越小，代表样本分布越分散，能够较好地代表总体
+
+![Alt Text](figures/10.5.png){width=67%}
+
+## 10.4 有监督压缩
+
+尽管数据集包含响应信息，但除了确保子样本
+
+$$
+\mathcal{S}=\{(\boldsymbol{x}_i,\boldsymbol{y}_i)\}_{i=1}^n
+$$
+
+的联合分布与数据集
+
+$$
+\mathcal{D}=\{(\boldsymbol{X}_i,\boldsymbol{Y}_i)\}_{i=1}^n
+$$
+
+的联合分布保持一致外，我们并未利用这些响应信息来筛选子样本。不过，如果获取子样本的目的是构建预测模型，那么依据响应中的信息来挑选样本是合理的。以图 10.2 中的风电数据为例：当风速低于 3 米/秒或高于 13 米/秒时，输出功率几乎没有变化，因此只需选取风速区间 [3,13] 内的数据构成子样本就足够了。该做法建立在一个前提之上：我们所采用的建模方法能够刻画输入‑输出关系的这种非平稳特性。如图 10.2 所示，平稳高斯过程显然无法很好地处理该数据集。此时我们就需要使用可以处理非平稳特性的高斯过程模型，例如树结构高斯过程（格拉梅西和李，2008）或者复合高斯过程（巴和约瑟夫，2012）。
+
+假设我们有一个连续标量输出。记基于子样本拟合得到的模型为 $y=\widehat{h}(\boldsymbol{x}|S)$。在平方误差损失下，我们的目标是通过
+
+$$
+\min_{\mathcal{S}}L=\sum_{i=1}^{N}\{Y_i-\widehat{h}(\boldsymbol{X}_i|S)\}^2
+\tag{10.3}
+$$
+
+求解最优子样本。在执行该优化之前，我们需要选定 $\widehat{h}$。如果选择线性回归模型，那么得到的最优子样本仅对该选定的线性模型最优，在其他模型上效果可能较差。因此，为了让子样本对模型选择具备鲁棒性，我们需要为 $\widehat{h}$ 选用非参数回归模型。但如果选用树模型或者复合高斯过程，其估计与计算成本很高，求解最优子样本所需耗时会过大，从而失去实用价值。因此，我们需要选取灵活且计算速度快的简单非参数模型。约瑟夫与马克（2021）为此提出采用最近邻法（1‑NN）。
+
+最近邻预测器定义为：
+
+$$
+\widehat{h}(\boldsymbol{x}|\mathcal{S})=y_i
+$$
+
+其中 $i=\argmin_{j=1:n}\|\boldsymbol{x}-\boldsymbol{x}_j\|$。因此，对于给定点集 $\{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n\}$，我们可以将数据集的索引集（即 $\{1,\dots,N\}$）划分为若干索引集 $I_i,i=1,\cdots,n$，每个 $I_i$ 收集数据集中距离点 $x_i$ 最近的所有样本索引：
+
+$$
+I_i=\{j:\|\boldsymbol{X}_j-\boldsymbol{x}_i\|<\|\boldsymbol{X}_j-\boldsymbol{x}_{i'}\|,\forall i'\ne i\},\quad i=1,\cdots,n
+\tag{10.4}
+$$
+
+显然有 $\bigcup_{i=1}^{n}I_i=\{1,\dots,N\}$，且当 $i\ne j$ 时 $I_i\cap I_j=\varnothing$。式 (10.4) 中的最近邻区域与我们在第 4 章大量使用的沃罗诺伊区域完全一致。于是，式 (10.3) 中的损失函数可以化简为：
+
+$$
+\begin{align*}
+L&=\sum_{i=1}^{n}\sum_{j\in I_i}\{Y_j-\widehat{h}(\boldsymbol{X}_j|\mathcal{S})\}^2\\
+&=\sum_{i=1}^{n}\sum_{j\in I_i}\{Y_j-y_i\}^2
+\end{align*}
+$$
+
+将损失 $L$ 关于 $\{y_1,\dots,y_n\}$ 求极小，可得到熟知的解：
+
+$$
+y_i=\frac{\sum_{j\in I_i}Y_j}{N_i}=\overline{Y}_i
+$$
+
+其中 $N_i$ 为第 $i$ 个簇内的样本数量。由此，式 (10.3) 的优化问题简化为：
+
+$$
+\min_{\boldsymbol{x}_1,\dots,\boldsymbol{x}_n}L=\sum_{i=1}^{n}\sum_{j\in I_i}\{Y_j-\overline{Y}_i\}^2
+\tag{10.5}
+$$
+
+尽管该优化问题形式上与 k‑均值聚类十分相似，但二者本质完全不同：本问题需要在输入空间求解最优划分，而非在输出空间求解。
+
+约瑟夫和马克（2021）提出了一种序列算法来近似求解 (10.5) 式。该算法首先利用 k 均值生成若干个点（通常为两个）。随后，算法找出误差平方和 $\sum_{j \in I_i}\{Y_j-\overline{Y}_i\}^2$ 最大的聚类。将该聚类拆分为两个聚类，不断迭代，直至得到目标聚类数量。
+
+考虑一份基于米哈伊维奇函数并加入部分噪声生成的模拟数据集，形式如下：
+
+$$
+Y_i=-\sum_{k=1}^{2}\sin(\pi X_{ik})\sin^{20}(k\pi X_{ik}^2)+\epsilon_i
+$$
+
+其中 $\boldsymbol{X}_i\stackrel{\text{iid}}{\sim}\mathcal{U}(0,1)^2$，$\epsilon_i\stackrel{\text{iid}}{\sim}\mathcal{N}(0,0.01^2)$，$i=1,\dots,N$。取 $N=10000$，假设我们希望将该数据集压缩至规模 $n=100$。约瑟夫与马克（2021）提出的算法在 R 软件包 supercompress（黄与约瑟夫，2022）中实现。这 100 个样本点及其沃罗诺伊（Voronoi）区域如图 10.6 右侧子图所示。作为对比，该图左侧子图展示了采用 k 均值算法完成的无监督样本点选取。可以看到，k 均值算法将样本点均匀散布在输入区域内，而有监督压缩算法则在响应变量变化剧烈的区域选取更多样本点，在变化平缓的区域选取更少样本点。因此，k 均值算法得到的沃罗诺伊区域大小基本一致，而有监督压缩算法得到的沃罗诺伊区域在高变化区域更小，在低变化区域更大。显然，对于能够捕捉函数非平稳特性的模型，使用有监督压缩选出的样本点效果会远优于 k 均值选出的样本点。从定量角度来看，最近邻预测器在无监督样本集下的均方根预测误差为 0.1556，在有监督样本集下为 0.0996，预测精度提升 36%。不过，有监督压缩算法的计算复杂度为 $\mathcal{O}(pnN\log N)$，这使得它相比用于数据降维的无监督孪生算法运算速度要慢得多。
+
+> **图 10.6**：从 10000 个样本中分别通过 k 均值算法（左）与有监督压缩算法（右）选出 100 个样本点。样本点叠加在用于生成数据的米哈伊维奇函数图像之上
+
+![Alt Text](figures/10.6.png){width=67%}
+
+# 11 数据分析
+
+数据分析的一个主要目标是识别对输出结果产生影响的重要输入变量，并利用这些重要变量构建预测模型。传统上，试验设计并不被视作一种数据分析技术，而是当作数据采集与规划的工具。本章旨在说明，我们在前面章节所探讨的试验设计及其相关技术可应用于数据分析与预测建模。我们将会看到，将这些技术审慎地融入数据分析与建模工作中，能够得到更优质、更高效的结果，在处理大数据时效果尤为突出。
+
+## 11.1 因子选择与排序
+
+变量选择被视为统计学中最重要的研究课题之一。由于需要对黑盒统计模型与机器学习模型进行解读和解释，该课题近来重新受到关注。变量选择在相关文献中已有很长的研究历史，而该方向研究至今尚未形成定论，也说明了其研究难度。幸运的是，我们已经在第 6 章为构建变量选择方法奠定了必要的理论基础。我们可以借助全局敏感性指数量化变量的重要程度，并将其用于变量筛选与排序。但在数据分析问题中，我们仅拥有数据集 $\{(\boldsymbol{x}^{^{(i)}}, y^{^{(i)}})\}_{i=1}^N$，其中 $\boldsymbol{x}^{^{(i)}}\in\mathrm{R}^p$。这代表我们无法获取计算机模型，也不掌握变量的分布情况，这极大提升了该问题的复杂程度。
+
+要理解数据分析问题中度量因子重要性所面临的各类难题，我们首先回顾第 6 章介绍过的部分概念。我们用于因子筛选的核心指标之一是总索博尔指数（霍马与萨泰利，1996）。设 $y=h(\boldsymbol{x})$，$\boldsymbol{x}\in[0,1]^p$ 为输入‑输出关系，我们假定该关系已知，或至少可以借助计算机代码，由给定输入值得到对应输出。将 $\boldsymbol{x}$ 视作服从均匀分布的随机变量，即 $\boldsymbol{x}\sim\mathcal{U}(0,1)^p$，则第 $i$ 个因子的总索博尔指数定义为：
+
+$$
+T_i=\frac{V_i^{\mathrm{tot}}}{V}=\frac{\mathrm{E}\{\mathrm{var}[h(\boldsymbol{x})|\boldsymbol{x}_{\sim i}]\}}{\mathrm{var}\{h(\boldsymbol{x})\}}
+\tag{11.1}
+$$
+
+我们曾提出基于蒙特卡洛与试验设计的方法来估计该指数，当 $T_i$ 取值较大时判定因子重要，$T_i$ 取值较小时判定因子不重要。但在实际数据分析问题中，情况存在诸多不同：（1）输入‑输出关系是未知的；（2）输入变量的联合分布与条件分布未知，且很可能偏离均匀分布；（3）数据含有噪声，还可能属于非结构化数据，无法通过试验设计采集新样本；（4）输入变量未必相互独立。
+
+我们可以利用非参数回归或机器学习技术，通过数据对未知的输入‑输出关系进行估计，以此尝试解决第一个问题。但该方法实施难度大、耗时长，在数据量庞大的情况下尤为突出。此外，估计过程产生的误差会使重要性度量出现偏差。同理，我们可以借助密度估计来处理第二个问题，但密度估计本身就是一项艰巨的工作，在高维问题中更是如此。倘若前两个问题能够得到解决，我们就可以利用已估计得到的函数与分布来解决第三个问题。
+
+这里我们将介绍另一种方法，用以同时处理前三个问题。不过，关于相关输入变量的第四个问题十分关键，因为它会对索博尔指数的有效性提出质疑，因此在采用该方法之前需要对此展开讨论。倘若变量之间不相互独立，那么我们用于方差分解的正交性条件将不再成立，作为索博尔指数理论基础的函数方差分析也会失效。举个例子：
+
+$$
+\begin{align*}
+&y=2x_1+2\sqrt{3}x_2+x_3
+\tag{11.2}\\
+&\begin{bmatrix}x_1\\x_2\end{bmatrix}
+\sim\mathcal{N}\left(\begin{bmatrix}0\\0\end{bmatrix},
+\begin{bmatrix}1&\rho\\\rho&1\end{bmatrix}\right),x_3\sim\mathcal{N}(0,1)
+\end{align*}
+$$
+
+由于该模型为可加模型，各变量的影响效果可以直观呈现，如图 11.1 左图所示。如果忽略变量间的相关性，显然 $x_1$ 是最重要的变量，$x_2$ 次之，$x_3$ 重要性最低。但当相关系数 $|\rho|$ 取值较大时，若模型中已经包含 $x_1$，再加入 $x_2$ 并不会带来增益，反之亦然。鉴于 $x_1$ 比 $x_2$ 更为重要，我们可以选用 $(x_1,x_3)$ 构建预测模型，舍弃 $x_2$。
+
+> **图 11.1**：式 (11.2) 中模型的三个变量的效应（左侧）及其总索博尔指数（右侧）
+
+![Alt Text](figures/11.1.png){width=67%}
+
+现在我们来看这个简单线性模型的总索博尔指数。由于式 (11.1) 中的分母对所有变量均为常数，我们只需考虑分子 $V_i^{\mathrm{tot}}$。其结果为：
+
+$$
+V_1^{\mathrm{tot}}=4(1-\rho^2),\quad V_2^{\mathrm{tot}}=\frac{4}{3}(1-\rho^2),\quad V_3^{\mathrm{tot}}=1
+$$
+
+绘制于图 11.1 的右侧子图。当相关性较小，即 $|\rho|<0.5$ 时，总索博尔指数与我们的直观认知一致：$x_1\succ x_2\succ x_3$，其中“$\succ$”表示“比……更重要”。但当相关性较高时，总索博尔指数的结果就显得不合常理。事实上，当 $|\rho|\to1$ 时，$x_1$ 与 $x_2$ 的总索博尔指数趋近于零，意味着这两个变量都不重要。但实际情况显然并非如此！
+
+现有文献中已提出诸多方法，旨在解决输入变量存在相关性时总索博尔指数存在的缺陷。其中一种主流方法是借助博弈论中的沙普利值计算重要性测度（欧文，2014；宋等人，2016），该方法可看作是在所有可能的变量子集上计算得到的总索博尔指数的加权平均值（韦迪内利和沃瑟曼，2024）。另一种颇具价值的方法是由博尔戈诺沃（2007）提出的基于条件密度的灵敏度测度。更多详细内容可参阅达·韦加等人（2021，第 5 章）的专著及其引用的相关文献。
+
+哈特与格雷莫（2018）提出了关于总索博尔指数的全新视角：若从模型中剔除某一变量，同时固定其余所有变量，总索博尔指数可看作该情形下的 $L_2$ 近似误差。为理解这一点，首先注意，当剔除变量 $x_i$ 时，对函数 $y=h(\boldsymbol{x})$ 进行近似的最优模型可写为：
+
+$$
+h_{\sim i}(\boldsymbol{x}_{\sim i})=\argmin_{g(\boldsymbol{x}_{\sim i})}\mathrm{E}\{h(\boldsymbol{x})-g(\boldsymbol{x}_{\sim i})\}^2=\mathrm{E}\{h(\boldsymbol{x})|\boldsymbol{x}_{\sim i}\}
+$$
+
+采用该最优形式后，近似误差为：
+
+$$
+\begin{align*}
+\mathrm{E}\{h(\boldsymbol{x})-h_{\sim i}(\boldsymbol{x}_{\sim i})\}^2&=\mathrm{E}\{h(\boldsymbol{x})-\mathrm{E}[h(\boldsymbol{x})|\boldsymbol{x}_{\sim i}]\}^2\\
+&=\mathrm{E}(\mathrm{E}\{h(\boldsymbol{x})-\mathrm{E}[h(\boldsymbol{x})|\boldsymbol{x}_{\sim i}]|\boldsymbol{x}_{\sim i}\}^2)\\
+&=\mathrm{E}(\mathrm{var}\{h(\boldsymbol{x})|\boldsymbol{x}_{\sim i}\})\\
+&=V_i^{\mathrm{tot}}
+\end{align*}
+$$
+
+黄与约瑟夫（2025a）指出，总索博尔指数的这一解释与雷等人（2018）、威廉姆森等人（2021）以及韦尔迪内利和瓦瑟曼（2024）所提出的剔除协变量（LOCO）方法相一致。事实上，他们证明了如下结论。
+
+> **定理 11.1**：总索博尔指标 $T_i=0$ 的充要条件是 $h(\boldsymbol{x})\perp\boldsymbol{x}_i|\boldsymbol{x}_{\sim i}$，即 $h(\boldsymbol{x})$ 与 $\boldsymbol{x}_i$ 在给定 $\boldsymbol{x}_{\sim i}$ 的条件下相互独立。
+
+因此，尽管在变量存在相关性的情况下，总索博尔指数的绝对值可能没有实际意义，但仍可将其作为筛选因子的度量指标。
+
+在将总索博尔指数用于因子筛选之前，我们需要提出一种可基于非结构化、存在相关性且含噪声的数据对其进行估计的方法。如前文所述，我们可以采用非参数回归方法，由数据估计得到底层模型。为降低模型拟合效果不佳所带来潜在偏差的发生概率，威廉姆森等人（2021）提出采用模型集成方案。但该方式会大幅提升方法的计算复杂度。为解决计算负担问题，同时保证模型具备鲁棒性，黄与约瑟夫（2025a）提出了一种与模型无关的总索博尔指数估计方法。该方法建立在布罗托等人（2020）针对纯净数据所提出的基于最近邻的估计流程之上。
+
+首先注意，总索博尔指数的分子可采用双重蒙特卡洛估计器进行估计（宋等人，2016）：
+
+$$
+\widehat{V}_i^{\mathrm{tot}}=\frac{1}{N_O}\sum_{m=1}^{N_O}\left\{\frac{1}{N_I-1}\sum_{j=1}^{N_I}\left(h(\boldsymbol{x}^{(m)}_{\sim i},x^{(m,j)}_i)-\frac{1}{N_I}\sum_{l=1}^{N_I}h(\boldsymbol{x}^{(m)}_{\sim i},x^{(m,l)}_i)\right)^2\right\}
+\tag{11.3}
+$$
+
+式中 $\{\boldsymbol{x}^{(m)}_{\sim i}\}_{m=1}^{N_O}$ 是取自 $\boldsymbol{x}_{\sim i}$ 分布的独立同分布样本；给定 $\boldsymbol{x}^{(m)}_{\sim i}$ 条件下，$\{x^{(m,j)}_i\}_{j=1}^{N_I}$ 服从条件分布 $x_i|\boldsymbol{x}_{\sim i}=\boldsymbol{x}^{(m)}_{\sim i}$，且为独立同分布样本。当 $N_I=2$ 时，该式退化为式 (6.7) 中的詹森‑索博尔估计器。由于函数 $h(\cdot)$ 未知，布罗托等人（2020）提出，将内层循环设计 $\{(\boldsymbol{x}^{(m)}_{\sim i},x^{(m,j)}_i)\}_{j=1}^{N_I}$ 替换为样本集 $\{\boldsymbol{x}^{(n)}\}_{n=1}^{N}$ 里 ${\sim i}$ 分量与 $\boldsymbol{x}^{(m)}_{\sim i}$ 最接近的 $N_I$ 个样本。更严谨地，设 $k^{(m)}_{\sim i}(j)$ 为下标，使得 $\boldsymbol{x}^{(k^{(m)}_{\sim i}(j))}_{\sim i}$ 是样本集合 $\{\boldsymbol{x}^{(n)}_{\sim i}\}_{n=1}^{N}$ 中距离 $\boldsymbol{x}^{(m)}_{\sim i}$ 第 $j$ 近的元素；若出现距离相等的情况，则通过随机选取处理。此时 $V_i^{\mathrm{tot}}$ 的双重蒙特卡洛估计器写作：
+
+$$
+\widehat{V}_i^{\mathrm{tot}}=\frac{1}{N_O}\sum_{m=1}^{N_O}\left\{\frac{1}{N_I-1}\sum_{j=1}^{N_I}\left(y^{(k^{(m)}_{\sim i}(j))}-\frac{1}{N_I}\sum_{l=1}^{N_I}y^{(k^{(m)}_{\sim i}(l))}\right)^2\right\}
+\tag{11.4}
+$$
+
+对于外层循环蒙特卡洛，样本集 $\{\boldsymbol{x}^{(m)}_{\sim i}\}_{m=1}^{N_O}$ 既可以取全部样本 $\{\boldsymbol{x}^{(n)}_{\sim i}\}_{n=1}^{N}$；当样本总量 $N$ 较大时，也可以取自 $\{\boldsymbol{x}^{(n)}_{\sim i}\}_{n=1}^{N}$ 的随机子样本（允许放回或不放回抽样）。
+
+现在假设输出受到加性随机误差的干扰：$y^{(i)}=h(\boldsymbol{x}^{(i)})+\epsilon_i$，其中 $\epsilon_i$ 独立同分布服从正态分布 $\mathcal{N}(0,\sigma^2)$。利用全空间进行最近邻搜索，可按照式 (11.4) 得到 $\sigma^2$ 的估计值：
+
+$$
+\widehat{\sigma}^2=\frac{1}{N_O}\sum_{m=1}^{N_O}\left\{\frac{1}{N_I-1}\sum_{j=1}^{N_I}\left(y^{(k^{(m)}_{1:p}(j))}-\frac{1}{N_I}\sum_{l=1}^{N_I}y^{(k^{(m)}_{1:p}(l))}
+\right)^2\right\}
+\tag{11.5}
+$$
+
+由于
+
+$$
+\mathrm{E}[\mathrm{var}\{y|\boldsymbol{x}_{\sim i}\}]=\mathrm{E}[\mathrm{var}\{h(\boldsymbol{x})+\epsilon|\boldsymbol{x}_{\sim i}\}]=V_i^{\mathrm{tot}}+\sigma^2
+$$
+
+据此可由式 (11.4) 得到 $V_i^{\mathrm{tot}}$ 的无偏估计：
+
+$$
+V_i^{\mathrm{tot}}=\frac{1}{N_O}\sum_{m=1}^{N_O}\left\{\frac{1}{N_I-1}\sum_{j=1}^{N_I}\left(y^{(k^{(m)}_{\sim i}(j))}-\frac{1}{N_I}\sum_{l=1}^{N_I}y^{(k^{(m)}_{\sim i}(l))}\right)^2\right\}-\widehat{\sigma}^2
+\tag{11.6}
+$$
+
+该估计量无法保证取值非负。因此，若计算结果为负，则取 $V_i^{\mathrm{tot}}=0$。
+
+上述估计量可用于构建前向选择算法，具体如下。由一组因子 $u$ 所解释的 $h(\boldsymbol{x})$ 的方差为：
+
+$$
+\begin{align*}
+V_{u}&=\mathrm{var}[\mathrm{E}\{h(\boldsymbol{x})|\boldsymbol{x}_{u}\}]\\
+&=\mathrm{var}\{h(\boldsymbol{x})\}-\mathrm{E}[\mathrm{var}\{h(\boldsymbol{x})|\boldsymbol{x}_{u}\}]\\
+&=\mathrm{var}(y)-\mathrm{E}[\mathrm{var}\{h(\boldsymbol{x})+\epsilon|\boldsymbol{x}_{u}\}]
+\end{align*}
+$$
+
+因此，$V_{u}$ 的估计式为：
+
+$$
+\widehat{V}_{u}=\widehat{\mathrm{var}}(y)-\frac{1}{N_O}\sum_{m=1}^{N_O}\left\{\frac{1}{N_I-1}\sum_{j=1}^{N_I}\left(y^{(k_{u}^{(m)}(j))}-\frac{1}{N_I}\sum_{l=1}^{N_I}y^{(k_{u}^{(m)}(l))}\right)^2\right\}
+\tag{11.7}
+$$
+
+接下来可以逐个选取使 $\widehat{V}_{u}$ 最大化的因子。黄与约瑟夫（2025a）还采用后向消元法进一步优化该选择流程。前向选择与后向消元策略还能够缓解近邻方法中存在的维度灾难问题。他们将整套算法命名为基于总指标的因子重要性排序与选择（FIRST）。该算法已在 R 程序包 first（黄和约瑟夫，2025b）中实现。在黄与约瑟夫（2025a）开展的大量模拟实验中，基于总指标的因子重要性排序与选择在现有各类因子选择方法里，取得了最优的选择效果，同时运算速度也最快。
+
+可通过逐个剔除基于总指标的因子重要性排序与选择方法指数最小的因子，并将剔除顺序反转，完成所选因子的排序。例如，考察式 (11.2) 中的线性模型。我们生成 1000 个 $\rho=0.9$ 的数据点。可借助 R 语言 first 程序包中的 first 函数得到总索博尔指数：$\widehat{T}^{\mathrm{tot}}_1=0.060$，$\widehat{T}^{\mathrm{tot}}_2=0.026$，$\widehat{T}^{\mathrm{tot}}_3=0.114$。据此，$x_2$ 重要性最低，将其剔除。此时仅保留 $x_1$ 与 $x_3$，计算得到 $\widehat{T}_1=0.886$、$\widehat{T}^{\mathrm{tot}}_3=0.109$。接下来剔除 $x_3$，仅剩余 $x_1$。由此得到因子排序：$x_1\succ x_3\succ x_2$，与预期结果一致。
+
+现在来看一个真实数据集：叶（1998）提出的混凝土抗压强度数据集，该数据集可从 UCI 机器学习库获取（杜阿与格拉夫，2017）。该数据集包含 $N=1030$ 条样本，拥有 8 个连续预测变量，对应混凝土组分与龄期，还有 1 个响应变量：抗压强度。首先，借助 SPlit 方法（瓦卡伊尔等人，2022）按照 95:5 的比例将数据集划分为训练集与测试集。随后，分别使用全部 8 个预测变量，以及通过 FIRST 筛选得到的预测变量（约 4 个因子），在训练数据上拟合随机森林模型和采用高斯相关函数的高斯过程模型（OK）。随机森林通过 R 语言包 randomForest 完成拟合（廖和维纳，2002），高斯过程模型则使用 rkriging 包实现（黄与约瑟夫，2024）。之后在测试集上计算预测均方根误差（RMSE）。将上述流程重复 30 次，得到的均方根误差结果以箱线图形式呈现在图 11.2 中。尽管相较于使用全部预测变量，采用筛选后的预测变量得到的均方根误差数值更高，但考虑到仅使用了大约一半的预测变量，该表现仍属于可接受水平。
+
+> **图 11.2**：采用全部八个预测变量，以及通过基于总指标的因子重要性排序与选择方法筛选得到的因子集，分别使用随机森林（左侧）与高斯过程（右侧），在混凝土数据集测试集上得到的均方根预测误差
+
+![Alt Text](figures/11.2.png){width=67%}
+
+## 11.2 孪生高斯过程
+
+考虑我们在 2.2.3 节中讨论的高斯过程回归问题：
+
+$$
+y=h(\boldsymbol{x})+\epsilon,\quad h(\boldsymbol{x})\sim\mathrm{GP}(\mu,\tau^2R(\cdot)),\quad\epsilon\stackrel{\mathrm{iid}}{\sim}\mathcal{N}(0,\sigma^2)
+$$
+
+但本次使用大规模数据集 $(\boldsymbol{X}_N,\boldsymbol{Y}_N)=\{(\boldsymbol{X}^{(i)},\boldsymbol{Y}^{(i)})\}_{i=1}^N$。例如，在第 10 章中，我们接触到风电数据集（丁，2019），该数据集包含 $N=39195$ 个样本点。该数据规模超出了高斯过程模型的处理能力，因此我们借助支撑点抽取了 392 个样本点，并对高斯过程模型进行拟合。在主频 2.10 吉赫兹的台式计算机上，利用 rkriging 对该子样本完成拟合仅需约 0.3 秒。由于高斯过程模型的拟合计算复杂度为 $\mathcal{O}(N^3)$，我们可以估算出在完整数据集上完成拟合所需时间为 $0.3\times(39195/392)^3$，大约需要 3.5 天！由此可见，在该完整数据集上拟合高斯过程模型的计算成本极高。然而，如图 10.2 所示，基于子样本拟合得到的高斯过程模型效果并不理想。因此，有必要改进高斯过程方法以适配大规模数据集，这也是统计学与机器学习领域的热门研究方向（格拉马西，2020，第 9 章）。
+
+高斯过程的计算瓶颈来源于需要对 $N\times N$ 维相关矩阵 $\boldsymbol{R}$ 求逆与计算行列式。因此，部分方法采用具有紧支撑相关函数的稀疏矩阵技术来简化上述计算（富勒等人，2006；考夫曼等人，2011），但该做法会损害高斯过程的预测性能。另一种方法是将数据区域划分为若干较小子区域，在各个子区域内拟合高斯过程，再整合预测结果（特雷斯普，2000；格拉马西和李，2008；曹和弗利特，2014），但该方法的预测结果会出现不连续问题。帕克与阿普利（2018）尝试通过在子区域边界引入伪观测值来解决不连续问题，代价是计算开销有所增加。处理大规模数据集的另一类思路是从全部区域中选取少量具有代表性的子样本，基于子样本拟合全局高斯过程，本文针对风电数据集便采用了该思路。该方法与稀疏高斯过程方法密切相关（基尼奥内罗-坎德拉和拉斯穆森，2005；斯内尔森和加拉马尼，2005；蒂西亚斯，2009）。对该方法的一种改进是在多个子样本上分别构建高斯过程并对结果取平均（特雷斯普，2000；戴森罗特和吴，2015；李和马克，2025）。格拉马西与阿普利（2015）提出根据预测位置选取部分数据点，以此拟合局部高斯过程。还有一种广为使用的方法是韦基亚近似（韦基亚，1988），该方法按照某种数据排序方式，将似然函数分解为若干单变量条件分布的乘积（卡茨富斯和吉尼斯，2021）。
+
+由于可以通过试验设计方法获取全局和局部点子集，本文将介绍瓦卡伊尔与约瑟夫（2022a）提出的方法，该方法融合了全局与局部高斯过程（GP）近似方法。我们可以采用 10.3 节介绍的孪生采样法，从大型数据集中快速获取高质量子样本，再利用该子样本构建全局高斯过程模型。但如图 10.2 所示，该模型的预测误差可能较大。假设我们需要对风速约 20 米/秒时的功率进行预测，该数值附近存在大量数据点，我们本可以利用这些数据构建预测效果更优的模型。一种实现思路是求解全局高斯过程模型的残差，仅使用 20 米/秒附近的数据点拟合局部高斯过程模型，随后将局部高斯过程的预测值与全局高斯过程的预测值相加，得到最终预测结果。巴与约瑟夫（2012）研究表明，这类两阶段高斯过程预测器等价于将目标底层函数建模为两个高斯过程之和，这又等价于拟合单个高斯过程，其相关函数形式如下：
+
+$$
+R(\boldsymbol{\Delta})=(1-\lambda)G(\boldsymbol{\Delta})+\lambda L(\boldsymbol{\Delta})
+\tag{11.8}
+$$
+
+式中 $G(\cdot)$ 为全局高斯过程的相关函数，$L(\cdot)$ 为局部高斯过程的相关函数，$\lambda\in[0,1]$ 为权重系数，用于权衡全局高斯过程与局部高斯过程的预测结果。基于孪生数据集 $D_g$、$D_l$ 以及孪生相关函数 $G(\cdot)$、$L(\cdot)$，瓦卡伊尔与约瑟夫（2024a）将该方法命名为孪生高斯过程。
+
+将通过孪生法得到的 $n_g$ 个全局训练点记为 $D_g=\{\boldsymbol{x}_i\}_{i=1}^{n_g}$，将在预测点 $\boldsymbol{x}$ 周边获取的 $l$ 个局部训练点记为 $D_l(\boldsymbol{x})=\{X_{\mathcal{L}}(\boldsymbol{x})\}$，其中 $\mathcal{L}(\boldsymbol{x})$ 代表局部点索引集合。格拉马西与阿普利（2015）介绍了用于更精细地选取局部点的序贯设计方法，但为节约计算时间，我们省略该步骤。取而代之的是，对于给定测试位置 $\boldsymbol{x}$，我们在 $\{X_i\}_{i=1}^{N}\setminus D_g$ 中选取距离 $\boldsymbol{x}$ 最近的 $l$ 个近邻点得到 $D_l$，该操作可借助 kd‑树以 $\mathcal{O}(l\log l)$ 的时间复杂度高效完成。接下来我们在合并数据集 $D_c(\boldsymbol{x})=D_g\cup D_l(\boldsymbol{x})$ 上拟合高斯过程（GP），该数据集包含 $n=n_g+n_l$个样本点。为简化符号表达，下文将 $D_l(\boldsymbol{x})$ 简写为 $D_l$，将 $D_c(\boldsymbol{x})$ 简写为 $D_c$。
+
+设 $\boldsymbol{Y}_c$ 为对应于 $\boldsymbol{D}_c$ 的 $n\times1$ 维响应值向量。于是，给定 $\boldsymbol{Y}_c$，我们可以得到后验分布：
+
+$$
+h(\boldsymbol{x})|\boldsymbol{Y}_c\sim\mathcal{N}(\widehat{y}(\boldsymbol{x}),s^2(\boldsymbol{x}))
+$$
+
+其中
+
+$$
+\begin{align*}
+\widehat{y}(\boldsymbol{x})&=\widehat{\mu}_n+\boldsymbol{r}_c(\boldsymbol{x})'(\boldsymbol{R}_{cc}+\eta\boldsymbol{I}_n)^{-1}(\boldsymbol{Y}_c-\widehat{\mu}_n\boldsymbol{1}_n)\\
+s^2(\boldsymbol{x})&=\widehat{\tau}_n^2[1+\eta-\boldsymbol{r}_c(\boldsymbol{x})'(\boldsymbol{R}_{cc}+\eta\boldsymbol{I}_n)^{-1}\boldsymbol{r}_c(\boldsymbol{x})]\\
+\widehat{\mu}_n&=\frac{\boldsymbol{1}_n'(\boldsymbol{R}_{cc}+\eta\boldsymbol{I}_n)^{-1}\boldsymbol{Y}_c}{\boldsymbol{1}_n'(\boldsymbol{R}_{cc}+\eta\boldsymbol{I}_n)^{-1}\boldsymbol{1}_n}\\
+\widehat{\tau}_n^2&=\frac{1}{n}(\boldsymbol{Y}_c-\widehat{\mu}_n\boldsymbol{1}_n)'(\boldsymbol{R}_{cc}+\eta\boldsymbol{I}_n)^{-1}(\boldsymbol{Y}_c-\widehat{\mu}_n\boldsymbol{1}_n)
+\end{align*}
+$$
+
+式中 $\boldsymbol{r}_c(\boldsymbol{x})$ 为 $n\times1$ 维相关向量；$\boldsymbol{R}_{cc}$ 是利用相关函数 $R(\cdot)$ 得到的组合数据集 $\boldsymbol{Y}_c$ 对应的 $n\times n$ 维相关矩阵；$\eta=\sigma^2/\widehat{\tau}_n^2$。该方法的难点在于，需要在每个预测位置 $\boldsymbol{x}$ 处计算 $(\boldsymbol{R}_{cc}+\eta\boldsymbol{I}_n)^{-1}$，当测试集规模较大时，计算开销会很高。不过该计算可以按如下方式简化。首先，对矩阵 $\boldsymbol{R}_{cc}$ 做分块：
+
+$$
+\begin{align*}
+\boldsymbol{R}_{cc}&=\begin{bmatrix}
+\boldsymbol{R}_{gg} &\boldsymbol{R}_{gl}\\
+\boldsymbol{R}_{lg} &\boldsymbol{R}_{ll}
+\end{bmatrix}\\
+&=\begin{bmatrix}
+(1-\lambda)\boldsymbol{G}_{gg}+\lambda\boldsymbol{L}_{gg} & (1-\lambda)\boldsymbol{G}_{gl}+\lambda\boldsymbol{L}_{gl}\\
+(1-\lambda)\boldsymbol{G}_{lg}+\lambda\boldsymbol{L}_{lg} & (1-\lambda)\boldsymbol{G}_{ll}+\lambda\boldsymbol{L}_{ll}
+\end{bmatrix}
+\end{align*}
+$$
+
+其中 $\boldsymbol{R}_{gg}$ 是对应于 $\boldsymbol{Y}_g$ 的 $n_g\times n_g$ 维相关矩阵，$\boldsymbol{R}_{ll}$ 是对应于 $\boldsymbol{Y}_l$ 的 $n_l\times n_l$ 维相关矩阵，$\boldsymbol{R}_{gl}=\boldsymbol{R}_{lg}'$ 为 $n_g\times n_l$ 维互相关矩阵。矩阵 $\boldsymbol{G}_{gg}$、$\boldsymbol{L}_{gg}$ 等可依据式 (11.8) 中的相关函数 $G(\cdot)$ 与 $L(\cdot)$ 按相同方式定义。接下来，利用分块矩阵求逆公式（引理 2.1）可得：
+
+$$
+(\boldsymbol{R}_{cc}+\eta\boldsymbol{I}_n)^{-1}=\begin{bmatrix}
+\boldsymbol{\Sigma}_{gg}^{-1}+\boldsymbol{\Sigma}_{gg}^{-1}\boldsymbol{R}_{gl}\boldsymbol{S}^{-1}\boldsymbol{R}_{lg}\boldsymbol{\Sigma}_{gg}^{-1} & -\boldsymbol{\Sigma}_{gg}^{-1}\boldsymbol{R}_{gl}\boldsymbol{S}^{-1}\\
+-\boldsymbol{S}^{-1}\boldsymbol{R}_{lg}\boldsymbol{\Sigma}_{gg}^{-1} &\boldsymbol{S}^{-1}\end{bmatrix}
+\tag{11.9}
+$$
+
+式中 $\boldsymbol{\Sigma}_{gg}=\boldsymbol{R}_{gg}+\eta\boldsymbol{I}_g$，$\boldsymbol{S}=\boldsymbol{R}_{ll}-\boldsymbol{R}_{lg}\boldsymbol{\Sigma}_{gg}^{-1}\boldsymbol{R}_{gl}$。由于 $\boldsymbol{R}_{gg}=(1-\lambda)\boldsymbol{G}_{gg}+\lambda\boldsymbol{L}_{gg}$ 与测试位置 $\boldsymbol{x}$ 无关，$\boldsymbol{\Sigma}_{gg}^{-1}$ 可以在测试开始前预先计算。因此，每个测试位置仅需要对小规模的 $n_l\times n_l$ 矩阵 $\boldsymbol{S}$ 求逆，计算效率可以得到显著提升。
+
+瓦卡伊尔与约瑟夫（2024a）提出针对 $G(·)$ 采用幂指数相关函数（见表 2.1）。其相关参数可仅利用全局数据集，按照式 (2.22) 进行计算。对于局部相关函数，他们建议采用温德兰德（2004）提出的温德兰德紧支撑径向函数：
+
+$$
+L(\boldsymbol{\Delta})=\left(\frac{q\|\boldsymbol{\Delta}\|}{\theta_{l}}+1\right)\max\left(0,\left(1-\frac{\|\boldsymbol{\Delta}\|}{\theta_{l}}\right)^{q}\right),\ q=\lfloor p/2\rfloor+3
+$$
+
+式中 $\lfloor u\rfloor$ 表示不大于 $u$ 的最大整数。该局部相关函数仅包含一个超参数 $\theta_{l}$，可将其设置为式 (4.8) 所定义的 $D_g$ 填充距离。该设置能够保证：对于任意测试点 $\boldsymbol{x}$，至少存在一个全局训练点，使得二者之间的局部核处于激活状态；即对任意 $\boldsymbol{x}$，均存在 $\boldsymbol{x}_i\in D_g$，满足 $L(\boldsymbol{x}-\boldsymbol{x}_i)>0$。
+
+再次考虑包含 $N=39195$ 个样本点的风电数据集。孪生高斯过程在 R 语言的 twingp 程序包中实现（瓦卡伊尔与约瑟夫，2024b）。默认设置下，该方法取 $n_g\approx\sqrt{N}$、$n_l=25$，使得高斯过程（GP）拟合的计算复杂度为 $\mathcal{O}(N^{1.5})$。在含有 1000 个等间距样本点的测试集上得到的预测结果如图 11.3 所示。虽然该预测结果不如图 10.2 中的预测曲线平滑，但预测精度要高得多。整体的拟合与预测耗时不到 0.20 秒，这充分说明孪生高斯过程能够高效地对大规模数据集开展高斯过程拟合。
+
+> **图 11.3**：对于风电数据集，孪生高斯过程的预测结果以实线展示
+
+![Alt Text](figures/11.3.png){width=33%}

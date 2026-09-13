@@ -90,6 +90,12 @@ def convert_md_to_tex(md_content):
     while i < len(lines):
         line = lines[i]
 
+        title_match = re.match(r'^#### (.+)$', line)
+        if title_match:
+            tex_lines.append(f'\\paragraph*{{{title_match.group(1).strip()}}}')
+            i += 1
+            continue
+
         title_match = re.match(r'^### (.+)$', line)
         if title_match:
             tex_lines.append(f'\\subsubsection*{{{title_match.group(1).strip()}}}')

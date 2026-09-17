@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-md_to_pdf.py —— 将多个 md 合并为一个，并像 MPE 预览那样渲染后通过 Chrome 转 PDF。
+md_to_pdf.py —— 将单个 md 像 MPE 预览那样渲染后，通过本机 Chrome 转为 A4 PDF（带页码）。
+
+配合 md_merge.py 使用：先用 md_merge.py 合并章节，再对合并结果执行本脚本。
 
 用法：
-    1. 直接运行: python md_to_pdf.py         （弹出对话框多选 md，顺序即合并顺序）
-    2. 命令行:    python md_to_pdf.py a.md b.md c.md [--out out.pdf]
+    1. 直接运行: python md_to_pdf.py          （弹出对话框选择 md，可多选批量逐个转换）
+    2. 命令行:    python md_to_pdf.py a.md b.md [--out out.pdf]   （--out 仅单个文件时有效）
 
-工作流程：
-    多个 md -> 合并为一个 document.md -> render.js(markdown-it+KaTeX) 渲染为 HTML
-            -> print.js(puppeteer-core) 驱动本机 Chrome 打印 A4 PDF（带页码）
+流程：
+    md -> render.js(markdown-it+KaTeX) 渲染为 HTML
+       -> print.js(puppeteer-core) 驱动本机 Chrome 打印 A4 PDF
 
 依赖：
     - Python 3.10+（标准库 + tkinter）
@@ -18,7 +20,6 @@ md_to_pdf.py —— 将多个 md 合并为一个，并像 MPE 预览那样渲染
 """
 import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 import sys
@@ -35,8 +36,6 @@ CHROME_CANDIDATES = [
     Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
     Path("C:/Program Files/Microsoft/Edge/Application/msedge.exe"),
 ]
-
-SOURCE_COMMENT_PAT = re.compile(r"\s*<!-- source file: .*? -->\r?\n?")
 
 
 def find_node() -> Path:
@@ -71,25 +70,6 @@ def ensure_npm_deps() -> None:
     print("  依赖安装完成。")
 
 
-def merge_markdown_files(md_paths: list[Path], output_md: Path) -> Path:
-    """按给定顺序合并多个 md，删除 <!-- source file: --> 注释行。"""
-    with open(output_md, "w", encoding="utf-8") as out_f:
-        for p in md_paths:
-            if not p.exists():
-                print(f"  ⚠️ 跳过不存在文件: {p.name}")
-                continue
-            try:
-                content = p.read_text(encoding="utf-8")
-            except Exception as e:
-                print(f"  ⚠️ 读取失败跳过 {p.name}: {e}")
-                continue
-            content = SOURCE_COMMENT_PAT.sub("", content)
-            out_f.write("\n\n")
-            out_f.write(content)
-    print(f"  合并完成: {output_md}")
-    return output_md
-
-
 def run_node(script_name: str, *args: str) -> None:
     node = find_node()
     script = TOOL_DIR / script_name
@@ -100,42 +80,28 @@ def run_node(script_name: str, *args: str) -> None:
         raise RuntimeError(f"{script_name} 失败:\n{(r.stderr or '').strip()}")
 
 
-def md_to_pdf(md_paths: list[Path], output_pdf: Path | None = None) -> Path:
+def md_to_pdf(md_path: Path, output_pdf: Path | None = None) -> Path:
     """
-    将若干 md 合并渲染后转 PDF。
-    :param md_paths: 待处理的 md 路径（顺序即合并顺序；单个文件则直接转换）
-    :param output_pdf: 输出 PDF 路径；None 时自动取名
+    将单个 md 渲染为 HTML 后通过 Chrome 打印为 PDF。
+    :param md_path: 待转换的 md 文件
+    :param output_pdf: 输出 PDF 路径；None 时与 md 同名（同目录）
     :return: 输出 PDF 路径
     """
-    if not md_paths:
-        raise ValueError("没有传入 md 文件")
+    md_path = Path(md_path)
+    if not md_path.exists():
+        raise FileNotFoundError(f"找不到文件: {md_path}")
 
     ensure_npm_deps()
     chrome = find_chrome()
 
-    # 1. 合并（多个文件）或直接使用（单个文件）
-    if len(md_paths) == 1:
-        merged_md = md_paths[0]
-    else:
-        first_parent = md_paths[0].parent
-        merged_md = first_parent / "document.md"
-        print(f"正在合并 {len(md_paths)} 个文件…")
-        merge_markdown_files(md_paths, merged_md)
-
-    # 2. 确定输出路径
-    if output_pdf is None:
-        if len(md_paths) == 1:
-            output_pdf = merged_md.with_suffix(".pdf")
-        else:
-            output_pdf = merged_md.with_suffix(".pdf")  # document.pdf，与 document.md 同名
-    output_pdf = Path(output_pdf)
+    output_pdf = Path(output_pdf) if output_pdf else md_path.with_suffix(".pdf")
     output_html = output_pdf.with_suffix(".html")
 
-    # 3. 渲染 HTML（markdown-it + KaTeX，MPE 风格）
-    print(f"正在渲染: {merged_md.name}")
-    run_node("render.js", str(merged_md), str(output_html))
+    # 1. 渲染 HTML（markdown-it + KaTeX，MPE 风格）
+    print(f"正在渲染: {md_path.name}")
+    run_node("render.js", str(md_path), str(output_html))
 
-    # 4. Chrome 打印 PDF
+    # 2. Chrome 打印 PDF
     print(f"正在通过 Chrome 打印 PDF: {output_pdf.name}")
     run_node("print.js", str(output_html), str(output_pdf), str(chrome))
 
@@ -144,34 +110,40 @@ def md_to_pdf(md_paths: list[Path], output_pdf: Path | None = None) -> Path:
 
 
 def select_and_convert_md():
-    """弹出对话框多选 md，合并后转 PDF（与 pdf_to_txt.py 交互一致）。"""
+    """弹出对话框选择 md（可多选），逐个转换为 PDF（与 pdf_to_txt.py 交互一致）。"""
     root = tk.Tk()
     root.withdraw()
     selected = filedialog.askopenfilenames(
-        title="请选择 Markdown 文件（按住 Ctrl 多选，顺序就是合并顺序）",
+        title="请选择 Markdown 文件（可多选，每个文件单独转换）",
         filetypes=[("Markdown 文件", "*.md"), ("All Files", "*.*")]
     )
     if not selected:
         print("未选择任何文件，程序退出。")
         return []
 
-    paths = [Path(p) for p in selected]
-    output = md_to_pdf(paths)
-    return [output]
+    converted = []
+    for p in selected:
+        converted.append(md_to_pdf(Path(p)))
+    print(f"转换完成，共处理 {len(converted)} 个文件。")
+    return converted
 
 
 if __name__ == "__main__":
     # 简单命令行解析：python md_to_pdf.py a.md b.md [--out out.pdf]
     args = sys.argv[1:]
     out_flag = "--out"
+    out_path = None
     if out_flag in args:
         i = args.index(out_flag)
         out_path = Path(args[i + 1])
         args = args[:i] + args[i + 2:]
-    else:
-        out_path = None
 
-    if args:
-        md_to_pdf([Path(a) for a in args], out_path)
-    else:
+    if not args:
         select_and_convert_md()
+    elif len(args) == 1:
+        md_to_pdf(Path(args[0]), out_path)
+    else:
+        if out_path:
+            print("⚠️ --out 仅支持单个文件，多个文件将各自输出同名 PDF")
+        for a in args:
+            md_to_pdf(Path(a))

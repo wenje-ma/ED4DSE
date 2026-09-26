@@ -27,9 +27,3 @@
 *.synctex*
 *.pyg
 *-blx.bib
-
-# md2pdf 工具依赖（含 3000+ 文件，不应入库；render.js 会自动重建 katex_fonts）
-md2pdf/node_modules/
-md2pdf/katex_fonts/
-# 单文件版运行时目录（md_to_pdf_standalone.py 首次运行自动生成）
-.md2pdf_runtime/

@@ -1,0 +1,15 @@
+setwd("C:/Users/18904/Github/ED4DSE/codes")
+if(!dir.exists("data"))dir.create("data")
+if(!dir.exists("../figures"))dir.create("../figures")
+if(!file.exists("data/2.2-plot.RData")){
+  D1=matrix(c(0,0,0,1,1,0,1,1),nrow=4,ncol=2,byrow=TRUE)
+  D2=matrix(c(0,0,.2,.9,.9,.1,1,1),nrow=4,ncol=2,byrow=TRUE)
+  save(D1,D2,file="data/2.2-plot.RData")
+}
+load("data/2.2-plot.RData")
+pdf("../figures/2.2.pdf",width=8,height=4)
+par(mfrow=c(1,2))
+plot(D1,pch=16,col="blue",xlim=c(-.1,1.1),ylim=c(-.1,1.1),xlab=expression(x[1]),ylab=expression(x[2]))
+plot(D2,pch=16,col="blue",xlim=c(-.1,1.1),ylim=c(-.1,1.1),xlab=expression(x[1]),ylab=expression(x[2]))
+par(mfrow=c(1,1))
+dev.off()

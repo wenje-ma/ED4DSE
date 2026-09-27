@@ -1,0 +1,16 @@
+setwd("C:/Users/18904/Github/ED4DSE/codes")
+if(!dir.exists("data"))dir.create("data")
+if(!dir.exists("../figures"))dir.create("../figures")
+library(car)
+if(!file.exists("data/4.11-plot.RData")){
+  p=5;n=50
+  set.seed(2)
+  library(SFDesign)
+  D=maxpro.optim(maxproLHD(n,p)$design)$design
+  maxpro.crit(D)
+  save(D,file="data/4.11-plot.RData")
+}
+load("data/4.11-plot.RData")
+pdf("../figures/4.11.pdf",width=4,height=4)
+scatterplotMatrix(D,diagonal=list(method="histogram"),smooth=FALSE,regLine=FALSE,pch=16)
+dev.off()
